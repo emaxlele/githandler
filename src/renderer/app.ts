@@ -310,11 +310,14 @@ async function reloadOpenDiff(): Promise<void> {
 	if (state.tab === "commit" && state.selectedCommit && state.commitPath) {
 		await selectCommitFile(state.commitPath);
 	} else if (state.changePath) {
-		const stillThere = state.snapshot?.status.entries.some(
-			(e) => e.path === state.changePath
+		const entry = state.snapshot?.status.entries.find(
+			(item) => item.path === state.changePath
 		);
-		if (stillThere) await loadChangeDiff();
-		else {
+		if (entry) {
+			// dopo uno stage il lato da mostrare cambia: va ricalcolato dallo stato nuovo
+			state.changeStaged = entry.index !== "." && entry.worktree === ".";
+			await loadChangeDiff();
+		} else {
 			state.changePath = null;
 			renderDiff(ui.changesDiff, null, "Seleziona un file.");
 		}

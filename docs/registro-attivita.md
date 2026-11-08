@@ -24,4 +24,4 @@
     (rename, file non tracciati, commit con messaggio multilinea, scarto delle modifiche, percorsi con
     spazi). Interfaccia provata su `AI_Knowledge` (184 commit) e sul repository stesso.
 -   **Stato**: funzionante in locale, non distribuito. Manca il pacchetto installabile.
--   **Riferimento**: primo commit del repository `~/Projects/gitcraft`.
+-   **Riferimento**: commit `548ac3a` del repository `~/Projects/gitcraft`.

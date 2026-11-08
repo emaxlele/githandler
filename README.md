@@ -62,7 +62,7 @@ npm run dev               # rebuild continuo dei bundle
 -   **GPU**: il processo GPU di Chromium non è disponibile su tutte le macchine. Per un'app testuale
     il rendering software è invisibile, quindi è il default; `GITCRAFT_GPU=1` riattiva
     l'accelerazione.
--   **Screenshot senza display**: `npm run shots`.
+-   **Screenshot senza display**: `npm run shots -- --repo .` (guida la UI e salva i PNG).
 
 ## Licenza
 
