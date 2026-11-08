@@ -42,4 +42,4 @@ const api: GitApi = {
 	},
 };
 
-contextBridge.exposeInMainWorld("gitcraft", api);
+contextBridge.exposeInMainWorld("lanecraft", api);

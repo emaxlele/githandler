@@ -79,7 +79,7 @@ export function historyArgs(query: HistoryQuery, limit = 500): string[] {
 	const args = [
 		"log",
 		// I ref di servizio (snapshot di undo, trash) non sono storia del progetto.
-		"--exclude=refs/gitcraft/*",
+		"--exclude=refs/lanecraft/*",
 		"--all",
 		"--date-order",
 		`-n${limit}`,

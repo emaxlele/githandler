@@ -17,7 +17,7 @@ import { runGit } from "./git.ts";
  *
  * Git non può conservare ciò che non ha mai tracciato, ma può conservare i byte: prima della
  * cancellazione ogni file viene scritto come blob (`hash-object -w`), l'insieme diventa un albero e
- * un commit, e il commit resta raggiungibile tramite `refs/gitcraft/trash/<scope>/<id>`.
+ * un commit, e il commit resta raggiungibile tramite `refs/lanecraft/trash/<scope>/<id>`.
  *
  * Perché così e non con una copia di cartelle:
  * - compressione e deduplica: due scarti identici costano una volta sola;
@@ -71,7 +71,7 @@ interface StoredEntry {
  * evita che uno sfalci le voci dell'altro. Nome ripulito + hash breve: stabile e valido come ref.
  */
 export function trashRefPrefix(gitDir: string): string {
-	return `refs/gitcraft/trash/${trashScope(gitDir)}/`;
+	return `refs/lanecraft/trash/${trashScope(gitDir)}/`;
 }
 
 export function trashRef(gitDir: string, id: string): string {
@@ -89,11 +89,11 @@ function trashScope(gitDir: string): string {
 
 /** Cartella delle copie create dalla v0.4, prima degli oggetti Git. Serve solo a ripristinarle. */
 export function trashDirectory(gitDir: string, id: string): string {
-	return join(gitDir, "gitcraft", "trash", id);
+	return join(gitDir, "lanecraft", "trash", id);
 }
 
 function tempIndex(gitDir: string, id: string, suffix: string): string {
-	return join(gitDir, "gitcraft", "tmp", `${id}-${suffix}.index`);
+	return join(gitDir, "lanecraft", "tmp", `${id}-${suffix}.index`);
 }
 
 /** Path relativi, senza risalite: il chiamante ha già validato, ma qui non ci si fida comunque. */
@@ -292,7 +292,7 @@ async function hashSymlink(
 }
 
 /**
- * Salva i path come un commit raggiungibile da `refs/gitcraft/trash/...`.
+ * Salva i path come un commit raggiungibile da `refs/lanecraft/trash/...`.
  * Restituisce `null` se non c'era più niente da salvare (file spariti nel frattempo).
  */
 export async function storeTrash(options: {
@@ -399,7 +399,7 @@ export async function storeTrash(options: {
 					"commit-tree",
 					tree,
 					"-m",
-					`gitcraft: discarded ${entries.length} path(s)`,
+					`lanecraft: discarded ${entries.length} path(s)`,
 				],
 				{ env: identityEnv() }
 			)
@@ -424,10 +424,10 @@ export async function storeTrash(options: {
 /** Identità fissa: il commit del trash non deve dipendere dalla config dell'utente. */
 function identityEnv(): Record<string, string> {
 	return {
-		GIT_AUTHOR_NAME: "gitcraft",
-		GIT_AUTHOR_EMAIL: "gitcraft@localhost",
-		GIT_COMMITTER_NAME: "gitcraft",
-		GIT_COMMITTER_EMAIL: "gitcraft@localhost",
+		GIT_AUTHOR_NAME: "lanecraft",
+		GIT_AUTHOR_EMAIL: "lanecraft@localhost",
+		GIT_COMMITTER_NAME: "lanecraft",
+		GIT_COMMITTER_EMAIL: "lanecraft@localhost",
 	};
 }
 
@@ -435,7 +435,7 @@ function identityEnv(): Record<string, string> {
  * Ripristina lo scarto. Se nel repository esiste già qualcosa con lo stesso nome non sovrascrive:
  * il lavoro fatto dopo vale più della copia, quindi si ferma e lo dice. La voce resta annullabile.
  *
- * Le copie della v0.4 (cartelle sotto `.git/gitcraft/trash/`) sono ancora ripristinabili: chi
+ * Le copie della v0.4 (cartelle sotto `.git/lanecraft/trash/`) sono ancora ripristinabili: chi
  * aggiorna l'app non perde la rete di sicurezza già creata.
  */
 export async function restoreFromTrash(options: {
@@ -479,7 +479,7 @@ async function restoreRef(options: {
 	const paths = stored.map(decodePath);
 	for (const path of paths) await assertRestorable(options.root, path);
 
-	const staging = join(options.gitDir, "gitcraft", "restore", options.id);
+	const staging = join(options.gitDir, "lanecraft", "restore", options.id);
 	await rm(staging, { recursive: true, force: true });
 	await mkdir(staging, { recursive: true });
 	const indexFile = tempIndex(options.gitDir, options.id, "restore");
@@ -629,7 +629,7 @@ export async function pruneTrash(
 
 	// Copie del formato v0.4: nessuna è più creata, quindi tutte le cartelle sono orfane se non
 	// compaiono nel journal.
-	const legacy = join(gitDir, "gitcraft", "trash");
+	const legacy = join(gitDir, "lanecraft", "trash");
 	let entries: string[];
 	try {
 		entries = await readdir(legacy);

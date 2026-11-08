@@ -14,7 +14,7 @@ import { handleRequest, PROTOCOL_VERSION } from "../src/mcp/server.ts";
  * Il repository è vero, quindi i tool sono provati contro Git, non contro mock.
  */
 
-const root = await mkdtemp(join(tmpdir(), "gitcraft-mcp-"));
+const root = await mkdtemp(join(tmpdir(), "lanecraft-mcp-"));
 
 function git(...args: string[]): string {
 	return execFileSync("git", args, { cwd: root, encoding: "utf8" });
@@ -84,7 +84,7 @@ test("initialize dichiara il protocollo e i tool", async () => {
 		capabilities: { tools: unknown };
 	};
 	assert.equal(result.protocolVersion, PROTOCOL_VERSION);
-	assert.equal(result.serverInfo.name, "gitcraft");
+	assert.equal(result.serverInfo.name, "lanecraft");
 	assert.ok(result.capabilities.tools);
 });
 

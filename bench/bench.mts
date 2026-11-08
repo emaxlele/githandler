@@ -126,7 +126,7 @@ function fmt(ms: number): string {
 	return `${ms.toFixed(1)} ms`;
 }
 
-const root = await mkdtemp(join(tmpdir(), "gitcraft-bench-"));
+const root = await mkdtemp(join(tmpdir(), "lanecraft-bench-"));
 
 try {
 	process.stdout.write(

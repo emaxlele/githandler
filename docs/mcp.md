@@ -19,7 +19,7 @@ npm run build
 node dist/mcp/index.js --repo ~/Projects/qualche-repo
 ```
 
-Senza `--repo` usa `GITCRAFT_REPO`, altrimenti la directory corrente. Se il percorso non è un
+Senza `--repo` usa `LANECRAFT_REPO`, altrimenti la directory corrente. Se il percorso non è un
 repository, esce con codice 2 e un messaggio su stderr.
 
 Il server parla JSON-RPC a righe: una richiesta per riga su stdin, una risposta per riga su stdout.
@@ -51,9 +51,9 @@ qualsiasi `tools/call` restituisce un errore.
 La policy è un file JSON letto a **ogni richiesta**:
 
 ```
-$GITCRAFT_CONFIG_DIR/gitcraft/settings.json   # override, per test e installazioni portabili
-$XDG_CONFIG_HOME/gitcraft/settings.json
-~/.config/gitcraft/settings.json              # tipico
+$LANECRAFT_CONFIG_DIR/lanecraft/settings.json   # override, per test e installazioni portabili
+$XDG_CONFIG_HOME/lanecraft/settings.json
+~/.config/lanecraft/settings.json              # tipico
 ```
 
 ```json
@@ -81,7 +81,7 @@ Conseguenze pratiche:
 -   **Un file corrotto o assente equivale a `off`.** Il parser scarta campi ignoti, duplicati e
     valori non validi; non esiste un input che apra l'API per errore.
 -   **Il client non può allargare i permessi.** `tools/list` è filtrato e `tools/call` ricontrolla:
-    chiedere un tool non esposto restituisce `Tool "..." is not enabled in the gitcraft settings.`,
+    chiedere un tool non esposto restituisce `Tool "..." is not enabled in the lanecraft settings.`,
     non un'esecuzione.
 -   **L'app scrive il file in modo atomico** (`settings.json.tmp` + `rename`) con permessi `0600`,
     così un file a metà non può aprire l'API.
@@ -95,13 +95,13 @@ Conseguenze pratiche:
 	"$schema": "https://opencode.ai/config.json",
 	"mcp": {
 		"servers": {
-			"gitcraft": {
+			"lanecraft": {
 				"type": "local",
 				"command": [
 					"node",
-					"/home/emaxlele/Projects/gitcraft/dist/mcp/index.js",
+					"/home/emaxlele/Projects/lanecraft/dist/mcp/index.js",
 					"--repo",
-					"/home/emaxlele/Projects/gitcraft"
+					"/home/emaxlele/Projects/lanecraft"
 				]
 			}
 		}
@@ -117,12 +117,12 @@ forma comoda se lo si vuole in ogni progetto.
 ```json title="claude_desktop_config.json"
 {
 	"mcpServers": {
-		"gitcraft": {
+		"lanecraft": {
 			"command": "node",
 			"args": [
-				"/home/emaxlele/Projects/gitcraft/dist/mcp/index.js",
+				"/home/emaxlele/Projects/lanecraft/dist/mcp/index.js",
 				"--repo",
-				"/home/emaxlele/Projects/gitcraft"
+				"/home/emaxlele/Projects/lanecraft"
 			]
 		}
 	}

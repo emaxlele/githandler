@@ -1,9 +1,26 @@
-# Registro attività — gitcraft
+# Registro attività — lanecraft
 
 > Una sezione per giorno, la più recente in alto. Ogni voce dice cosa è stato fatto e perché, in
 > parole semplici. Ultimo aggiornamento: 2026-11-08
 
 ## 2026-11-08
+
+### Il progetto cambia nome: da gitcraft a lanecraft
+
+-   **Cosa**: il programma ora si chiama **lanecraft**. Sono cambiati il nome dell'app e della
+    finestra, la cartella del progetto (`~/Projects/lanecraft`), il repository GitHub, il nome delle
+    copie di sicurezza interne (`refs/lanecraft`), la cartella delle impostazioni
+    (`~/.config/lanecraft`) e le variabili d'ambiente (`LANECRAFT_*`).
+-   **Perché**: "gitcraft" era già usato da un altro client Git visuale pubblicato poche settimane
+    prima, con lo stesso scopo e gli stessi sistemi. Due programmi con lo stesso nome confondono chi
+    cerca, i motori di ricerca e i pacchetti. "Lanecraft" viene dalle _lane_ del grafo dei commit, la
+    parte più riconoscibile dell'interfaccia, e resta nella serie dei nomi già usati
+    (`wordcraft`, `gridcraft`, `vectorcraft`, `solidcraft`).
+-   **Come**: sostituzione completa di nomi, percorsi e identificatori interni, non solo del titolo;
+    test e build rieseguiti dopo il cambio. Il repository GitHub è stato creato col nuovo nome e il
+    codice pushato.
+-   **Stato**: completato, 97 test verdi e build riuscita.
+-   **Riferimento**: commit v0.5.0 (rinomina).
 
 ### La copia di sicurezza dei file non tracciati ora vive dentro Git
 
@@ -31,7 +48,7 @@
 ### I file non tracciati scartati si possono recuperare
 
 -   **Cosa**: scartando un file che Git non aveva mai tracciato, l'app ne conserva prima una copia
-    dentro il repository (`.git/gitcraft/trash/`) e poi lo cancella. Il pulsante **Annulla** lo
+    dentro il repository (`.git/lanecraft/trash/`) e poi lo cancella. Il pulsante **Annulla** lo
     riporta com'era, cartelle comprese. La copia si spegne dalle impostazioni.
 -   **Perché**: era l'unico punto in cui un clic poteva distruggere lavoro in modo definitivo: Git
     non può annullare la cancellazione di un file che non ha mai tracciato. Chi usa l'app per pulire
@@ -52,7 +69,7 @@
 -   **Perché**: prima il server esponeva sempre i cinque comandi di lettura. Chi collega un agente
     deve poter decidere cosa vede, e il default deve essere "niente" finché non lo si abilita.
 -   **Come**: le impostazioni vivono in un file di configurazione dell'utente
-    (`~/.config/gitcraft/settings.json`) condiviso da interfaccia e server; il server lo rilegge a
+    (`~/.config/lanecraft/settings.json`) condiviso da interfaccia e server; il server lo rilegge a
     ogni richiesta, quindi togliere un permesso ha effetto subito, senza riavviare nulla. Un file
     mancante o rovinato vale come "spenta". Il file è scritto in modo atomico e leggibile solo dal
     proprietario.
@@ -84,13 +101,13 @@
 -   **Cosa resta da sapere**: i file che Git non traccia, se scartati, venivano cancellati
     definitivamente: la finestra di conferma lo dice. (Dalla v0.4 non è più così: prima della
     cancellazione l'app ne conserva una copia e `Annulla` li ripristina — vedi la voce più in alto.) Lo stato salvato vive dentro il repository
-    (`.git/gitcraft/` e i riferimenti `refs/gitcraft/snapshots/`), non in un database dell'app.
+    (`.git/lanecraft/` e i riferimenti `refs/lanecraft/snapshots/`), non in un database dell'app.
 -   **Stato**: completato, provato su repository veri (commit, scarto e cambio ramo annullati).
 -   **Riferimento**: commit successivo a `7cda117`.
 
 ### Il repository si aggiorna da solo
 
--   **Cosa**: con `--watch` (o la variabile `GITCRAFT_WATCH=1`) l'app sorveglia la cartella e rilegge
+-   **Cosa**: con `--watch` (o la variabile `LANECRAFT_WATCH=1`) l'app sorveglia la cartella e rilegge
     lo stato quando qualcosa cambia: un salvataggio dell'editor, un commit fatto da terminale, un
     cambio di ramo esterno. Un chip **Live** in alto dice che la sorveglianza è attiva; un avviso
     compare solo quando cambia l'ultimo commit, non a ogni salvataggio.
@@ -193,7 +210,7 @@
 
 ### Primo nucleo funzionante del client Git (v0.1)
 
--   **Cosa**: creato il progetto `gitcraft` e scritta la prima versione che funziona davvero: si apre
+-   **Cosa**: creato il progetto `lanecraft` e scritta la prima versione che funziona davvero: si apre
     un repository, si vede la storia con il grafo dei rami, si leggono i diff, si mettono i file in
     stage, si crea un commit, si cambia ramo.
 -   **Perché**: serve un client Git desktop per Linux con la pulizia dei migliori client commerciali, che su Linux non esiste.
@@ -210,4 +227,4 @@
     (rename, file non tracciati, commit con messaggio multilinea, scarto delle modifiche, percorsi con
     spazi). Interfaccia provata su `AI_Knowledge` (184 commit) e sul repository stesso.
 -   **Stato**: funzionante in locale, non distribuito. Manca il pacchetto installabile.
--   **Riferimento**: commit `548ac3a` del repository `~/Projects/gitcraft`.
+-   **Riferimento**: commit `548ac3a` del repository `~/Projects/lanecraft`.

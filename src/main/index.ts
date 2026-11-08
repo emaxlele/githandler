@@ -19,19 +19,19 @@ const shotsMode = argv.includes("--shots") || shotsPath !== null;
 let pendingRepo = argValue("--repo");
 
 /**
- * Sorveglianza del repository: opt-in (`--watch` o `GITCRAFT_WATCH=1`), spenta con `--no-watch`.
+ * Sorveglianza del repository: opt-in (`--watch` o `LANECRAFT_WATCH=1`), spenta con `--no-watch`.
  * Un client che si aggiorna da solo mentre si lavora in terminale è utile solo se lo si vuole.
  */
 const watchEnabled = argv.includes("--no-watch")
 	? false
-	: argv.includes("--watch") || process.env.GITCRAFT_WATCH === "1";
+	: argv.includes("--watch") || process.env.LANECRAFT_WATCH === "1";
 
 /**
  * Su questa macchina il processo GPU di Chromium non parte (vedi `clevo-control`).
  * Per un'app testuale il rendering software è invisibile: lo teniamo come default e
- * lasciamo `GITCRAFT_GPU=1` per riattivare l'accelerazione dove funziona.
+ * lasciamo `LANECRAFT_GPU=1` per riattivare l'accelerazione dove funziona.
  */
-if (process.env.GITCRAFT_GPU !== "1") app.disableHardwareAcceleration();
+if (process.env.LANECRAFT_GPU !== "1") app.disableHardwareAcceleration();
 
 const backend = new CliGitBackend({ settings: loadSettings });
 let window: BrowserWindow | null = null;
@@ -157,7 +157,7 @@ function buildMenu(): void {
 	Menu.setApplicationMenu(
 		Menu.buildFromTemplate([
 			{
-				label: "gitcraft",
+				label: "lanecraft",
 				submenu: [
 					{ role: "reload" },
 					{ role: "toggleDevTools" },
@@ -185,7 +185,7 @@ function createWindow(): void {
 		minHeight: 560,
 		backgroundColor: "#0d1017",
 		show: false,
-		title: "gitcraft",
+		title: "lanecraft",
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			contextIsolation: true,
@@ -218,7 +218,7 @@ const wait = (ms: number): Promise<void> =>
  */
 async function runShots(): Promise<void> {
 	if (!window) return;
-	const target = shotsPath ?? join(app.getPath("temp"), "gitcraft.png");
+	const target = shotsPath ?? join(app.getPath("temp"), "lanecraft.png");
 	const steps: Array<[string, string]> = [
 		[
 			`document.querySelectorAll(".row")[2]?.click()`,

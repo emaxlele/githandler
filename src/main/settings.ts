@@ -12,19 +12,19 @@ import {
 /**
  * Il file delle impostazioni vive fuori dal repository, in una posizione standard:
  *
- *   $GITCRAFT_CONFIG_DIR/gitcraft/settings.json   (override per test e installazioni portabili)
- *   $XDG_CONFIG_HOME/gitcraft/settings.json
- *   ~/.config/gitcraft/settings.json
+ *   $LANECRAFT_CONFIG_DIR/lanecraft/settings.json   (override per test e installazioni portabili)
+ *   $XDG_CONFIG_HOME/lanecraft/settings.json
+ *   ~/.config/lanecraft/settings.json
  *
  * Lo legge anche il server MCP, quindi UI e API condividono la stessa policy senza un canale IPC
  * fra processi diversi. Un file assente o corrotto equivale ai default: API spenta.
  */
 
 export function settingsDirectory(): string {
-	const override = process.env.GITCRAFT_CONFIG_DIR;
-	if (override) return join(override, "gitcraft");
+	const override = process.env.LANECRAFT_CONFIG_DIR;
+	if (override) return join(override, "lanecraft");
 	const base = process.env.XDG_CONFIG_HOME || join(homedir(), ".config");
-	return join(base, "gitcraft");
+	return join(base, "lanecraft");
 }
 
 export function settingsFile(): string {

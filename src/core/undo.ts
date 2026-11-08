@@ -6,11 +6,11 @@
  * - `checkout`  → ramo (o HEAD staccato) prima dello spostamento.
  * - `discard`   → un commit di stash con il contenuto del working tree, più i path toccati.
  *   I file non tracciati non entrano nello stash: se la copia di sicurezza è attiva, i loro byte
- *   diventano blob Git raggiungibili da `refs/gitcraft/trash/<scope>/<id>` e vengono ripristinati
+ *   diventano blob Git raggiungibili da `refs/lanecraft/trash/<scope>/<id>` e vengono ripristinati
  *   da lì. Quando la voce esce dal journal il ref viene eliminato e gli oggetti diventano
  *   irraggiungibili: lo spazio lo recupera il `git gc` dell'utente.
  *
- * Il commit a cui punta una voce resta raggiungibile tramite `refs/gitcraft/snapshots/<id>`, così
+ * Il commit a cui punta una voce resta raggiungibile tramite `refs/lanecraft/snapshots/<id>`, così
  * `git gc` non lo cancella mentre l'annullamento è ancora possibile.
  */
 
@@ -40,7 +40,7 @@ export interface UndoEntry {
 	trashFiles?: number;
 }
 
-export const UNDO_REF_PREFIX = "refs/gitcraft/snapshots/";
+export const UNDO_REF_PREFIX = "refs/lanecraft/snapshots/";
 export const UNDO_LIMIT = 50;
 
 const SHA = /^[0-9a-f]{7,64}$/;

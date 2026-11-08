@@ -1,6 +1,6 @@
 # Architettura: UI web, core separato, backend sostituibile
 
-> Documento di riferimento di `gitcraft`, scritto per essere **riusato** in altri progetti desktop
+> Documento di riferimento di `lanecraft`, scritto per essere **riusato** in altri progetti desktop
 > (client Git, editor, pannelli di controllo, IDE). Le stesse scelte valgono per qualsiasi app in cui
 > la UI è testo/forme e il lavoro vero sta nel leggere dati e comandarli.
 > Ultimo aggiornamento: 2026-11-08
@@ -125,7 +125,7 @@ del core.
 -   Il protocollo sta in poche righe di standard library prima di aggiungere un SDK.
 -   I path passano dalle stesse validazioni, gli errori tornano come dati, non come crash.
 
-In `gitcraft` questo è il server MCP (`src/mcp/`): cinque comandi di sola lettura, zero dipendenze,
+In `lanecraft` questo è il server MCP (`src/mcp/`): cinque comandi di sola lettura, zero dipendenze,
 stesso backend della UI.
 
 ## 3. I contratti, in concreto
@@ -208,11 +208,11 @@ di intervento sono in [`backend-performance.md`](backend-performance.md).
 
 ## 5. Trappole verificate di Electron su Linux
 
-Vengono da due progetti reali (`clevo-control`, `gitcraft`) su Ubuntu 26.04.
+Vengono da due progetti reali (`clevo-control`, `lanecraft`) su Ubuntu 26.04.
 
 | Trappola                         | Sintomo                                                                                              | Rimedio                                                                                                          |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| **Processo GPU non disponibile** | `GPU process isn't usable`, schermo nero, crash all'avvio                                            | `app.disableHardwareAcceleration()` di default per app testuali; `GITCRAFT_GPU=1` per riaccenderla dove funziona |
+| **Processo GPU non disponibile** | `GPU process isn't usable`, schermo nero, crash all'avvio                                            | `app.disableHardwareAcceleration()` di default per app testuali; `LANECRAFT_GPU=1` per riaccenderla dove funziona |
 | **AppArmor su Ubuntu 23.10+**    | il sandbox di Chromium (`chrome-sandbox`) fallisce: `kernel.apparmor_restrict_unprivileged_userns=1` | profilo AppArmor nel `.deb`/`.rpm`; `--no-sandbox` **solo** in sviluppo (abbassa la sicurezza)                   |
 | **Nessun display**               | non si può verificare la resa in CI o via SSH                                                        | modalità headless con screenshot pilotati (`--ozone-platform=headless`, `--disable-gpu`), come `npm run shots`   |
 | **`sandbox: true` e preload**    | il preload non ha accesso a `require`                                                                | solo `contextBridge` + `ipcRenderer`, niente `nodeIntegration`                                                   |

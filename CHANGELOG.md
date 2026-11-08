@@ -2,11 +2,18 @@
 
 ## [0.5.0] — 2026-11-08
 
+### Nome
+
+-   Il progetto si chiama **lanecraft**: dalle lane del grafo dei commit, nel solco di `wordcraft`,
+    `gridcraft`, `vectorcraft`, `solidcraft`. Il nome precedente, `gitcraft`, era già usato da un
+    altro client Git visuale. Cartella, pacchetto, ref (`refs/lanecraft/*`), configurazione
+    (`~/.config/lanecraft`) e variabili (`LANECRAFT_*`) seguono il nuovo nome.
+
 ### Cambiato
 
 -   **La copia dei file non tracciati vive in Git**: i byte diventano blob (`hash-object -w`),
-    l'insieme un albero e un commit raggiungibile da `refs/gitcraft/trash/<scope>/<id>`. Niente più
-    cartelle copiate in `.git/gitcraft/trash/`: compressione, deduplica, integrità content-addressed
+    l'insieme un albero e un commit raggiungibile da `refs/lanecraft/trash/<scope>/<id>`. Niente più
+    cartelle copiate in `.git/lanecraft/trash/`: compressione, deduplica, integrità content-addressed
     e `git show <ref>:<path>` funzionano senza codice nostro. Gli oggetti non entrano nella storia
     del progetto e non vengono inviati al remoto.
 -   **Namespace per worktree collegato** (`<nome>-<hash8>`): il journal è per-worktree, i ref sono
@@ -17,7 +24,7 @@
     un path, lo scarto si ferma invece di cancellare una copia incompleta.
 -   **Byte grezzi**: `hash-object` senza `--path` non applica filtri né `core.autocrlf`, quindi CRLF,
     file binari e link simbolici tornano identici; i nomi con `%` e newline sono gestiti.
--   **`log` e ricerca escludono `refs/gitcraft/*`**: snapshot di undo e copie non compaiono più in
+-   **`log` e ricerca escludono `refs/lanecraft/*`**: snapshot di undo e copie non compaiono più in
     `git log --all` (né nella UI, né nel conteggio dei commit).
 -   Copie create dalla v0.4: restano ripristinabili e vengono potate quando la voce esce dal journal.
 
@@ -49,10 +56,10 @@
     `off`, `read`, `all`, `custom` con scelta dei singoli tool. Il server MCP filtra `tools/list` e
     rifiuta `tools/call` non consentiti, rileggendo la policy a ogni richiesta: cambiarla non
     richiede di riconfigurare il client. La policy è in
-    `$XDG_CONFIG_HOME/gitcraft/settings.json` (override `GITCRAFT_CONFIG_DIR`), scritta in modo
+    `$XDG_CONFIG_HOME/lanecraft/settings.json` (override `LANECRAFT_CONFIG_DIR`), scritta in modo
     atomico con permessi `0600` e condivisa da UI e MCP.
 -   **File non tracciati recuperabili**: prima della cancellazione una copia va in
-    `.git/gitcraft/trash/<id>/` e `Annulla` la ripristina. Limite 25 MB / 2.000 file per operazione;
+    `.git/lanecraft/trash/<id>/` e `Annulla` la ripristina. Limite 25 MB / 2.000 file per operazione;
     oltre il limite lo scarto si ferma invece di cancellare senza rete. Il ripristino non sovrascrive
     un file ricreato nel frattempo. Attivo di default, disattivabile dalle impostazioni.
 -   **Paginazione della storia**: prima pagina da 2.000 commit, caricamento automatico della
@@ -71,11 +78,11 @@
 ### Aggiunto
 
 -   **Undo generale**: prima di un commit, un checkout o uno scarto l'app registra lo stato in
-    `refs/gitcraft/snapshots/*` e in un journal in `.git/gitcraft/undo.json` (massimo 50 voci).
+    `refs/lanecraft/snapshots/*` e in un journal in `.git/lanecraft/undo.json` (massimo 50 voci).
     Il pulsante in barra (o `Ctrl+Z`) riporta indietro: il commit con `reset --soft` (le modifiche
     restano in stage), il checkout tornando al ramo precedente, lo scarto ripristinando il contenuto
     dal commit di stash registrato. I file non tracciati restano fuori: la conferma lo dice.
--   **Sorveglianza del repository** (`--watch`, `GITCRAFT_WATCH=1`): `fs.watch` ricorsivo con debounce,
+-   **Sorveglianza del repository** (`--watch`, `LANECRAFT_WATCH=1`): `fs.watch` ricorsivo con debounce,
     filtro su `.git/objects`, `node_modules` e file di lock; il renderer si aggiorna da solo, mostra
     il chip **Live** e avvisa solo quando cambia HEAD. Un solo refresh in volo, gli eventi si accodano.
 -   **Ricerca nella storia**: barra sopra il log con testo letterale, `author:` e `file:`; risultati
@@ -156,6 +163,6 @@ Prima versione funzionante.
 
 ### Note
 
--   Rendering software di default (`GITCRAFT_GPU=1` per l'accelerazione): su macchine senza GPU
+-   Rendering software di default (`LANECRAFT_GPU=1` per l'accelerazione): su macchine senza GPU
     utilizzabile Chromium non avvia il processo GPU.
 -   In sviluppo su Ubuntu 24.04+ serve `--no-sandbox`; il profilo AppArmor arriva con il packaging.

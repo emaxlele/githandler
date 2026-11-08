@@ -1,7 +1,7 @@
-# gitcraft — piano v0.1: slice verticale Electron + TypeScript
+# lanecraft — piano v0.1: slice verticale Electron + TypeScript
 
 > Stato: in esecuzione. Creato 2026-11-08. Il piano sostituisce
-> `AI_Knowledge/docs/plans/2026-11-07-gitcraft-client-git-rust.md` (Rust + egui, superato).
+> `AI_Knowledge/docs/plans/2026-11-07-lanecraft-client-git-rust.md` (Rust + egui, superato).
 
 ## 1. Obiettivo
 
@@ -124,7 +124,7 @@ Ambiente imposto a ogni chiamata: `LC_ALL=C`, `GIT_TERMINAL_PROMPT=0`, `GIT_OPTI
 -   [x] Diff side-by-side, non solo unified, con evidenza della parte cambiata
 -   [ ] Syntax highlighting con CodeMirror 6 (side-by-side e inline)
 -   [x] Staging per hunk e per riga
--   [x] Undo generale (snapshot di `HEAD` in refs `refs/gitcraft/snapshots/*`) — il differenziatore
+-   [x] Undo generale (snapshot di `HEAD` in refs `refs/lanecraft/snapshots/*`) — il differenziatore
         che i client concorrenti non hanno, o riservano al piano a pagamento
 -   [ ] Blame con timeline
 -   [x] Ricerca nella storia con filtro (`author:`, `file:`)
@@ -153,7 +153,7 @@ Ambiente imposto a ogni chiamata: `LC_ALL=C`, `GIT_TERMINAL_PROMPT=0`, `GIT_OPTI
 | `--porcelain=v2` ha casi limite (rename + unicode)     | test su fixture, `core.quotepath=false`, split NUL                                   |
 | Commit con messaggio vuoto o `-F -` che apre un editor | `-F -` legge da stdin, mai TTY; test esplicito                                       |
 | 5000 commit non bastano o sono troppi                  | limite configurabile, poi paginazione                                                |
-| GPU assente su alcune macchine                         | rendering software di default, `GITCRAFT_GPU=1` per riattivare                       |
+| GPU assente su alcune macchine                         | rendering software di default, `LANECRAFT_GPU=1` per riattivare                       |
 | Il renderer diventa lento                              | virtualizzazione fin da subito, zero framework                                       |
 | Deriva verso il "clone di Fork"                        | nessun asset, nessun nome, nessuna stringa copiata; specifiche in `docs/reverse/`    |
 
@@ -162,15 +162,15 @@ Ambiente imposto a ogni chiamata: `LC_ALL=C`, `GIT_TERMINAL_PROMPT=0`, `GIT_OPTI
 1. `npm run typecheck` — zero errori, `strict` attivo.
 2. `npm test` — parser e grafo coperti da test con input reali.
 3. `npm run build` — i tre bundle escono in `dist/`.
-4. Avvio su questo repository (`~/Projects/AI_Knowledge` o lo stesso `gitcraft`): la storia si vede,
+4. Avvio su questo repository (`~/Projects/AI_Knowledge` o lo stesso `lanecraft`): la storia si vede,
    il diff si legge, un commit di prova si crea e si annulla.
 5. Screenshot con `--ozone-platform=headless` per verificare la resa senza dipendere dal display.
 
 ## 8. Prompt di ripresa
 
 ```
-Lavoro su ~/Projects/gitcraft (Electron + TypeScript, Linux-first, client Git).
-Leggi docs/plans/2026-11-08-gitcraft-v0.1.md: è la fonte di verità sullo stato.
+Lavoro su ~/Projects/lanecraft (Electron + TypeScript, Linux-first, client Git).
+Leggi docs/plans/2026-11-08-lanecraft-v0.1.md: è la fonte di verità sullo stato.
 Architettura: src/core = funzioni pure testabili; src/main = GitBackend su `git` CLI via execFile;
 src/renderer = DOM puro con liste virtualizzate, zero framework.
 Prossimo passo: milestone indicata dalle caselle non spuntate.

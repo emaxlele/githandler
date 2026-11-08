@@ -1,14 +1,18 @@
-# gitcraft
+# lanecraft
 
 Client Git desktop **Linux-first**, in TypeScript su Electron. Apre un repository vero, mostra la
 storia con il grafo, mostra i diff e copre il flusso quotidiano: stage (anche parziale), unstage,
 scarto, commit, checkout, undo. Lo stesso repository è leggibile da un agente AI tramite un server
 MCP, spento di default e abilitabile comando per comando.
 
+Il nome viene dalle **lane** del grafo dei commit — la firma visiva dell'app — e chiude la serie
+`wordcraft`, `gridcraft`, `vectorcraft`, `solidcraft`. Il progetto si chiamava `gitcraft` fino all'8
+novembre 2026; è stato rinominato perché quel nome era già usato da un altro client Git visuale.
+
 Non è un fork di altri client: è una reimplementazione indipendente, clean-room. Nessun codice, stringa,
 icona o asset preso da prodotti esistenti.
 
-## Stato (v0.4)
+## Stato (v0.5)
 
 | Funzione                                           | Stato          |
 | -------------------------------------------------- | -------------- |
@@ -21,7 +25,7 @@ icona o asset preso da prodotti esistenti.
 | Commit (anche `-a`), checkout, nuovo ramo          | ✅             |
 | Fetch                                              | ✅             |
 | **Undo generale** (commit, checkout, scarto)       | ✅             |
-| **File non tracciati recuperabili** (trash)        | ✅             |
+| **File non tracciati recuperabili** (oggetti Git)  | ✅             |
 | **Ricerca nella storia** (`author:`, `file:`)      | ✅             |
 | **Aggiornamento automatico** (`--watch`)           | ✅             |
 | **Blame nella UI** (pannello virtualizzato)        | ✅             |
@@ -68,7 +72,7 @@ npm run bench             # misure del backend (log, parsing, grafo, status)
 npm run mcp -- --repo .   # server MCP su stdio, sola lettura (vedi docs/mcp.md)
 ```
 
-Flag di avvio: `--repo <path>`, `--watch` (sorveglianza del repository, o `GITCRAFT_WATCH=1`),
+Flag di avvio: `--repo <path>`, `--watch` (sorveglianza del repository, o `LANECRAFT_WATCH=1`),
 `--no-watch` per spegnerla quando è attiva per ambiente.
 
 ## API per l'AI
@@ -80,21 +84,21 @@ Flag di avvio: `--repo <path>`, `--watch` (sorveglianza del repository, o `GITCR
 per l'AI_. Il default è **spento**; si può abilitare tutto, solo la lettura, o scegliere i singoli
 comandi. Il server rilegge la policy a ogni richiesta, quindi un client già collegato smette di
 vedere i tool appena li si toglie. La policy vive in
-`$XDG_CONFIG_HOME/gitcraft/settings.json` (override con `GITCRAFT_CONFIG_DIR`) ed è la stessa per
+`$XDG_CONFIG_HOME/lanecraft/settings.json` (override con `LANECRAFT_CONFIG_DIR`) ed è la stessa per
 UI e MCP. Configurazione per OpenCode, Claude e limiti in [`docs/mcp.md`](docs/mcp.md).
 
 ## File non tracciati scartati
 
 Git non può annullare la cancellazione di un file che non ha mai tracciato. Prima di cancellarlo
 l'app ne scrive i byte come **oggetti Git**: un blob per file, un albero e un commit raggiungibile da
-`refs/gitcraft/trash/<scope>/<id>`. `Annulla` li ripristina come gli altri, compresi cartelle
+`refs/lanecraft/trash/<scope>/<id>`. `Annulla` li ripristina come gli altri, compresi cartelle
 annidate, link simbolici, permesso eseguibile e contenuto binario.
 
 -   La copia è attiva di default e si spegne dalle impostazioni.
 -   Limiti modificabili: **25 MB e 2.000 file per operazione**, **5 GB in totale**. Oltre il limite
     di una singola operazione lo scarto si ferma e lo dice; quando lo spazio totale è pieno si
     eliminano per prime le copie più vecchie, mai quella appena creata.
--   I ref stanno in un namespace separato (`refs/gitcraft/*`): non compaiono nella storia, non
+-   I ref stanno in un namespace separato (`refs/lanecraft/*`): non compaiono nella storia, non
     entrano in `log --all` e non vengono inviati al remoto.
 -   Un sotto-repository annidato viene conservato per intero, cartella `.git` compresa.
 -   Se nel frattempo è stato ricreato un file con lo stesso nome, il ripristino non sovrascrive: si
@@ -111,7 +115,7 @@ sicurezza, non un limite da riempire.
     Chromium non parte. In sviluppo serve `--no-sandbox` o un profilo AppArmor nel pacchetto: è
     previsto nel lavoro di packaging (milestone 4).
 -   **GPU**: il processo GPU di Chromium non è disponibile su tutte le macchine. Per un'app testuale
-    il rendering software è invisibile, quindi è il default; `GITCRAFT_GPU=1` riattiva
+    il rendering software è invisibile, quindi è il default; `LANECRAFT_GPU=1` riattiva
     l'accelerazione.
 -   **Screenshot senza display**: `npm run shots -- --repo .` (guida la UI e salva i PNG).
 
