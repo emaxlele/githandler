@@ -5,6 +5,18 @@
 
 ## 2026-11-08
 
+### Diff affiancato, con le modifiche evidenziate dentro la riga
+
+-   **Cosa**: si può leggere il diff in due modi: a colonna singola (come `git diff`) oppure con il
+    file prima e dopo affiancati, riga contro riga. Le porzioni che cambiano vengono evidenziate
+    dentro la riga; la scelta del formato resta memorizzata.
+-   **Perché**: è la vista che rende leggibile una modifica vera, dove la riga cambia di poco. È il
+    punto su cui il progetto si misura con i client affermati.
+-   **Come**: un modulo puro accoppia le righe rimosse con quelle aggiunte e calcola la parte
+    cambiata; il disegno usa una griglia che tiene allineate le due colonne anche con righe lunghe.
+-   **Verifica**: 42 test automatici superati; provato dall'interfaccia su un repository di prova con
+    modifiche ravvicinate, una sola riga cambiata, una riga aggiunta in mezzo.
+
 ### Staging parziale: si sceglie cosa mettere nel commit
 
 -   **Cosa**: aggiunta la possibilità di mettere in stage solo una parte delle modifiche a un file:

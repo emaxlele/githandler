@@ -4,6 +4,11 @@
 
 ### Aggiunto
 
+-   **Diff affiancato** (prima/dopo) accanto a quello unified, con selettore nella barra delle
+    schede; l'accoppiamento riga per riga segue l'ordine di Git (rimozioni contro aggiunte) e le
+    parti che cambiano davvero sono evidenziate all'interno della riga. La scelta del formato è
+    ricordata fra un avvio e l'altro.
+
 -   **Staging parziale**: ogni hunk del diff di lavoro ha i pulsanti per mettere in stage (o togliere
     dallo stage) il singolo hunk; cliccando i numeri di riga si sceglie una o più righe e si applica
     solo quella selezione. Le patch parziali sono costruite nel core e applicate con

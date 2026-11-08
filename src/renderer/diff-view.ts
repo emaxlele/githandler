@@ -1,6 +1,9 @@
+import { alignHunk, changedRanges, type AlignedRow } from "../core/align.ts";
 import { canStagePartially, type PatchMode } from "../core/patch.ts";
-import type { DiffFile } from "../core/types.ts";
+import type { DiffFile, DiffHunk, DiffLine } from "../core/types.ts";
 import { escapeHtml } from "./dom.ts";
+
+export type DiffLayout = "unified" | "split";
 
 function statusLabel(file: DiffFile): string {
 	switch (file.status) {
@@ -32,14 +35,30 @@ export interface DiffRenderOptions {
 	mode?: PatchMode;
 	/** Righe selezionate, nella forma `hunk:line`. */
 	picked?: ReadonlySet<string>;
+	layout?: DiffLayout;
 }
 
 export function pickKey(hunk: number, line: number): string {
 	return `${hunk}:${line}`;
 }
 
+function escapeWithHighlight(
+	text: string,
+	range: [number, number] | null
+): string {
+	if (!range) return escapeHtml(text);
+	const [start, end] = range;
+	if (end <= start) return escapeHtml(text);
+	return (
+		escapeHtml(text.slice(0, start)) +
+		`<span class="hl">${escapeHtml(text.slice(start, end))}</span>` +
+		escapeHtml(text.slice(end))
+	);
+}
+
 /**
- * Disegna un unified diff con numerazione di riga.
+ * Disegna un diff con numerazione di riga, in due forme: `unified` (una colonna, come `git diff`) o
+ * `split` (prima e dopo affiancati, con le modifiche accoppiate riga per riga).
  *
  * Costruisce una stringa HTML invece di migliaia di nodi: su un diff da 3.000 righe la differenza
  * fra `innerHTML` e `appendChild` per riga è misurabile in centinaia di millisecondi.
@@ -87,31 +106,24 @@ export function renderDiff(
 	const mode =
 		options.mode && canStagePartially(file) ? options.mode : undefined;
 	const picked = options.picked ?? new Set<string>();
-	const verb = mode === "unstage" ? "Unstage" : "Stage";
+	const layout = options.layout ?? "unified";
 
-	const out: string[] = [head];
+	const body =
+		layout === "split"
+			? renderSplitBody(file, mode, picked)
+			: renderUnifiedBody(file, mode, picked);
+
+	container.innerHTML = head + body;
+}
+
+function renderUnifiedBody(
+	file: DiffFile,
+	mode: PatchMode | undefined,
+	picked: ReadonlySet<string>
+): string {
+	const out: string[] = [];
 	file.hunks.forEach((hunk, hunkIndex) => {
-		const header = `@@ -${hunk.oldStart},${hunk.oldLines} +${
-			hunk.newStart
-		},${hunk.newLines} @@${hunk.header ? ` ${hunk.header}` : ""}`;
-
-		const pickedHere = countPicked(picked, hunkIndex);
-		const actions = mode
-			? `<span class="hunk-actions">` +
-			  (pickedHere > 0
-					? `<button class="icon-btn" data-act="${mode}-lines" data-hunk="${hunkIndex}">${verb} ${pickedHere} ${
-							pickedHere === 1 ? "riga" : "righe"
-					  }</button>`
-					: "") +
-			  `<button class="icon-btn" data-act="${mode}-hunk" data-hunk="${hunkIndex}">${verb} hunk</button>` +
-			  `</span>`
-			: "";
-
-		out.push(
-			`<div class="hunk-header"><span class="hunk-info">${escapeHtml(
-				header
-			)}</span>${actions}</div>`
-		);
+		out.push(renderHunkHeader(hunk, hunkIndex, mode, picked));
 
 		hunk.lines.forEach((line, lineIndex) => {
 			const cls =
@@ -151,8 +163,128 @@ export function renderDiff(
 			);
 		});
 	});
+	return out.join("");
+}
 
-	container.innerHTML = out.join("");
+function renderSplitBody(
+	file: DiffFile,
+	mode: PatchMode | undefined,
+	picked: ReadonlySet<string>
+): string {
+	const out: string[] = ['<div class="split">'];
+
+	file.hunks.forEach((hunk, hunkIndex) => {
+		out.push(renderHunkHeader(hunk, hunkIndex, mode, picked));
+
+		for (const row of alignHunk(hunk)) {
+			if (row.kind === "note") {
+				out.push(
+					`<div class="srow-note">${escapeHtml(row.line.text)}</div>`
+				);
+				continue;
+			}
+
+			const ranges =
+				row.left && row.right
+					? changedRanges(row.left.text, row.right.text)
+					: null;
+
+			out.push(
+				`<div class="srow">${splitSide(
+					row,
+					"left",
+					hunkIndex,
+					mode,
+					picked,
+					ranges ? ranges.left : null
+				)}${splitSide(
+					row,
+					"right",
+					hunkIndex,
+					mode,
+					picked,
+					ranges ? ranges.right : null
+				)}</div>`
+			);
+		}
+	});
+
+	out.push("</div>");
+	return out.join("");
+}
+
+function splitSide(
+	row: Extract<AlignedRow, { kind: "pair" }>,
+	side: "left" | "right",
+	hunkIndex: number,
+	mode: PatchMode | undefined,
+	picked: ReadonlySet<string>,
+	highlight: [number, number] | null
+): string {
+	const line: DiffLine | null = side === "left" ? row.left : row.right;
+	const lineIndex = side === "left" ? row.leftIndex : row.rightIndex;
+
+	if (!line) {
+		return (
+			`<span class="sc no ${side}"></span>` +
+			`<span class="sc mk ${side}"></span>` +
+			`<span class="sc tx ${side}"></span>`
+		);
+	}
+
+	const kind =
+		line.type === "add" ? "add" : line.type === "del" ? "del" : "ctx";
+	const mark = line.type === "add" ? "+" : line.type === "del" ? "-" : " ";
+	const number = side === "left" ? line.oldNo : line.newNo;
+
+	const selectable =
+		mode !== undefined &&
+		lineIndex !== null &&
+		(line.type === "add" || line.type === "del");
+	const isPicked = selectable && picked.has(pickKey(hunkIndex, lineIndex!));
+	const attrs = selectable
+		? ` data-hunk="${hunkIndex}" data-line="${lineIndex}"`
+		: "";
+	const extra = isPicked ? " is-picked" : "";
+
+	return (
+		`<span class="sc no ${side} ${kind}${extra}"${attrs}>${
+			number ?? ""
+		}</span>` +
+		`<span class="sc mk ${side} ${kind}${extra}"${attrs}>${mark}</span>` +
+		`<span class="sc tx ${side} ${kind}${extra}"${attrs}>${escapeWithHighlight(
+			line.text,
+			highlight
+		)}</span>`
+	);
+}
+
+function renderHunkHeader(
+	hunk: DiffHunk,
+	hunkIndex: number,
+	mode: PatchMode | undefined,
+	picked: ReadonlySet<string>
+): string {
+	const header = `@@ -${hunk.oldStart},${hunk.oldLines} +${hunk.newStart},${
+		hunk.newLines
+	} @@${hunk.header ? ` ${hunk.header}` : ""}`;
+
+	const pickedHere = countPicked(picked, hunkIndex);
+	const verb = mode === "unstage" ? "Unstage" : "Stage";
+	const actions = mode
+		? `<span class="hunk-actions">` +
+		  (pickedHere > 0
+				? `<button class="icon-btn" data-act="${mode}-lines" data-hunk="${hunkIndex}">${verb} ${pickedHere} ${
+						pickedHere === 1 ? "riga" : "righe"
+				  }</button>`
+				: "") +
+		  `<button class="icon-btn" data-act="${mode}-hunk" data-hunk="${hunkIndex}">${verb} hunk</button>` +
+		  `</span>`
+		: "";
+
+	return `<div class="hunk-header"><span class="hunk-info">${escapeHtml(
+		header
+	)}</span>${actions}</div>`;
 }
 
 function countPicked(picked: ReadonlySet<string>, hunk: number): number {

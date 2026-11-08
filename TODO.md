@@ -6,11 +6,12 @@ Stato al 2026-11-08. Le voci spuntate sono in `CHANGELOG.md`.
 
 -   [x] Staging parziale: per hunk e per singola riga (`git apply --cached`, anche `--reverse` per
         togliere dallo stage)
+-   [x] Diff affiancato (prima/dopo) con accoppiamento riga per riga ed evidenza della porzione
+        cambiata; scelta ricordata fra un avvio e l'altro
 
 ## In corso
 
 -   [ ] Milestone 2 — il diff che conta
-    -   [ ] Diff side-by-side oltre a quello unified
     -   [ ] Evidenziazione della sintassi (CodeMirror 6, licenza MIT)
     -   [ ] Undo generale (snapshot in `refs/gitcraft/snapshots/*`): il differenziatore che i client concorrenti non
             ha e un client a pagamento riserva al piano a pagamento

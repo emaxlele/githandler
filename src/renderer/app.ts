@@ -2,7 +2,7 @@ import type { HunkSelection, PatchMode } from "../core/patch.ts";
 import { buildPatch } from "../core/patch.ts";
 import type { CommitFile, DiffFile, Snapshot } from "../core/types.ts";
 import type { GitApi } from "../shared/api.ts";
-import { pickKey, renderDiff } from "./diff-view.ts";
+import { pickKey, renderDiff, type DiffLayout } from "./diff-view.ts";
 import { byId, clear, el, fullDate } from "./dom.ts";
 import { LogView } from "./log-view.ts";
 
@@ -27,6 +27,7 @@ interface State {
 	changeDiff: DiffFile | null;
 	/** Righe scelte per lo staging parziale, nella forma `hunk:line`. */
 	picked: Set<string>;
+	diffLayout: DiffLayout;
 	tab: Tab;
 }
 
@@ -39,8 +40,20 @@ const state: State = {
 	changeStaged: false,
 	changeDiff: null,
 	picked: new Set(),
+	diffLayout: savedLayout(),
 	tab: "changes",
 };
+
+/** Il formato del diff è una preferenza dell'utente: si ricorda fra un avvio e l'altro. */
+function savedLayout(): DiffLayout {
+	try {
+		return localStorage.getItem("gitcraft.diffLayout") === "split"
+			? "split"
+			: "unified";
+	} catch {
+		return "unified";
+	}
+}
 
 const ui = {
 	repoName: byId("repo-name"),
@@ -287,7 +300,11 @@ async function selectCommitFile(path: string): Promise<void> {
 	state.commitPath = path;
 	renderCommitFiles();
 	const file = await guard("Diff", () => api.commitPatch(sha, path));
-	if (file) renderDiff(ui.commitDiff, file, "Nessuna differenza.");
+	if (file) {
+		renderDiff(ui.commitDiff, file, "Nessuna differenza.", {
+			layout: state.diffLayout,
+		});
+	}
 }
 
 async function selectChange(path: string): Promise<void> {
@@ -308,6 +325,7 @@ function renderChangeDiff(): void {
 	renderDiff(ui.changesDiff, state.changeDiff, "Nessuna differenza.", {
 		mode,
 		picked: state.picked,
+		layout: state.diffLayout,
 	});
 }
 
@@ -454,6 +472,40 @@ ui.btnOpen.addEventListener("click", () => {
 });
 
 ui.btnRefresh.addEventListener("click", () => void refresh());
+
+function updateDiffButtons(): void {
+	for (const button of document.querySelectorAll<HTMLElement>(
+		"[data-diff]"
+	)) {
+		button.classList.toggle(
+			"is-active",
+			button.dataset.diff === state.diffLayout
+		);
+	}
+}
+
+for (const button of document.querySelectorAll<HTMLButtonElement>(
+	"[data-diff]"
+)) {
+	button.addEventListener("click", () => {
+		const layout: DiffLayout =
+			button.dataset.diff === "split" ? "split" : "unified";
+		if (layout === state.diffLayout) return;
+		state.diffLayout = layout;
+		try {
+			localStorage.setItem("gitcraft.diffLayout", layout);
+		} catch {
+			// storage negato: la preferenza vale solo per questa sessione
+		}
+		updateDiffButtons();
+		if (state.changePath && state.changeDiff) renderChangeDiff();
+		if (state.tab === "commit" && state.commitPath) {
+			void selectCommitFile(state.commitPath);
+		}
+	});
+}
+// la preferenza salvata deve essere visibile già al primo avvio
+updateDiffButtons();
 ui.btnFetch.addEventListener("click", () => void fetchAll());
 
 ui.tabChanges.addEventListener("click", () => setTab("changes"));
@@ -486,16 +538,19 @@ ui.changesDiff.addEventListener("click", (event) => {
 				const [h, l] = key.split(":").map(Number) as [number, number];
 				if (h === hunk) lines.push(l);
 			}
-			if (lines.length > 0) void applyPartial(selectionForHunk(hunk, lines));
+			if (lines.length > 0)
+				void applyPartial(selectionForHunk(hunk, lines));
 		}
 		return;
 	}
 
-	const line = target.closest<HTMLElement>(".dline[data-selectable]");
+	const line = target.closest<HTMLElement>("[data-line]");
 	if (!line) return;
 	// solo i numeri di riga fanno da casella: il testo del diff resta selezionabile
 	if (!target.closest(".no") && !target.closest(".mk")) return;
-	togglePick(Number(line.dataset.hunk), Number(line.dataset.line));
+	const hunk = line.dataset.hunk;
+	if (hunk === undefined || line.dataset.line === undefined) return;
+	togglePick(Number(hunk), Number(line.dataset.line));
 });
 
 ui.commitFilesList.addEventListener("click", (event) => {
