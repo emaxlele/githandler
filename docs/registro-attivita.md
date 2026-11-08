@@ -15,7 +15,7 @@
     conflitto compare un avviso con «annulla» che riporta allo stato di prima.
 -   **Perché**: erano i comandi che mancavano per lavorare tutto il giorno senza tornare al
     terminale; la richiesta era esplicita. In più il clic su un ramo non doveva più cambiare ramo di
-    nascosto, e la voce *Changes* doveva mostrare le modifiche a tutta area, senza la storia: in
+    nascosto, e la voce _Changes_ doveva mostrare le modifiche a tutta area, senza la storia: in
     quella modalità i commit non servono.
 -   **Come**: pull e push non forzano mai — se il ramo è divergente o manca il collegamento al server
     si ferma e mostra il messaggio di Git, invece di combinare qualcosa da solo. Il clic su un ramo o
@@ -25,11 +25,21 @@
     attivo e ha il pulsante per interrompere il comando.
 -   **Verifica**: 108 test automatici verdi (9 nuovi), build riuscita, app reinstallata. Prova reale
     con un repository di dimostrazione e un server locale: push con collegamento creato, pull,
-    stash e ripresa, cherry-pick annullato con *Annulla*, rebase riuscito, merge in conflitto con
+    stash e ripresa, cherry-pick annullato con _Annulla_, rebase riuscito, merge in conflitto con
     l'avviso «annulla», terminale con `git status`, submodule elencato e aggiornato, due repository
     aperti in schede e chiusura della scheda attiva.
 -   **Stato**: completato.
 -   **Riferimento**: commit `6b3f718` del repository `~/Projects/githandler`.
+
+### Rifinitura: nessuna risposta in ritardo sul repository sbagliato
+
+-   **Cosa**: con più repository aperti, se si cambia scheda mentre l'app sta leggendo un diff, il
+    blame o la pagina successiva della storia, il risultato che arriva dopo non viene più mostrato sul
+    repository sbagliato: resta nella scheda che lo aveva chiesto e la sblocca.
+-   **Perché**: era l'ultimo punto debole delle schede multiple; senza il controllo il diff di un
+    repository poteva comparire sopra un altro, o la storia dell'uno mescolarsi con quella dell'altro.
+-   **Stato**: completato, 108 test verdi e build riuscita.
+-   **Riferimento**: commit `8a3aa9c` del repository `~/Projects/githandler`.
 
 ### L'interfaccia ora ha la struttura dei client Git desktop più usati
 
