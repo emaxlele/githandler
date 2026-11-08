@@ -5,6 +5,8 @@
  * - `commit`    → HEAD prima del commit; l'annullamento è un `reset --soft`.
  * - `checkout`  → ramo (o HEAD staccato) prima dello spostamento.
  * - `discard`   → un commit di stash con il contenuto del working tree, più i path toccati.
+ *   I file non tracciati non entrano nello stash: se la copia di sicurezza è attiva, finiscono in
+ *   `.git/gitcraft/trash/<id>/` e vengono ripristinati da lì.
  *
  * Il commit a cui punta una voce resta raggiungibile tramite `refs/gitcraft/snapshots/<id>`, così
  * `git gc` non lo cancella mentre l'annullamento è ancora possibile.
@@ -23,10 +25,14 @@ export interface UndoEntry {
 	branch: string | null;
 	/** descrizione breve per la UI */
 	label: string;
-	/** solo per `discard` */
+	/** solo per `discard`: file tracciati, ripristinati dallo stash */
 	paths?: string[];
 	/** solo per `discard`: commit di stash con il working tree di allora */
 	stash?: string | null;
+	/** solo per `discard`: file non tracciati, copiati prima della cancellazione */
+	untrackedPaths?: string[];
+	/** solo per `discard`: cartella dentro `.git/gitcraft/trash/` */
+	trash?: string | null;
 }
 
 export const UNDO_REF_PREFIX = "refs/gitcraft/snapshots/";
@@ -87,8 +93,9 @@ export function parseUndoLog(raw: string): UndoEntry[] {
 			label,
 		};
 
-		if (Array.isArray(paths)) {
-			const safe = paths.filter(
+		const safePaths = (value: unknown): string[] | undefined => {
+			if (!Array.isArray(value)) return undefined;
+			const safe = value.filter(
 				(path): path is string =>
 					typeof path === "string" &&
 					path.length > 0 &&
@@ -96,15 +103,31 @@ export function parseUndoLog(raw: string): UndoEntry[] {
 					!path.startsWith("-") &&
 					!path.split("/").includes("..")
 			);
-			if (safe.length > 0) entry.paths = safe;
-		}
+			return safe.length > 0 ? safe : undefined;
+		};
+
+		const tracked = safePaths(paths);
+		if (tracked) entry.paths = tracked;
+		const untracked = safePaths(record.untrackedPaths);
+		if (untracked) entry.untrackedPaths = untracked;
+
 		// uno scarto senza path non dice cosa ripristinare: non è una voce usabile
-		if (kind === "discard" && !entry.paths) continue;
+		if (kind === "discard" && !entry.paths && !entry.untrackedPaths)
+			continue;
 		if (stash === null || (typeof stash === "string" && SHA.test(stash))) {
 			entry.stash = stash ?? null;
 		} else if (stash !== undefined) {
 			continue;
 		}
+
+		// l'id del trash diventa un nome di cartella: niente separatori né risalite
+		const trash = record.trash;
+		if (trash === null) entry.trash = null;
+		else if (typeof trash === "string" && /^[0-9A-Za-z._-]+$/.test(trash))
+			entry.trash = trash;
+		else if (trash !== undefined) continue;
+		if (kind === "discard" && entry.untrackedPaths && !entry.trash)
+			continue;
 
 		entries.push(entry);
 	}
@@ -127,10 +150,13 @@ export function describeUndo(entry: UndoEntry): string {
 			? `Torna al ramo ${entry.branch}`
 			: `Torna a HEAD staccato (${entry.head?.slice(0, 7) ?? "?"})`;
 	}
-	const count = entry.paths?.length ?? 0;
-	return count === 1
-		? `Ripristina ${entry.paths?.[0] ?? "il file"}`
-		: `Ripristina ${count} file scartati`;
+	const count =
+		(entry.paths?.length ?? 0) + (entry.untrackedPaths?.length ?? 0);
+	if (count === 1) {
+		const only = entry.paths?.[0] ?? entry.untrackedPaths?.[0] ?? "il file";
+		return `Ripristina ${only}`;
+	}
+	return `Ripristina ${count} file scartati`;
 }
 
 /** L'id contiene il tempo: `1789999999999-commit`. */

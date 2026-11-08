@@ -8,18 +8,18 @@ export const LOG_FORMAT = "%H%x00%P%x00%an%x00%ae%x00%at%x00%s%x1e";
 
 export interface RawLogOptions {
 	limit?: number;
+	/** quanti commit saltare: serve al caricamento progressivo */
+	skip?: number;
 	all?: boolean;
 }
 
 export function logArgs(options: RawLogOptions = {}): string[] {
 	const limit = options.limit ?? 5000;
-	const args = [
-		"log",
-		"--date-order",
-		`-n${limit}`,
-		`--pretty=format:${LOG_FORMAT}`,
-	];
-	if (options.all !== false) args.splice(1, 0, "--all");
+	const skip = options.skip ?? 0;
+	const args = ["log", "--date-order", `-n${limit}`];
+	if (skip > 0) args.push(`--skip=${skip}`);
+	if (options.all !== false) args.push("--all");
+	args.push(`--pretty=format:${LOG_FORMAT}`);
 	return args;
 }
 

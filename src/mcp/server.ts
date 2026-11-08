@@ -1,6 +1,14 @@
 import { UNCOMMITTED_SHA } from "../core/blame.ts";
 import { formatDiff } from "../core/diff.ts";
 import { formatHistoryQuery, type HistoryQuery } from "../core/search.ts";
+import {
+	allowedTools,
+	isApiTool,
+	isToolAllowed,
+	type ApiPolicy,
+	type ApiTool,
+	type Settings,
+} from "../core/settings.ts";
 import type { Commit } from "../core/types.ts";
 import type { GitBackend } from "../main/backend.ts";
 
@@ -9,14 +17,20 @@ import type { GitBackend } from "../main/backend.ts";
  *
  * Non è un secondo strato che tocca il disco: riusa `GitBackend`, quindi vede esattamente lo
  * stesso repository, con le stesse regole e lo stesso output della UI. Nessun tool scrive.
+ *
+ * L'elenco dei tool non è una costante: a ogni richiesta si legge la policy delle impostazioni e si
+ * espone solo ciò che l'utente ha consentito. Un client che chiama un tool non esposto riceve un
+ * errore, non un'esecuzione.
  */
 
-export const SERVER_INFO = { name: "gitcraft", version: "0.3.0" } as const;
+export const SERVER_INFO = { name: "gitcraft", version: "0.4.0" } as const;
 export const PROTOCOL_VERSION = "2024-11-05";
 
 export interface McpContext {
 	backend: GitBackend;
 	repo: string;
+	/** Rilette a ogni richiesta: cambiare i permessi non richiede riavviare il client. */
+	settings: () => Promise<Settings>;
 }
 
 export interface JsonRpcResponse {
@@ -144,6 +158,12 @@ function asRecord(value: unknown): Record<string, unknown> {
 	return typeof value === "object" && value !== null
 		? (value as Record<string, unknown>)
 		: {};
+}
+
+/** I tool che la policy corrente consente di elencare e chiamare. */
+function visibleTools(policy: ApiPolicy): ToolDefinition[] {
+	const allowed = new Set(allowedTools(policy));
+	return TOOLS.filter((tool) => allowed.has(tool.name as ApiTool));
 }
 
 function asString(value: unknown): string | null {
@@ -347,7 +367,7 @@ export async function handleRequest(
 			capabilities: { tools: {} },
 			serverInfo: SERVER_INFO,
 			instructions:
-				"Read-only access to a Git repository for analysis. Use history, show_commit, worktree_diff and blame to inspect; this server cannot modify the repository.",
+				"Read-only access to a Git repository for analysis. Use history, show_commit, worktree_diff and blame to inspect; this server cannot modify the repository. Only tools enabled in the gitcraft settings are exposed.",
 		});
 	}
 
@@ -355,11 +375,20 @@ export async function handleRequest(
 
 	if (method === "ping") return ok(id, {});
 
-	if (method === "tools/list") return ok(id, { tools: TOOLS });
+	const policy = (await context.settings()).api;
+
+	if (method === "tools/list") return ok(id, { tools: visibleTools(policy) });
 
 	if (method === "tools/call") {
 		const name = asString(params.name);
 		if (!name) return ok(id, failure("`name` is required."));
+		if (!isApiTool(name) || !isToolAllowed(policy, name))
+			return ok(
+				id,
+				failure(
+					`Tool "${name}" is not enabled in the gitcraft settings.`
+				)
+			);
 		try {
 			return ok(id, await callTool(context, name, params.arguments));
 		} catch (cause) {

@@ -21,9 +21,9 @@ import {
 import { parseStatus, statusArgs } from "../core/status.ts";
 import { patchTargetsOnly, type PatchMode } from "../core/patch.ts";
 import { historyArgs, parseHistoryQuery } from "../core/search.ts";
+import { defaultSettings, type Settings } from "../core/settings.ts";
 import {
 	parseUndoLog,
-	serializeUndoLog,
 	snapshotRef,
 	UNDO_LIMIT,
 	undoId,
@@ -33,11 +33,27 @@ import {
 import type {
 	Commit,
 	CommitFile,
+	CommitPage,
 	DiffFile,
 	RepoInfo,
 	Snapshot,
 } from "../core/types.ts";
 import { GitError, runGit } from "./git.ts";
+import {
+	copyToTrash,
+	pruneTrash,
+	removeTrash,
+	restoreFromTrash,
+	TrashLimitError,
+} from "./trash.ts";
+
+/** La prima pagina di storia: oltre si carica su richiesta del renderer. */
+export const HISTORY_PAGE_SIZE = 2000;
+
+export interface BackendOptions {
+	/** Impostazioni correnti, rilette quando servono: UI e MCP vedono la stessa policy. */
+	settings?: () => Promise<Settings>;
+}
 
 /**
  * Unico punto in cui l'applicazione tocca il disco.
@@ -64,6 +80,8 @@ export interface GitBackend {
 	fetch(): Promise<Snapshot>;
 	/** Ricerca nella storia: testo libero, `author:`, `file:`. */
 	search(query: string, limit?: number): Promise<Commit[]>;
+	/** Pagina successiva della storia, a partire da `skip`. */
+	historyPage(skip: number, limit?: number): Promise<CommitPage>;
 	/** Metadati di un commit qualsiasi, anche fuori dalla pagina di storia caricata. */
 	commitInfo(sha: string): Promise<Commit>;
 	/** Attribuzione riga per riga di un file. */
@@ -86,6 +104,11 @@ function assertSafePath(path: string): void {
 
 export class CliGitBackend implements GitBackend {
 	#info: RepoInfo | null = null;
+	readonly #settings: () => Promise<Settings>;
+
+	constructor(options: BackendOptions = {}) {
+		this.#settings = options.settings ?? (async () => defaultSettings());
+	}
 
 	async open(dir: string): Promise<Snapshot> {
 		const top = await runGit(dir, ["rev-parse", "--show-toplevel"]);
@@ -116,7 +139,9 @@ export class CliGitBackend implements GitBackend {
 		const info = this.#requireInfo();
 
 		const [log, refs, status, undoLog] = await Promise.all([
-			runGit(info.root, logArgs(), { allowFailure: true }),
+			runGit(info.root, logArgs({ limit: HISTORY_PAGE_SIZE }), {
+				allowFailure: true,
+			}),
 			runGit(info.root, refsArgs(), { allowFailure: true }),
 			runGit(info.root, statusArgs(), { allowFailure: true }),
 			this.#readUndo(),
@@ -139,6 +164,7 @@ export class CliGitBackend implements GitBackend {
 			refs: refList,
 			status: parseStatus(status.stdout),
 			undo: undoLog[0] ?? null,
+			hasMore: commits.length === HISTORY_PAGE_SIZE,
 		};
 	}
 
@@ -240,33 +266,78 @@ export class CliGitBackend implements GitBackend {
 		paths.forEach(assertSafePath);
 
 		const status = await this.refresh();
-		const untracked = new Set(
-			status.status.entries
-				.filter((entry) => entry.kind === "untracked")
-				.map((entry) => entry.path)
-		);
-		const toDelete = paths.filter((path) => untracked.has(path));
-		const toRestore = paths.filter((path) => !untracked.has(path));
+		// `--untracked-files=all` elenca i file, non le cartelle: un path che contiene file non
+		// tracciati (es. `cartella/`) va trattato come non tracciato, non passato a `restore`.
+		const untrackedPaths = status.status.entries
+			.filter((entry) => entry.kind === "untracked")
+			.map((entry) => entry.path);
+		const isUntracked = (path: string): boolean => {
+			const prefix = path.endsWith("/") ? path : `${path}/`;
+			return untrackedPaths.some(
+				(candidate) =>
+					candidate === path || candidate.startsWith(prefix)
+			);
+		};
+		const toDelete = paths.filter(isUntracked);
+		const toRestore = paths.filter((path) => !isUntracked(path));
 
+		// Il contenuto tracciato si conserva in uno stash commit; i file non tracciati in una copia
+		// dentro `.git/gitcraft/trash/`. Senza stash (indice in conflitto) l'operazione resta
+		// irreversibile per quei path, come prima.
+		let stashSha = "";
 		if (toRestore.length > 0) {
-			// Prima di toccare il working tree: uno stash commit conserva il contenuto scartato.
-			// Senza stash (indice in conflitto, nulla da salvare) l'operazione resta irreversibile.
 			const stash = await runGit(info.root, ["stash", "create"], {
 				allowFailure: true,
 			});
-			const stashSha = stash.code === 0 ? stash.stdout.trim() : "";
-			if (stashSha) {
-				await this.#record(
-					"discard",
-					`Scarta ${toRestore.join(", ")}`,
-					{
-						paths: toRestore,
-						stash: stashSha,
-					}
-				);
-			}
-			await runGit(info.root, ["restore", "--", ...toRestore]);
+			stashSha = stash.code === 0 ? stash.stdout.trim() : "";
 		}
+
+		const { trashUntracked } = await this.#settings();
+		const needsUndo =
+			(toRestore.length > 0 && stashSha !== "") ||
+			(toDelete.length > 0 && trashUntracked);
+		const entry = needsUndo
+			? await this.#record(
+					"discard",
+					`Scarta ${paths.join(", ")}`,
+					{
+						paths:
+							toRestore.length > 0 && stashSha
+								? toRestore
+								: undefined,
+						stash: stashSha || null,
+					},
+					{ allowNoHead: true }
+			  )
+			: null;
+
+		if (toDelete.length > 0 && trashUntracked) {
+			if (!entry)
+				throw new Error("Copertura di sicurezza non disponibile.");
+			try {
+				await copyToTrash({
+					gitDir: info.gitDir,
+					root: info.root,
+					id: entry.id,
+					paths: toDelete,
+				});
+				await this.#updateUndo(entry.id, {
+					trash: entry.id,
+					untrackedPaths: toDelete,
+				});
+			} catch (error) {
+				// niente cancellazione se la copia non è riuscita: il journal non deve mentire
+				await this.#dropUndo(entry.id);
+				if (error instanceof TrashLimitError)
+					throw new Error(
+						`${error.message} Disattiva la copia dei file non tracciati nelle impostazioni per cancellarlo comunque.`
+					);
+				throw error;
+			}
+		}
+
+		if (toRestore.length > 0)
+			await runGit(info.root, ["restore", "--", ...toRestore]);
 		for (const path of toDelete) {
 			await rm(join(info.root, path), { force: true, recursive: true });
 		}
@@ -334,6 +405,27 @@ export class CliGitBackend implements GitBackend {
 		return parseLog(result.stdout);
 	}
 
+	async historyPage(
+		skip: number,
+		limit = HISTORY_PAGE_SIZE
+	): Promise<CommitPage> {
+		const info = this.#requireInfo();
+		if (!Number.isInteger(skip) || skip < 0)
+			throw new Error(`Paginazione non valida: ${skip}`);
+		if (!Number.isInteger(limit) || limit < 1 || limit > 5000)
+			throw new Error(`Dimensione pagina non valida: ${limit}`);
+
+		const [log, refs] = await Promise.all([
+			runGit(info.root, logArgs({ limit, skip }), {
+				allowFailure: true,
+			}),
+			runGit(info.root, refsArgs(), { allowFailure: true }),
+		]);
+		const commits = parseLog(log.stdout);
+		attachRefs(commits, parseRefs(refs.stdout));
+		return { commits, hasMore: commits.length === limit };
+	}
+
 	async commitInfo(sha: string): Promise<Commit> {
 		const info = this.#requireInfo();
 		if (!/^[0-9a-f]{7,64}$/.test(sha))
@@ -399,10 +491,11 @@ export class CliGitBackend implements GitBackend {
 				await runGit(info.root, ["switch", "--detach", entry.head]);
 			}
 		} else {
-			if (!entry.stash)
+			if (!entry.stash && !entry.trash)
 				throw new Error("Nessun contenuto salvato per questo scarto.");
 			for (const path of entry.paths ?? []) {
 				assertSafePath(path);
+				if (!entry.stash) continue;
 				const present = await runGit(
 					info.root,
 					["cat-file", "-e", `${entry.stash}:${path}`],
@@ -422,12 +515,31 @@ export class CliGitBackend implements GitBackend {
 					await rm(join(info.root, path), { force: true });
 				}
 			}
+			if (entry.trash && entry.untrackedPaths) {
+				// se qualcosa occupa già quel nome, `restoreFromTrash` si ferma prima di toccare
+				// il repository: la voce resta annullabile.
+				await restoreFromTrash({
+					gitDir: info.gitDir,
+					root: info.root,
+					id: entry.trash,
+					paths: entry.untrackedPaths,
+				});
+			}
 		}
 
 		await runGit(info.root, ["update-ref", "-d", snapshotRef(entry.id)], {
 			allowFailure: true,
 		});
-		await this.#writeUndo(entries.slice(1));
+		const remaining = entries.slice(1);
+		await this.#writeUndo(remaining);
+		await pruneTrash(
+			info.gitDir,
+			new Set(
+				remaining
+					.map((item) => item.trash)
+					.filter((value): value is string => Boolean(value))
+			)
+		);
 		return this.refresh();
 	}
 
@@ -446,21 +558,36 @@ export class CliGitBackend implements GitBackend {
 	}
 
 	async #writeUndo(entries: UndoEntry[]): Promise<void> {
+		await this.#writeUndoRaw(entries);
+	}
+
+	async #writeUndoRaw(entries: unknown[]): Promise<void> {
 		const path = this.#undoPath(this.#requireInfo());
 		await mkdir(dirname(path), { recursive: true });
 		const temporary = `${path}.tmp`;
-		await writeFile(temporary, serializeUndoLog(entries), "utf8");
+		await writeFile(
+			temporary,
+			`${JSON.stringify(entries, null, "\t")}\n`,
+			"utf8"
+		);
 		await rename(temporary, path);
 	}
 
 	/**
 	 * Registra lo stato corrente prima di un'operazione distruttiva.
-	 * Senza HEAD (repository senza commit) non c'è nulla da annullare e non si scrive niente.
+	 * Senza HEAD (repository senza commit) non c'è uno snapshot da conservare, ma per lo scarto dei
+	 * file non tracciati la copia di sicurezza basta: `allowNoHead` lo consente.
 	 */
 	async #record(
 		kind: UndoKind,
 		label: string,
-		extra: { paths?: string[]; stash?: string | null } = {}
+		extra: {
+			paths?: string[];
+			stash?: string | null;
+			trash?: string | null;
+			untrackedPaths?: string[];
+		} = {},
+		options: { allowNoHead?: boolean } = {}
 	): Promise<UndoEntry | null> {
 		const info = this.#requireInfo();
 		const headResult = await runGit(
@@ -469,7 +596,7 @@ export class CliGitBackend implements GitBackend {
 			{ allowFailure: true }
 		);
 		const head = headResult.code === 0 ? headResult.stdout.trim() : "";
-		if (!head) return null;
+		if (!head && !options.allowNoHead) return null;
 
 		const existing = await this.#readUndo();
 		let id = undoId(kind);
@@ -480,30 +607,65 @@ export class CliGitBackend implements GitBackend {
 			id,
 			kind,
 			at: Date.now(),
-			head,
+			head: head || null,
 			branch: info.branch,
 			label,
 			...extra,
 		};
 
-		await runGit(info.root, ["update-ref", snapshotRef(id), head]);
+		if (head)
+			await runGit(info.root, ["update-ref", snapshotRef(id), head]);
 
 		const all = [entry, ...existing];
 		for (const dropped of all.slice(UNDO_LIMIT)) {
+			if (dropped.trash) await removeTrash(info.gitDir, dropped.trash);
 			await runGit(
 				info.root,
 				["update-ref", "-d", snapshotRef(dropped.id)],
 				{ allowFailure: true }
 			);
 		}
-		await this.#writeUndo(all.slice(0, UNDO_LIMIT));
+		const kept = all.slice(0, UNDO_LIMIT);
+		await this.#writeUndo(kept);
+		await pruneTrash(
+			info.gitDir,
+			new Set(
+				kept
+					.map((item) => item.trash)
+					.filter((value): value is string => Boolean(value))
+			)
+		);
 		return entry;
+	}
+
+	/** Aggiorna una voce già scritta (per esempio quando la copia di sicurezza è pronta). */
+	async #updateUndo(id: string, patch: Partial<UndoEntry>): Promise<void> {
+		// Si legge il JSON grezzo: la voce è ancora incompleta e `parseUndoLog` la scarterebbe.
+		const path = this.#undoPath(this.#requireInfo());
+		let data: unknown;
+		try {
+			data = JSON.parse(await readFile(path, "utf8"));
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+			throw error;
+		}
+		if (!Array.isArray(data)) return;
+		const next = data.map((item) =>
+			typeof item === "object" &&
+			item !== null &&
+			(item as Record<string, unknown>).id === id
+				? { ...(item as Record<string, unknown>), ...patch }
+				: item
+		);
+		await this.#writeUndoRaw(next);
 	}
 
 	/** Toglie una voce registrata per un'operazione poi fallita. */
 	async #dropUndo(id: string): Promise<void> {
 		const info = this.#requireInfo();
 		const entries = await this.#readUndo();
+		const dropped = entries.find((entry) => entry.id === id);
+		if (dropped?.trash) await removeTrash(info.gitDir, dropped.trash);
 		await this.#writeUndo(entries.filter((entry) => entry.id !== id));
 		await runGit(info.root, ["update-ref", "-d", snapshotRef(id)], {
 			allowFailure: true,

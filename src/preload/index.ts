@@ -21,9 +21,13 @@ const api: GitApi = {
 	createBranch: (name) => ipcRenderer.invoke("git:createBranch", name),
 	fetch: () => ipcRenderer.invoke("git:fetch"),
 	search: (query) => ipcRenderer.invoke("git:search", query),
+	moreCommits: (skip) => ipcRenderer.invoke("git:moreCommits", skip),
 	blame: (path, start, end) =>
 		ipcRenderer.invoke("git:blame", path, start, end),
 	undo: () => ipcRenderer.invoke("git:undo"),
+	settings: () => ipcRenderer.invoke("app:settings"),
+	saveSettings: (settings) =>
+		ipcRenderer.invoke("app:settings:save", settings),
 	watching: () => ipcRenderer.invoke("app:watching"),
 	onChanged: (listener) => {
 		const handler = (

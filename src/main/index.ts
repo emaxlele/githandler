@@ -3,7 +3,9 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { CHANGED_CHANNEL, type IpcChannel } from "../shared/api.ts";
+import { normalizeSettings } from "../core/settings.ts";
 import { CliGitBackend } from "./backend.ts";
+import { loadSettings, saveSettings } from "./settings.ts";
 import { startWatcher } from "./watcher.ts";
 
 const argv = process.argv.slice(1);
@@ -31,7 +33,7 @@ const watchEnabled = argv.includes("--no-watch")
  */
 if (process.env.GITCRAFT_GPU !== "1") app.disableHardwareAcceleration();
 
-const backend = new CliGitBackend();
+const backend = new CliGitBackend({ settings: loadSettings });
 let window: BrowserWindow | null = null;
 let stopWatching: (() => void) | null = null;
 let refreshing = false;
@@ -135,11 +137,19 @@ function registerIpc(): void {
 	handle("git:createBranch", (name: string) => backend.createBranch(name));
 	handle("git:fetch", () => backend.fetch());
 	handle("git:search", (query: string) => backend.search(query));
+	handle("git:moreCommits", (skip: number) => backend.historyPage(skip));
 	handle("git:blame", (path: string, start?: number, end?: number) =>
 		backend.blame(path, start, end)
 	);
 	handle("git:undo", () => backend.undo());
 	handle("app:watching", async () => watchEnabled && stopWatching !== null);
+	handle("app:settings", () => loadSettings());
+	handle("app:settings:save", async (input: unknown) => {
+		// il renderer non è una fonte attendibile: si normalizza prima di scrivere
+		const settings = normalizeSettings(input);
+		await saveSettings(settings);
+		return settings;
+	});
 }
 
 function buildMenu(): void {
@@ -219,12 +229,20 @@ async function runShots(): Promise<void> {
 			target.replace(/\.png$/, "-changes.png"),
 		],
 		[
+			`document.getElementById("tab-blame")?.click()`,
+			target.replace(/\.png$/, "-blame.png"),
+		],
+		[
 			`(() => {
 				const input = document.getElementById("search-input");
 				input.value = "author:Anna";
 				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
 			})()`,
 			target.replace(/\.png$/, "-search.png"),
+		],
+		[
+			`document.getElementById("btn-settings")?.click()`,
+			target.replace(/\.png$/, "-settings.png"),
 		],
 	];
 

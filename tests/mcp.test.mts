@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { after, test } from "node:test";
 
 import { CliGitBackend } from "../src/main/backend.ts";
+import type { Settings } from "../src/core/settings.ts";
 import { handleRequest, PROTOCOL_VERSION } from "../src/mcp/server.ts";
 
 /**
@@ -28,7 +29,17 @@ git("commit", "-m", "primo commit");
 
 const backend = new CliGitBackend();
 await backend.open(root);
-const context = { backend, repo: root };
+
+/** La policy che il server legge a ogni richiesta: i test la cambiano al volo. */
+let settings: Settings = {
+	api: { mode: "all", tools: [] },
+	trashUntracked: true,
+};
+const context = {
+	backend,
+	repo: root,
+	settings: async () => settings,
+};
 
 after(async () => {
 	await rm(root, { recursive: true, force: true });
@@ -176,4 +187,43 @@ test("gli errori dei tool tornano come contenuto, non come crash", async () => {
 
 	const traversal = await callTool("worktree_diff", { path: "../etc/passwd" });
 	assert.equal(traversal.isError, true);
+});
+
+test("la policy delle impostazioni filtra tools/list e tools/call", async () => {
+	const list = async (): Promise<Array<{ name: string }>> => {
+		const response = await handleRequest(context, {
+			jsonrpc: "2.0",
+			id: 9,
+			method: "tools/list",
+		});
+		const result = response!.result as { tools: Array<{ name: string }> };
+		return result.tools;
+	};
+
+	settings = { api: { mode: "off", tools: [] }, trashUntracked: true };
+	assert.deepEqual(await list(), []);
+	const denied = await callTool("repo_status");
+	assert.equal(denied.isError, true);
+	assert.match(denied.content[0]!.text, /not enabled/);
+
+	settings = { api: { mode: "read", tools: [] }, trashUntracked: true };
+	assert.equal((await list()).length, 5);
+
+	settings = {
+		api: { mode: "custom", tools: ["history", "blame"] },
+		trashUntracked: true,
+	};
+	assert.deepEqual(
+		(await list()).map((tool) => tool.name),
+		["history", "blame"],
+	);
+	assert.equal((await callTool("repo_status")).isError, true);
+	assert.equal((await callTool("history", { limit: 1 })).isError, undefined);
+	assert.equal((await callTool("blame", { path: "a.txt" })).isError, undefined);
+
+	// una policy con tool che non esistono non li inventa
+	settings = { api: { mode: "custom", tools: [] }, trashUntracked: true };
+	assert.deepEqual(await list(), []);
+
+	settings = { api: { mode: "all", tools: [] }, trashUntracked: true };
 });

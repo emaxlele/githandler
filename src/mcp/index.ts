@@ -1,6 +1,7 @@
 import { createInterface } from "node:readline";
 
 import { CliGitBackend } from "../main/backend.ts";
+import { loadSettings } from "../main/settings.ts";
 import { handleRequest, type JsonRpcResponse } from "./server.ts";
 
 /**
@@ -21,7 +22,7 @@ function respond(response: JsonRpcResponse): void {
 async function main(): Promise<void> {
 	const repo =
 		argValue("--repo") ?? process.env.GITCRAFT_REPO ?? process.cwd();
-	const backend = new CliGitBackend();
+	const backend = new CliGitBackend({ settings: loadSettings });
 
 	try {
 		await backend.open(repo);
@@ -56,7 +57,7 @@ async function main(): Promise<void> {
 					return;
 				}
 				const response = await handleRequest(
-					{ backend, repo },
+					{ backend, repo, settings: loadSettings },
 					request
 				);
 				if (response) respond(response);

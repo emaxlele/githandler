@@ -136,4 +136,12 @@ export interface Snapshot {
 	status: WorkingTree;
 	/** ultima operazione annullabile, se c'è */
 	undo: UndoEntry | null;
+	/** la storia letta è solo la prima pagina: se ne possono chiedere altre */
+	hasMore: boolean;
+}
+
+/** Una pagina di storia, per il caricamento progressivo oltre la prima. */
+export interface CommitPage {
+	commits: Commit[];
+	hasMore: boolean;
 }

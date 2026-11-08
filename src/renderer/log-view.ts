@@ -20,6 +20,12 @@ function laneColor(lane: number): string {
 	return LANE_COLORS[lane % LANE_COLORS.length]!;
 }
 
+export interface LogViewOptions {
+	onSelect: (sha: string) => void;
+	/** Chiamato quando la finestra visibile arriva in fondo alla storia caricata. */
+	onEndReached?: () => void;
+}
+
 /**
  * Lista dei commit virtualizzata: nel DOM esistono solo le righe visibili.
  * Il grafo è un SVG ridisegnato sulla finestra visibile, quindi il costo non cresce con la storia.
@@ -38,8 +44,10 @@ export class LogView {
 	readonly #rows = byId("log-rows");
 	readonly #svg = byId("log-graph") as unknown as SVGSVGElement;
 	readonly #empty = byId("log-empty");
+	readonly #options: LogViewOptions;
 
-	constructor(private readonly onSelect: (sha: string) => void) {
+	constructor(options: LogViewOptions) {
+		this.#options = options;
 		this.#scroller.addEventListener("scroll", () => this.#render(), {
 			passive: true,
 		});
@@ -51,7 +59,7 @@ export class LogView {
 			this.#selected = row.dataset.sha;
 			this.#dirty = true;
 			this.#render();
-			this.onSelect(row.dataset.sha);
+			this.#options.onSelect(row.dataset.sha);
 		});
 	}
 
@@ -108,7 +116,7 @@ export class LogView {
 		this.#dirty = true;
 		this.reveal(sha);
 		this.#render();
-		this.onSelect(sha);
+		this.#options.onSelect(sha);
 	}
 
 	#render(): void {
@@ -134,6 +142,10 @@ export class LogView {
 		this.#dirty = false;
 		this.#first = first;
 		this.#last = last;
+
+		// il fondo della storia caricata: si chiede la pagina successiva una volta sola
+		if (total > 0 && last >= total - 10 && this.#options.onEndReached)
+			this.#options.onEndReached();
 
 		this.#window.style.transform = `translateY(${first * ROW_H}px)`;
 

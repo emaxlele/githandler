@@ -1,9 +1,16 @@
 import type { HunkSelection, PatchMode } from "../core/patch.ts";
 import { buildPatch } from "../core/patch.ts";
 import { layoutGraph } from "../core/graph.ts";
+import {
+	API_TOOLS,
+	type ApiMode,
+	type ApiTool,
+	type Settings,
+} from "../core/settings.ts";
 import type { Commit, CommitFile, DiffFile, Snapshot } from "../core/types.ts";
 import { describeUndo } from "../core/undo.ts";
 import type { GitApi } from "../shared/api.ts";
+import { BlameView } from "./blame-view.ts";
 import { pickKey, renderDiff, type DiffLayout } from "./diff-view.ts";
 import { byId, clear, el, fullDate } from "./dom.ts";
 import { LogView } from "./log-view.ts";
@@ -16,10 +23,15 @@ declare global {
 
 const api = window.gitcraft;
 
-type Tab = "changes" | "commit";
+type Tab = "changes" | "commit" | "blame";
 
 interface State {
 	snapshot: Snapshot | null;
+	/** storia caricata: la prima pagina più quelle richieste scorrendo */
+	commits: Commit[];
+	/** esistono altre pagine dopo `commits` */
+	hasMore: boolean;
+	loadingMore: boolean;
 	selectedCommit: string | null;
 	commitFiles: CommitFile[];
 	commitPath: string | null;
@@ -37,6 +49,9 @@ interface State {
 
 const state: State = {
 	snapshot: null,
+	commits: [],
+	hasMore: false,
+	loadingMore: false,
 	selectedCommit: null,
 	commitFiles: [],
 	commitPath: null,
@@ -69,6 +84,7 @@ const ui = {
 	btnUndo: byId<HTMLButtonElement>("btn-undo"),
 	btnRefresh: byId<HTMLButtonElement>("btn-refresh"),
 	btnFetch: byId<HTMLButtonElement>("btn-fetch"),
+	btnSettings: byId<HTMLButtonElement>("btn-settings"),
 	searchInput: byId<HTMLInputElement>("search-input"),
 	searchInfo: byId("search-info"),
 	btnSearchClear: byId<HTMLButtonElement>("btn-search-clear"),
@@ -81,8 +97,11 @@ const ui = {
 	commitCount: byId("commit-count"),
 	tabChanges: byId<HTMLButtonElement>("tab-changes"),
 	tabCommit: byId<HTMLButtonElement>("tab-commit"),
+	tabBlame: byId<HTMLButtonElement>("tab-blame"),
 	panelChanges: byId("panel-changes"),
 	panelCommit: byId("panel-commit"),
+	panelBlame: byId("panel-blame"),
+	blamePath: byId("blame-path"),
 	changesCount: byId("changes-count"),
 	changesList: byId("changes-list"),
 	changesDiff: byId("changes-diff"),
@@ -94,10 +113,19 @@ const ui = {
 	btnCommit: byId<HTMLButtonElement>("btn-commit"),
 	btnStageAll: byId<HTMLButtonElement>("btn-stage-all"),
 	btnUnstageAll: byId<HTMLButtonElement>("btn-unstage-all"),
+	settingsDialog: byId<HTMLDialogElement>("settings-dialog"),
+	settingsForm: byId<HTMLFormElement>("settings-form"),
+	apiTools: byId("api-tools"),
+	settingTrash: byId<HTMLInputElement>("setting-trash"),
+	settingsCancel: byId<HTMLButtonElement>("settings-cancel"),
 	toast: byId("toast"),
 };
 
-const logView = new LogView((sha) => void selectCommit(sha));
+const logView = new LogView({
+	onSelect: (sha) => void selectCommit(sha),
+	onEndReached: () => void loadMore(),
+});
+const blameView = new BlameView();
 
 let toastTimer: number | undefined;
 
@@ -136,10 +164,14 @@ function applySnapshot(snapshot: Snapshot): void {
 		ui.searchInfo.textContent = "";
 	}
 	state.snapshot = snapshot;
+	// il refresh riparte dalla prima pagina: le pagine accumulate non valgono più
+	state.commits = snapshot.commits;
+	state.hasMore = snapshot.hasMore;
+	state.loadingMore = false;
 
 	if (
 		state.selectedCommit &&
-		!snapshot.commits.some((c) => c.sha === state.selectedCommit)
+		!state.commits.some((c) => c.sha === state.selectedCommit)
 	) {
 		state.selectedCommit = null;
 	}
@@ -152,7 +184,7 @@ function applySnapshot(snapshot: Snapshot): void {
 	ui.repoSync.textContent = `↑${ahead} ↓${behind}`;
 	ui.repoSync.classList.remove("hidden");
 
-	ui.commitCount.textContent = `${snapshot.commits.length} commit`;
+	updateCommitCount();
 	void loadLog();
 	if (state.selectedCommit) logView.select(state.selectedCommit);
 
@@ -161,6 +193,14 @@ function applySnapshot(snapshot: Snapshot): void {
 	renderUndo();
 	void updateWatchChip();
 	void reloadOpenDiff();
+	if (state.tab === "blame") void loadBlame();
+}
+
+function updateCommitCount(): void {
+	const total = state.commits.length;
+	ui.commitCount.textContent = state.hasMore
+		? `${total}+ commit — scorri per caricarne altri`
+		: `${total} commit`;
 }
 
 /** La sorveglianza parte quando il repository è aperto: il chip va aggiornato dopo, non al boot. */
@@ -170,6 +210,68 @@ async function updateWatchChip(): Promise<void> {
 	} catch (error) {
 		console.warn("stato della sorveglianza non disponibile:", error);
 	}
+}
+
+// ── impostazioni ─────────────────────────────────────────────────────────────
+
+function currentApiMode(): ApiMode {
+	const checked = ui.settingsForm.querySelector<HTMLInputElement>(
+		"input[name=api-mode]:checked"
+	);
+	return checked?.value === "read" ||
+		checked?.value === "all" ||
+		checked?.value === "custom"
+		? checked.value
+		: "off";
+}
+
+/** I tool si scelgono solo in modalità selettiva; negli altri modi la lista non conta. */
+function updateApiToolState(): void {
+	const custom = currentApiMode() === "custom";
+	for (const box of ui.apiTools.querySelectorAll<HTMLInputElement>(
+		"input[type=checkbox]"
+	)) {
+		box.disabled = !custom;
+	}
+}
+
+function fillSettings(settings: Settings): void {
+	for (const radio of ui.settingsForm.querySelectorAll<HTMLInputElement>(
+		"input[name=api-mode]"
+	)) {
+		radio.checked = radio.value === settings.api.mode;
+	}
+	for (const box of ui.apiTools.querySelectorAll<HTMLInputElement>(
+		"input[type=checkbox]"
+	)) {
+		box.checked = settings.api.tools.includes(box.value as ApiTool);
+	}
+	ui.settingTrash.checked = settings.trashUntracked;
+	updateApiToolState();
+}
+
+function collectSettings(): Settings {
+	const mode = currentApiMode();
+	const tools: ApiTool[] = [];
+	if (mode === "custom") {
+		for (const box of ui.apiTools.querySelectorAll<HTMLInputElement>(
+			"input[type=checkbox]"
+		)) {
+			if (
+				box.checked &&
+				(API_TOOLS as readonly string[]).includes(box.value)
+			)
+				tools.push(box.value as ApiTool);
+		}
+	}
+	return { api: { mode, tools }, trashUntracked: ui.settingTrash.checked };
+}
+
+async function openSettings(): Promise<void> {
+	const settings = await guard("Impostazioni", () => api.settings());
+	if (!settings) return;
+	fillSettings(settings);
+	ui.settingsDialog.showModal();
 }
 
 let logRequest = 0;
@@ -183,11 +285,11 @@ async function loadLog(): Promise<void> {
 	const query = state.searchQuery;
 	if (!query) {
 		logView.setEmptyMessage(
-			snapshot.commits.length === 0
+			state.commits.length === 0
 				? "Repository senza commit: crea il primo dalla scheda Modifiche."
 				: ""
 		);
-		logView.setData(snapshot.commits, snapshot.graph);
+		logView.setData(state.commits, layoutGraph(state.commits));
 		ui.searchInfo.textContent = "";
 		return;
 	}
@@ -198,7 +300,29 @@ async function loadLog(): Promise<void> {
 		commits.length === 0 ? `Nessun commit per «${query}».` : ""
 	);
 	logView.setData(commits, layoutGraph(commits as Commit[]));
-	ui.searchInfo.textContent = `${commits.length} risultati`;
+	ui.searchInfo.textContent =
+		commits.length === 1 ? "1 risultato" : `${commits.length} risultati`;
+}
+
+/** Pagina successiva della storia: il grafo si rilayouta sull'insieme caricato. */
+async function loadMore(): Promise<void> {
+	if (state.loadingMore || !state.hasMore || state.searchQuery) return;
+	state.loadingMore = true;
+	try {
+		const page = await guard("Storia", () =>
+			api.moreCommits(state.commits.length)
+		);
+		if (!page) return;
+		const known = new Set(state.commits.map((commit) => commit.sha));
+		const added = page.commits.filter((commit) => !known.has(commit.sha));
+		state.commits = state.commits.concat(added);
+		state.hasMore = page.hasMore && added.length > 0;
+		updateCommitCount();
+		if (!state.searchQuery)
+			logView.setData(state.commits, layoutGraph(state.commits));
+	} finally {
+		state.loadingMore = false;
+	}
 }
 
 async function runSearch(raw: string): Promise<void> {
@@ -471,8 +595,28 @@ function setTab(tab: Tab): void {
 	state.tab = tab;
 	ui.tabChanges.classList.toggle("is-active", tab === "changes");
 	ui.tabCommit.classList.toggle("is-active", tab === "commit");
+	ui.tabBlame.classList.toggle("is-active", tab === "blame");
 	ui.panelChanges.classList.toggle("is-active", tab === "changes");
 	ui.panelCommit.classList.toggle("is-active", tab === "commit");
+	ui.panelBlame.classList.toggle("is-active", tab === "blame");
+	if (tab === "blame") void loadBlame();
+}
+
+/** Blame del file aperto: quello delle Modifiche, altrimenti quello del commit selezionato. */
+async function loadBlame(): Promise<void> {
+	const path = state.changePath ?? state.commitPath;
+	ui.blamePath.textContent = path ?? "";
+	if (!path) {
+		blameView.setData(
+			null,
+			"Seleziona un file da Modifiche o da un commit."
+		);
+		return;
+	}
+	blameView.setData(null, "Lettura del blame…");
+	const file = await guard("Blame", () => api.blame(path));
+	if (!file) return;
+	blameView.setData(file);
 }
 
 async function stage(paths: string[]): Promise<void> {
@@ -489,7 +633,7 @@ async function discard(paths: string[]): Promise<void> {
 	const label = paths.length === 1 ? paths[0] : `${paths.length} file`;
 	if (
 		!window.confirm(
-			`Scartare le modifiche di ${label}? I file non tracciati vengono cancellati definitivamente, quelli tracciati si possono ripristinare con Annulla.`
+			`Scartare le modifiche di ${label}? I file non tracciati vengono copiati in una zona di sicurezza e si possono ripristinare con Annulla.`
 		)
 	)
 		return;
@@ -583,9 +727,30 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
 // la preferenza salvata deve essere visibile già al primo avvio
 updateDiffButtons();
 ui.btnFetch.addEventListener("click", () => void fetchAll());
+ui.btnSettings.addEventListener("click", () => void openSettings());
+
+ui.settingsCancel.addEventListener("click", () => ui.settingsDialog.close());
+for (const radio of ui.settingsForm.querySelectorAll<HTMLInputElement>(
+	"input[name=api-mode]"
+)) {
+	radio.addEventListener("change", updateApiToolState);
+}
+ui.settingsForm.addEventListener("submit", (event) => {
+	event.preventDefault();
+	void (async () => {
+		const saved = await guard("Impostazioni", () =>
+			api.saveSettings(collectSettings())
+		);
+		if (!saved) return;
+		fillSettings(saved);
+		ui.settingsDialog.close();
+		toast("Impostazioni salvate.", "ok");
+	})();
+});
 
 ui.tabChanges.addEventListener("click", () => setTab("changes"));
 ui.tabCommit.addEventListener("click", () => setTab("commit"));
+ui.tabBlame.addEventListener("click", () => setTab("blame"));
 
 ui.searchInput.addEventListener("keydown", (event) => {
 	if (event.key === "Enter") {

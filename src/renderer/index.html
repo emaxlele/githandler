@@ -42,6 +42,13 @@
 				>
 					Fetch
 				</button>
+				<button
+					class="btn"
+					id="btn-settings"
+					title="Permessi delle API e copia dei file non tracciati"
+				>
+					Impostazioni
+				</button>
 			</div>
 		</header>
 
@@ -125,6 +132,9 @@
 						</button>
 						<button class="tab" data-tab="commit" id="tab-commit">
 							Commit
+						</button>
+						<button class="tab" data-tab="blame" id="tab-blame">
+							Blame
 						</button>
 						<span class="tabs-spacer"></span>
 						<div
@@ -211,9 +221,132 @@
 							</div>
 						</div>
 					</div>
+
+					<div class="panel" id="panel-blame">
+						<div class="blame-head">
+							<span class="blame-path" id="blame-path"></span>
+							<span class="muted"
+								>chi ha scritto ogni riga, dal più recente</span
+							>
+						</div>
+						<div class="blame" id="blame-scroll">
+							<div class="blame-spacer" id="blame-spacer"></div>
+							<div class="blame-window" id="blame-window"></div>
+							<div class="empty" id="blame-empty">
+								Seleziona un file da Modifiche o da un commit.
+							</div>
+						</div>
+					</div>
 				</div>
 			</main>
 		</div>
+
+		<dialog class="settings" id="settings-dialog">
+			<form id="settings-form">
+				<h2>Impostazioni</h2>
+
+				<section class="settings-section">
+					<h3>API per l'AI (server MCP)</h3>
+					<p class="hint">
+						Il server espone solo i comandi consentiti qui, e la
+						policy viene riletta a ogni richiesta. Il default è
+						spento: un agente collegato non vede nulla finché non lo
+						si abilita.
+					</p>
+					<label class="radio">
+						<input
+							type="radio"
+							name="api-mode"
+							value="off"
+							checked
+						/>
+						<span><strong>Spente</strong> — nessun comando</span>
+					</label>
+					<label class="radio">
+						<input type="radio" name="api-mode" value="read" />
+						<span
+							><strong>Solo lettura</strong> — stato, storia,
+							diff, blame</span
+						>
+					</label>
+					<label class="radio">
+						<input type="radio" name="api-mode" value="all" />
+						<span
+							><strong>Tutte</strong> — anche i comandi che
+							scrivono, quando esisteranno</span
+						>
+					</label>
+					<label class="radio">
+						<input type="radio" name="api-mode" value="custom" />
+						<span
+							><strong>Selettivi</strong> — scegli i comandi</span
+						>
+					</label>
+
+					<div class="tool-list" id="api-tools">
+						<label>
+							<input type="checkbox" value="repo_status" />
+							<span
+								><code>repo_status</code> — ramo e
+								modifiche</span
+							>
+						</label>
+						<label>
+							<input type="checkbox" value="history" />
+							<span
+								><code>history</code> — ricerca nella
+								storia</span
+							>
+						</label>
+						<label>
+							<input type="checkbox" value="show_commit" />
+							<span
+								><code>show_commit</code> — dettaglio e diff di
+								un commit</span
+							>
+						</label>
+						<label>
+							<input type="checkbox" value="worktree_diff" />
+							<span
+								><code>worktree_diff</code> — diff del working
+								tree</span
+							>
+						</label>
+						<label>
+							<input type="checkbox" value="blame" />
+							<span
+								><code>blame</code> — chi ha scritto ogni
+								riga</span
+							>
+						</label>
+					</div>
+				</section>
+
+				<section class="settings-section">
+					<h3>File non tracciati</h3>
+					<label class="check">
+						<input type="checkbox" id="setting-trash" />
+						<span
+							>Prima di cancellarli conserva una copia, così
+							Annulla li ripristina</span
+						>
+					</label>
+					<p class="hint">
+						La copia vive in
+						<code>.git/gitcraft/trash/</code> e vale fino a 25 MB e
+						2.000 file per operazione. Oltre il limite lo scarto si
+						ferma e lo dice, invece di cancellare senza rete.
+					</p>
+				</section>
+
+				<div class="settings-actions">
+					<button type="button" class="btn" id="settings-cancel">
+						Annulla
+					</button>
+					<button type="submit" class="btn btn-primary">Salva</button>
+				</div>
+			</form>
+		</dialog>
 
 		<div class="toast hidden" id="toast"></div>
 		<script src="./app.js"></script>
