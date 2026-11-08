@@ -1,7 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 
-import { runGitBytes } from "./git.ts";
+import { assertRefName } from "../core/ops.ts";
+import type { RepoFileList } from "../shared/api.ts";
+import { runGit, runGitBytes } from "./git.ts";
 
 /**
  * Byte di un file, dal working tree o da un commit.
@@ -77,4 +79,45 @@ export async function readCommitFile(
 		timeoutMs: 60_000,
 	});
 	return checkSize(result.stdout);
+}
+
+/** Oltre questo numero la lista si tronca: il dialogo non deve ricevere un elenco infinito. */
+export const MAX_LISTED_FILES = 20_000;
+
+/**
+ * I file tracciati, per il selettore «Apri un file del repository».
+ *
+ * Con un ref si legge quell'albero; senza, HEAD. Su un repository senza commit HEAD non esiste e
+ * si legge l'indice, che è quello che l'utente sta per committare. `-z` separa i nomi con NUL, così
+ * un nome con spazi o a capo non diventa due righe.
+ */
+export async function listRepoFiles(
+	root: string,
+	ref: string | null = null
+): Promise<RepoFileList> {
+	const read = async (args: string[]): Promise<string[] | null> => {
+		const result = await runGit(root, args, {
+			allowFailure: true,
+			timeoutMs: 60_000,
+		});
+		if (result.code !== 0) return null;
+		return result.stdout.split("\0").filter(Boolean);
+	};
+
+	let files: string[] | null;
+	if (ref) {
+		assertRefName(ref);
+		files = await read(["ls-tree", "-r", "-z", "--name-only", ref]);
+		if (!files) throw new Error(`Nessun file nel ref «${ref}».`);
+	} else {
+		files = await read(["ls-tree", "-r", "-z", "--name-only", "HEAD"]);
+		// il primo commit non c'è ancora: l'indice è la risposta giusta
+		if (!files) files = (await read(["ls-files", "-z"])) ?? [];
+	}
+
+	const truncated = files.length > MAX_LISTED_FILES;
+	return {
+		files: truncated ? files.slice(0, MAX_LISTED_FILES) : files,
+		truncated,
+	};
 }

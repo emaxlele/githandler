@@ -28,9 +28,12 @@ import {
 	accountId,
 	accountLabel,
 	repoNameFromUrl,
+	reposPageSize,
 	type Account,
+	type AccountChoice,
 	type RemoteRepo,
 } from "../core/providers.ts";
+import { describeRun, type WorkflowRun } from "../core/actions.ts";
 import { deviceFlow, tokenPageUrl } from "../core/oauth.ts";
 import type {
 	AccountInput,
@@ -148,6 +151,7 @@ const ui = {
 	sideCommits: byId<HTMLButtonElement>("side-commits"),
 	btnSearchFocus: byId<HTMLButtonElement>("btn-search-focus"),
 	repoWatch: byId("repo-watch"),
+	repoAccount: byId<HTMLButtonElement>("repo-account"),
 	repoSync: byId("repo-sync"),
 	btnOpen: byId<HTMLButtonElement>("btn-open"),
 	btnNewTab: byId<HTMLButtonElement>("btn-new-tab"),
@@ -190,6 +194,7 @@ const ui = {
 	accountOauthClientField: byId("account-oauth-client-field"),
 	accountOauthClient: byId<HTMLInputElement>("account-oauth-client"),
 	accountOauthClientHelp: byId<HTMLButtonElement>("account-oauth-client-help"),
+	accountClaim: byId<HTMLButtonElement>("account-claim"),
 	accountOauthStart: byId<HTMLButtonElement>("account-oauth-start"),
 	accountTokenPage: byId<HTMLButtonElement>("account-token-page"),
 	accountOauthStatus: byId("account-oauth-status"),
@@ -197,11 +202,26 @@ const ui = {
 	accountSave: byId<HTMLButtonElement>("account-save"),
 	accountStatus: byId("account-status"),
 	btnLoadRepos: byId<HTMLButtonElement>("btn-load-repos"),
+	btnMoreRepos: byId<HTMLButtonElement>("btn-more-repos"),
 	accountFilter: byId<HTMLInputElement>("account-filter"),
 	remoteRepos: byId("remote-repos"),
 	accountDest: byId<HTMLInputElement>("account-dest"),
 	accountDestBrowse: byId<HTMLButtonElement>("account-dest-browse"),
 	accountClose: byId<HTMLButtonElement>("account-close"),
+	fileDialog: byId<HTMLDialogElement>("file-dialog"),
+	fileForm: byId<HTMLFormElement>("file-form"),
+	fileFilter: byId<HTMLInputElement>("file-filter"),
+	fileList: byId("file-list"),
+	fileStatus: byId("file-status"),
+	fileOpen: byId<HTMLButtonElement>("file-open"),
+	fileBrowser: byId<HTMLButtonElement>("file-browser"),
+	fileClose: byId<HTMLButtonElement>("file-close"),
+	actionsDialog: byId<HTMLDialogElement>("actions-dialog"),
+	actionsForm: byId<HTMLFormElement>("actions-form"),
+	actionsList: byId("actions-list"),
+	actionsStatus: byId("actions-status"),
+	actionsRefresh: byId<HTMLButtonElement>("actions-refresh"),
+	actionsClose: byId<HTMLButtonElement>("actions-close"),
 	btnUndo: byId<HTMLButtonElement>("btn-undo"),
 	btnRefresh: byId<HTMLButtonElement>("btn-refresh"),
 	btnFetch: byId<HTMLButtonElement>("btn-fetch"),
@@ -529,6 +549,7 @@ function applySnapshot(snapshot: Snapshot): void {
 	renderUndo();
 	void updateWatchChip();
 	void reloadOpenDiff();
+	void refreshRepoAccount();
 	if (state.tab === "blame") void loadBlame();
 }
 
@@ -539,11 +560,13 @@ function renderHeader(snapshot: Snapshot | null): void {
 	ui.repoBranch.textContent = snapshot?.info.branch ?? "—";
 	if (!snapshot) {
 		ui.repoSync.classList.add("hidden");
+		ui.repoAccount.classList.add("hidden");
 		ui.btnPull.disabled = true;
 		ui.btnPush.disabled = true;
 		renderOperation(null);
 		return;
 	}
+	renderRepoAccount();
 	const { ahead, behind } = snapshot.status;
 	ui.repoSync.textContent = `↑${ahead} ↓${behind}`;
 	ui.repoSync.classList.remove("hidden");
@@ -566,6 +589,133 @@ function renderOperation(snapshot: Snapshot | null): void {
 			: "Cherry-pick in corso";
 	ui.repoOperation.textContent = `${label} · annulla`;
 	ui.repoOperation.dataset.operation = operation;
+}
+
+// ── account del repository ──────────────────────────────────────────────────
+
+/**
+ * Quale account tiene questo repository. La risposta viene dal main, che applica le regole
+ * (`chooseRepoAccount`): scelta salvata, proprietario del remoto, unico account, altrimenti il
+ * primo — e in quel caso il chip lo dice, invece di far finta che sia una certezza.
+ */
+let repoAccountCache: { root: string; choice: AccountChoice } | null = null;
+let repoAccountRequest = 0;
+
+async function refreshRepoAccount(): Promise<void> {
+	const root = state.root;
+	const request = ++repoAccountRequest;
+	if (!root) {
+		repoAccountCache = null;
+		renderRepoAccount();
+		return;
+	}
+	try {
+		const choice = await api.repoAccount();
+		if (request !== repoAccountRequest) return;
+		repoAccountCache = { root, choice };
+	} catch (error) {
+		if (request !== repoAccountRequest) return;
+		console.warn("account del repository:", readableError(error));
+		repoAccountCache = null;
+	}
+	renderRepoAccount();
+}
+
+function accountReasonText(choice: AccountChoice): string {
+	switch (choice.reason) {
+		case "saved":
+			return "scelto da te per questo repository";
+		case "owner":
+			return "l'utente corrisponde al proprietario del remoto";
+		case "single":
+			return "unico account collegato per questo host";
+		case "first":
+			return "primo di più account per questo host: clic per scegliere";
+		default:
+			return choice.host
+				? `nessun account collegato per ${choice.host}`
+				: "il remoto non è un servizio web conosciuto";
+	}
+}
+
+function renderRepoAccount(): void {
+	const chip = ui.repoAccount;
+	if (!state.snapshot) {
+		chip.classList.add("hidden");
+		return;
+	}
+	chip.classList.remove("hidden");
+	const cached =
+		repoAccountCache && repoAccountCache.root === state.root
+			? repoAccountCache.choice
+			: null;
+	if (!cached) {
+		chip.textContent = "account…";
+		chip.classList.remove("is-guess");
+		chip.disabled = true;
+		chip.title = "Sto leggendo il remoto…";
+		return;
+	}
+	chip.disabled = false;
+	const account = cached.account;
+	chip.textContent = account ? accountLabel(account) : "nessun account";
+	chip.classList.toggle("is-guess", cached.reason === "first");
+	chip.title = account
+		? `${accountLabel(account)} — ${accountReasonText(cached)}. Clic per cambiare.`
+		: `Nessun account per questo repository: ${accountReasonText(cached)}.`;
+}
+
+function openRepoAccountMenu(x: number, y: number): void {
+	const cached =
+		repoAccountCache && repoAccountCache.root === state.root
+			? repoAccountCache.choice
+			: null;
+	const entries: Array<MenuEntry | "separator"> = [];
+	if (!cached) {
+		entries.push({ label: "Sto leggendo il remoto…", disabled: true });
+	} else if (cached.candidates.length === 0) {
+		entries.push({
+			label: cached.host
+				? `Nessun account per ${cached.host}`
+				: "Il remoto non è un servizio web conosciuto",
+			disabled: true,
+		});
+	} else {
+		for (const account of cached.candidates) {
+			const active = account.id === cached.account?.id;
+			entries.push({
+				label: `${accountLabel(account)} · ${account.host}${
+					active ? " ✓" : ""
+				}`,
+				action: () => void chooseRepoAccount(account.id),
+			});
+		}
+		entries.push("separator", {
+			label: "Automatico (togli la scelta salvata)",
+			disabled: cached.reason !== "saved",
+			action: () => void chooseRepoAccount(null),
+		});
+	}
+	entries.push("separator", {
+		label: "Gestisci account…",
+		action: () => void openAccounts(),
+	});
+	openMenu(x, y, entries);
+}
+
+async function chooseRepoAccount(id: string | null): Promise<void> {
+	const choice = await guard("Account del repository", () =>
+		api.setRepoAccount(id)
+	);
+	if (!choice) return;
+	repoAccountCache = { root: state.root, choice };
+	renderRepoAccount();
+	toast(
+		choice.account
+			? `Questo repository usa ${accountLabel(choice.account)}.`
+			: "Scelta tolta: l'account viene dedotto dal remoto.",
+		"ok"
+	);
 }
 
 /** Schede dei repository aperti: una per sessione, con la chiusura. */
@@ -710,7 +860,14 @@ function formatBytes(bytes: number): string {
 	return `${text} ${units[unit]}`;
 }
 
+/**
+ * Le scelte «account per repository» non si modificano da questa finestra: si riportano com'erano,
+ * altrimenti salvare le impostazioni le cancellerebbe.
+ */
+let savedRepoAccounts: Record<string, string> = {};
+
 function fillSettings(settings: Settings): void {
+	savedRepoAccounts = settings.repoAccounts;
 	for (const radio of ui.settingsForm.querySelectorAll<HTMLInputElement>(
 		"input[name=api-mode]"
 	)) {
@@ -748,6 +905,7 @@ function collectSettings(): Settings {
 	return {
 		api: { mode, tools },
 		defaultRoot: ui.settingBase.value.trim() || null,
+		repoAccounts: savedRepoAccounts,
 		trash: {
 			enabled: ui.settingTrash.checked,
 			maxBytes: readMebibytes(
@@ -1561,7 +1719,8 @@ async function fetchAll(): Promise<void> {
 
 interface MenuEntry {
 	label: string;
-	action: () => void;
+	/** assente per le voci solo informative (disabilitate) */
+	action?: () => void;
 	danger?: boolean;
 	disabled?: boolean;
 }
@@ -1585,7 +1744,7 @@ function openMenu(
 		} else {
 			button.addEventListener("click", () => {
 				closeMenu();
-				entry.action();
+				entry.action?.();
 			});
 		}
 		ui.ctxMenu.appendChild(button);
@@ -2314,6 +2473,17 @@ ui.repoTabs.addEventListener("contextmenu", (event) => {
 		?.dataset.root;
 	if (!root) return;
 	event.preventDefault();
+	/**
+	 * Le operazioni che parlano del repository (fork, zip, file, Actions) passano dal main per il
+	 * repository attivo: se il clic è su un'altra scheda, prima la si rende attiva.
+	 */
+	const onRepo = (task: () => Promise<void>) => () => {
+		void (async () => {
+			if (root !== state.root) await useSession(root);
+			if (state.root !== root) return;
+			await task();
+		})();
+	};
 	openMenu(event.clientX, event.clientY, [
 		{ label: "Apri la cartella", action: () => openRepoFolder(root) },
 		{
@@ -2324,6 +2494,27 @@ ui.repoTabs.addEventListener("contextmenu", (event) => {
 		{
 			label: "Apri il repository nel browser",
 			action: () => void guard("Browser", () => api.openInBrowser(root)),
+		},
+		"separator",
+		{
+			label: "Apri un file del repository…",
+			action: onRepo(openFilePicker),
+		},
+		{
+			label: "Sincronizza con l'originale (merge)…",
+			action: onRepo(() => syncForkWith("merge")),
+		},
+		{
+			label: "Sincronizza con l'originale (rebase)…",
+			action: onRepo(() => syncForkWith("rebase")),
+		},
+		{
+			label: "Esporta HEAD in un archivio zip…",
+			action: onRepo(exportRepositoryZip),
+		},
+		{
+			label: "GitHub Actions…",
+			action: onRepo(openActions),
 		},
 		"separator",
 		{
@@ -2636,6 +2827,8 @@ async function cloneFromUrl(): Promise<void> {
 let accountsCache: AccountsInfo | null = null;
 let selectedAccount: string | null = null;
 let remoteReposCache: RemoteRepo[] = [];
+/** ultima pagina caricata dell'elenco repository; 0 = nessun elenco */
+let remoteReposPage = 0;
 
 function fillAccountProviders(): void {
 	if (ui.accountProvider.options.length > 0) return;
@@ -2774,8 +2967,41 @@ async function startBrowserOauth(): Promise<void> {
 	}
 }
 
-/** Dopo l'accesso dal browser l'account esiste già nel main: qui si rilegge l'elenco. */
-async function refreshAccountsAfterOauth(accountIdValue?: string): Promise<void> {
+/**
+ * «Accedi» senza chiedere niente: il main cerca un token già presente (`gh`, credential helper).
+ * Se non c'è, lo dice e restano le due strade esplicite: browser con Client ID, o token incollato.
+ */
+async function claimAccountFromForm(): Promise<void> {
+	const input = accountInputFromForm();
+	if (!input) return;
+	ui.accountClaim.disabled = true;
+	ui.accountOauthStatus.classList.remove("is-error");
+	ui.accountOauthStatus.textContent = "Cerco un token già presente sulla macchina…";
+	try {
+		const result = await api.claimAccount(input);
+		ui.accountOauthStatus.textContent =
+			result.source === "github-cli"
+				? "Token trovato in GitHub CLI."
+				: "Token trovato nel credential helper di Git.";
+		await refreshAccountsAfterOauth(
+			result.accountId,
+			`Account collegato senza Client ID (${result.source === "github-cli" ? "GitHub CLI" : "credential helper"}).`
+		);
+	} catch (error) {
+		ui.accountOauthStatus.classList.add("is-error");
+		ui.accountOauthStatus.textContent = `${readableError(
+			error
+		)} Puoi usare «Accedi con il browser» oppure incollare un token.`;
+	} finally {
+		ui.accountClaim.disabled = false;
+	}
+}
+
+/** Dopo un accesso l'account esiste già nel main: qui si rilegge l'elenco. */
+async function refreshAccountsAfterOauth(
+	accountIdValue?: string,
+	message = "Account collegato dal browser."
+): Promise<void> {
 	const info = await guard("Account", () => api.accounts());
 	if (!info) return;
 	accountsCache = info;
@@ -2787,8 +3013,10 @@ async function refreshAccountsAfterOauth(accountIdValue?: string): Promise<void>
 	const account = info.accounts.find((item) => item.id === selectedAccount);
 	if (account) fillAccountFields(account);
 	remoteReposCache = [];
+	remoteReposPage = 0;
 	renderRemoteRepos();
-	toast("Account collegato dal browser.", "ok");
+	void refreshRepoAccount();
+	toast(message, "ok");
 }
 
 function accountStatusText(account: Account | null): string {
@@ -2863,7 +3091,9 @@ function startNewAccount(): void {
 	ui.accountOauthStatus.classList.remove("is-error");
 	updateOauthUi();
 	remoteReposCache = [];
+	remoteReposPage = 0;
 	renderRemoteRepos();
+	ui.btnMoreRepos.classList.add("hidden");
 }
 
 function selectAccount(id: string): void {
@@ -2872,7 +3102,9 @@ function selectAccount(id: string): void {
 	const account = accountsCache?.accounts.find((item) => item.id === id);
 	if (account) fillAccountFields(account);
 	remoteReposCache = [];
+	remoteReposPage = 0;
 	renderRemoteRepos();
+	ui.btnMoreRepos.classList.add("hidden");
 }
 
 async function openAccounts(): Promise<void> {
@@ -2920,6 +3152,8 @@ async function saveAccountFromForm(): Promise<void> {
 			: "Account salvato: manca il token, quindi l'elenco dei repository non è disponibile.",
 		"ok"
 	);
+	// un account in più cambia anche i candidati del repository attivo
+	void refreshRepoAccount();
 }
 
 async function removeSelectedAccount(): Promise<void> {
@@ -2944,29 +3178,49 @@ async function removeSelectedAccount(): Promise<void> {
 	startNewAccount();
 	if (info.accounts[0]) selectAccount(info.accounts[0].id);
 	toast("Account rimosso.", "ok");
+	void refreshRepoAccount();
 }
 
-async function loadRemoteRepos(): Promise<void> {
+/**
+ * Elenco dei repository dell'account. Si carica una pagina per volta: `more` aggiunge la
+ * successiva, altrimenti si riparte dalla prima. Che ci sia altro lo dice la taglia della pagina,
+ * perché i provider non restituiscono sempre un totale affidabile.
+ */
+async function loadRemoteRepos(more = false): Promise<void> {
 	if (!selectedAccount) {
 		toast("Scegli un account: serve il suo token per leggere l'elenco.");
 		return;
 	}
+	const id = selectedAccount;
+	const account = accountsCache?.accounts.find((item) => item.id === id);
+	const page = more ? remoteReposPage + 1 : 1;
 	ui.btnLoadRepos.disabled = true;
+	ui.btnMoreRepos.disabled = true;
 	try {
-		const repos = await guard("Repository", () =>
-			api.accountRepos(selectedAccount as string)
-		);
+		const repos = await guard("Repository", () => api.accountRepos(id, page));
 		if (!repos) {
 			ui.accountStatus.textContent = "Elenco non disponibile: leggi il messaggio.";
 			ui.accountStatus.classList.add("is-error");
 			return;
 		}
-		remoteReposCache = repos;
+		if (page === 1) {
+			remoteReposCache = repos;
+		} else {
+			const known = new Set(remoteReposCache.map((repo) => repo.fullName));
+			remoteReposCache = [
+				...remoteReposCache,
+				...repos.filter((repo) => !known.has(repo.fullName)),
+			];
+		}
+		remoteReposPage = page;
 		renderRemoteRepos();
-		ui.accountStatus.textContent = `${repos.length} repository.`;
+		const full = repos.length >= (account ? reposPageSize(account.provider) : 100);
+		ui.btnMoreRepos.classList.toggle("hidden", !full);
+		ui.accountStatus.textContent = `${remoteReposCache.length} repository.`;
 		ui.accountStatus.classList.remove("is-error");
 	} finally {
 		ui.btnLoadRepos.disabled = false;
+		ui.btnMoreRepos.disabled = false;
 	}
 }
 
@@ -3023,6 +3277,267 @@ async function cloneRemoteRepo(repo: RemoteRepo): Promise<void> {
 	toast("Repository clonato.", "ok");
 }
 
+// ── fork, archivio, file del repository e Actions ───────────────────────────
+
+/**
+ * Sync con l'originale di un fork. Il `fetch` e il `merge`/`rebase` li fa il main; qui si chiede
+ * conferma e si rilegge lo stato, perché un conflitto lascia l'operazione a metà e il chip
+ * «annulla» deve comparire subito.
+ */
+async function syncForkWith(mode: "merge" | "rebase"): Promise<void> {
+	const info = await guard("Fork", () => api.forkInfo());
+	if (!info) return;
+	if (!info.parent) {
+		toast(
+			"Questo repository non risulta un fork: non c'è un originale con cui sincronizzarsi."
+		);
+		return;
+	}
+	const parent = info.parent;
+	const verb = mode === "merge" ? "Unire" : "Rebasare il ramo attuale su";
+	if (
+		!window.confirm(
+			`${verb} ${parent.fullName}/${parent.defaultBranch}? Le modifiche non committate possono fermare l'operazione; niente viene forzato.`
+		)
+	)
+		return;
+	const result = await guardRepo("Sincronizza fork", () =>
+		api.syncFork(mode)
+	);
+	if (!result) return;
+	const snapshot = await guard("Rilettura", () => api.refresh());
+	if (snapshot) applySnapshot(snapshot);
+	toast(
+		result.created
+			? `Remoto «upstream» aggiunto (${result.upstreamUrl}). ${result.branch} è ${result.ahead} commit avanti a ${result.upstreamRef}.`
+			: `${result.branch} è ${result.ahead} commit avanti a ${result.upstreamRef}.`,
+		"ok"
+	);
+}
+
+async function exportRepositoryZip(): Promise<void> {
+	const destination = await guard("Esporta zip", () => api.exportZip());
+	if (destination) toast(`Archivio salvato in ${destination}.`, "ok");
+}
+
+// ── selettore dei file del repository ───────────────────────────────────────
+
+/** Righe disegnate al massimo: oltre, il filtro è più utile di un elenco infinito. */
+const FILE_ROWS = 400;
+
+let fileListCache: string[] = [];
+let fileSelectedPath: string | null = null;
+let fileListTruncated = false;
+
+async function openFilePicker(): Promise<void> {
+	fileSelectedPath = null;
+	fileListCache = [];
+	fileListTruncated = false;
+	ui.fileFilter.value = "";
+	clear(ui.fileList);
+	ui.fileStatus.textContent = "Leggo l'elenco dei file…";
+	ui.fileStatus.classList.remove("is-error");
+	ui.fileOpen.disabled = true;
+	ui.fileBrowser.disabled = true;
+	if (!ui.fileDialog.open) ui.fileDialog.showModal();
+	const list = await guard("File del repository", () => api.listRepoFiles());
+	if (!list) {
+		ui.fileStatus.textContent = "Elenco non disponibile: leggi il messaggio.";
+		ui.fileStatus.classList.add("is-error");
+		return;
+	}
+	fileListCache = list.files;
+	fileListTruncated = list.truncated;
+	renderFileList();
+	ui.fileFilter.focus();
+}
+
+function renderFileList(): void {
+	clear(ui.fileList);
+	const queryText = ui.fileFilter.value.trim().toLowerCase();
+	const matches = queryText
+		? fileListCache.filter((path) => path.toLowerCase().includes(queryText))
+		: fileListCache;
+	if (matches.length === 0) {
+		ui.fileList.appendChild(
+			el(
+				"li",
+				"muted",
+				fileListCache.length === 0
+					? "Nessun file tracciato."
+					: "Nessun file corrisponde al filtro."
+			)
+		);
+		ui.fileStatus.textContent = fileListTruncated
+			? "L'elenco è troncato dal repository."
+			: "";
+		return;
+	}
+	const shown = matches.slice(0, FILE_ROWS);
+	for (const path of shown) {
+		const item = el("li");
+		item.dataset.path = path;
+		if (path === fileSelectedPath) item.classList.add("is-selected");
+		item.appendChild(el("span", "repo-name", path));
+		item.addEventListener("click", () => selectFile(path));
+		item.addEventListener("dblclick", () => {
+			selectFile(path);
+			openSelectedFile();
+		});
+		ui.fileList.appendChild(item);
+	}
+	const more = matches.length - shown.length;
+	ui.fileStatus.textContent = [
+		`${matches.length} file`,
+		more > 0 ? `mostrati i primi ${shown.length}` : "",
+		fileListTruncated ? "elenco troncato dal repository" : "",
+	]
+		.filter(Boolean)
+		.join(" · ");
+}
+
+function selectFile(path: string): void {
+	fileSelectedPath = path;
+	ui.fileOpen.disabled = false;
+	ui.fileBrowser.disabled = false;
+	for (const node of ui.fileList.querySelectorAll<HTMLElement>(
+		"li[data-path]"
+	)) {
+		node.classList.toggle("is-selected", node.dataset.path === path);
+	}
+}
+
+function openSelectedFile(): void {
+	if (!fileSelectedPath) return;
+	const path = fileSelectedPath;
+	ui.fileDialog.close();
+	openFileWithSystem(path);
+}
+
+function openSelectedFileInBrowser(): void {
+	if (!fileSelectedPath) return;
+	const path = fileSelectedPath;
+	ui.fileDialog.close();
+	void guard("Browser", () => api.openFileInBrowser(path));
+}
+
+// ── GitHub Actions ──────────────────────────────────────────────────────────
+
+let workflowRunsCache: WorkflowRun[] = [];
+
+async function openActions(): Promise<void> {
+	if (!ui.actionsDialog.open) ui.actionsDialog.showModal();
+	await loadWorkflowRuns();
+}
+
+function runStatusClass(run: WorkflowRun): string {
+	if (run.conclusion === "success") return "is-ok";
+	if (
+		run.conclusion &&
+		run.conclusion !== "success" &&
+		run.conclusion !== "skipped"
+	)
+		return "is-bad";
+	return "";
+}
+
+async function loadWorkflowRuns(): Promise<void> {
+	ui.actionsRefresh.disabled = true;
+	ui.actionsStatus.textContent = "Leggo le esecuzioni…";
+	ui.actionsStatus.classList.remove("is-error");
+	clear(ui.actionsList);
+	try {
+		workflowRunsCache = await api.workflowRuns();
+		renderWorkflowRuns();
+	} catch (error) {
+		ui.actionsStatus.classList.add("is-error");
+		ui.actionsStatus.textContent = readableError(error);
+	} finally {
+		ui.actionsRefresh.disabled = false;
+	}
+}
+
+function renderWorkflowRuns(): void {
+	clear(ui.actionsList);
+	if (workflowRunsCache.length === 0) {
+		ui.actionsList.appendChild(el("li", "muted", "Nessuna esecuzione."));
+		ui.actionsStatus.textContent = "";
+		return;
+	}
+	for (const run of workflowRunsCache) {
+		const item = el("li");
+		item.dataset.id = run.id;
+		const text = el("div", "actions-text");
+		text.appendChild(el("span", "actions-name", run.name));
+		const when = Date.parse(run.createdAt);
+		const meta = [
+			describeRun(run),
+			run.branch || "?",
+			run.event,
+			Number.isFinite(when) ? shortDate(when) : "",
+		]
+			.filter(Boolean)
+			.join(" · ");
+		text.appendChild(
+			el("span", `actions-meta ${runStatusClass(run)}`.trim(), meta)
+		);
+		item.appendChild(text);
+
+		const actions = el("div", "actions-actions");
+		if (run.status !== "completed") {
+			const cancel = el(
+				"button",
+				"btn btn-small",
+				"Annulla"
+			) as HTMLButtonElement;
+			cancel.type = "button";
+			cancel.addEventListener("click", () =>
+				void workflowAction(run.id, "cancel")
+			);
+			actions.appendChild(cancel);
+		} else {
+			const rerun = el(
+				"button",
+				"btn btn-small",
+				"Ri-esegui"
+			) as HTMLButtonElement;
+			rerun.type = "button";
+			rerun.addEventListener("click", () =>
+				void workflowAction(run.id, "rerun")
+			);
+			actions.appendChild(rerun);
+		}
+		if (run.url) {
+			const open = el("button", "btn btn-small", "Apri") as HTMLButtonElement;
+			open.type = "button";
+			open.addEventListener("click", () =>
+				void guard("Browser", () => api.openExternal(run.url))
+			);
+			actions.appendChild(open);
+		}
+		item.appendChild(actions);
+		ui.actionsList.appendChild(item);
+	}
+	ui.actionsStatus.textContent = `${workflowRunsCache.length} esecuzioni.`;
+}
+
+async function workflowAction(
+	id: string,
+	action: "rerun" | "cancel"
+): Promise<void> {
+	if (action === "cancel" && !window.confirm("Annullare questa esecuzione?"))
+		return;
+	const done = await guard("Actions", () =>
+		api.workflowRunAction(id, action)
+	);
+	if (done === null) return;
+	toast(
+		action === "cancel" ? "Esecuzione annullata." : "Esecuzione ri-avviata.",
+		"ok"
+	);
+	await loadWorkflowRuns();
+}
+
 // ── eventi ───────────────────────────────────────────────────────────────────
 
 ui.btnOpen.addEventListener("click", () => void openRepository());
@@ -3076,6 +3591,27 @@ ui.accountProvider.addEventListener("change", applyProviderDefaults);
 ui.accountHost.addEventListener("input", updateOauthUi);
 ui.accountApiBase.addEventListener("input", updateOauthUi);
 ui.accountOauthStart.addEventListener("click", () => void startBrowserOauth());
+ui.repoAccount.addEventListener("click", (event) => {
+	// il menu si chiude al primo clic fuori: questo clic è quello che lo apre
+	event.stopPropagation();
+	const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
+	openRepoAccountMenu(box.left, box.bottom + 4);
+});
+
+// File del repository: il form non deve chiudere il dialogo con Invio.
+ui.fileForm.addEventListener("submit", (event) => event.preventDefault());
+ui.fileFilter.addEventListener("input", () => renderFileList());
+ui.fileOpen.addEventListener("click", openSelectedFile);
+ui.fileBrowser.addEventListener("click", openSelectedFileInBrowser);
+ui.fileClose.addEventListener("click", () => ui.fileDialog.close());
+ui.fileDialog.addEventListener("close", () => {
+	fileSelectedPath = null;
+	fileListCache = [];
+});
+
+ui.actionsForm.addEventListener("submit", (event) => event.preventDefault());
+ui.actionsRefresh.addEventListener("click", () => void loadWorkflowRuns());
+ui.actionsClose.addEventListener("click", () => ui.actionsDialog.close());
 ui.accountOauthClientHelp.addEventListener("click", openOauthClientHelp);
 ui.accountTokenPage.addEventListener("click", openTokenPage);
 // chiudere il dialogo ferma l'attesa: nessun ciclo che continua senza finestra
@@ -3098,6 +3634,8 @@ api.onOauth((event) => {
 	void refreshAccountsAfterOauth(event.accountId);
 });
 ui.accountSave.addEventListener("click", () => void saveAccountFromForm());
+ui.accountClaim.addEventListener("click", () => void claimAccountFromForm());
+ui.btnMoreRepos.addEventListener("click", () => void loadRemoteRepos(true));
 ui.accountNew.addEventListener("click", () => startNewAccount());
 ui.accountRemove.addEventListener("click", () => void removeSelectedAccount());
 ui.accountClose.addEventListener("click", () => ui.accountDialog.close());

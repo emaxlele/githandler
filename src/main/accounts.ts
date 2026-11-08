@@ -6,6 +6,7 @@ import {
 	ASKPASS_SCRIPT,
 	askpassEnv,
 	authHeaders,
+	chooseRepoAccount,
 	credentialInput,
 	normalizeAccount,
 	parseAccounts,
@@ -14,10 +15,12 @@ import {
 	serializeAccounts,
 	assertToken,
 	type Account,
+	type AccountChoice,
 	type RemoteRepo,
 } from "../core/providers.ts";
 import { runGit } from "./git.ts";
-import { settingsDirectory } from "./settings.ts";
+import { originRemote } from "./remote.ts";
+import { loadSettings, saveSettings, settingsDirectory } from "./settings.ts";
 
 /**
  * Account collegati: metadati su disco, token in memoria.
@@ -107,7 +110,7 @@ async function hasCredentialHelper(): Promise<boolean> {
 }
 
 /** Token dell'account: quello appena inserito, altrimenti quello che Git ha in archivio. */
-async function tokenFor(account: Account): Promise<string | null> {
+export async function tokenFor(account: Account): Promise<string | null> {
 	const known = tokens.get(account.id);
 	if (known) return known;
 	const result = await runGit("/", ["credential", "fill"], {
@@ -176,8 +179,11 @@ export async function removeAccount(id: string): Promise<AccountsInfo> {
 	return accountsInfo();
 }
 
-/** Elenco dei repository dell'account, letto dall'API del provider. */
-export async function accountRepos(id: string): Promise<RemoteRepo[]> {
+/** Elenco dei repository dell'account, letto dall'API del provider (una pagina per volta). */
+export async function accountRepos(
+	id: string,
+	page = 1
+): Promise<RemoteRepo[]> {
 	const account = (await loadAccounts()).find((item) => item.id === id);
 	if (!account) throw new Error("Account non trovato.");
 	const token = await tokenFor(account);
@@ -188,7 +194,8 @@ export async function accountRepos(id: string): Promise<RemoteRepo[]> {
 
 	let response: Response;
 	try {
-		response = await fetch(reposUrl(account), {
+		const safePage = Number.isFinite(page) && page > 1 ? Math.floor(page) : 1;
+		response = await fetch(reposUrl(account, safePage), {
 			headers: authHeaders(account, token),
 			signal: AbortSignal.timeout(20_000),
 		});
@@ -221,15 +228,59 @@ export async function accountRepos(id: string): Promise<RemoteRepo[]> {
 	return repos;
 }
 
-/** Ambiente per far usare a Git il token in memoria durante un'operazione di rete. */
+/**
+ * Quale account «possiede» questo repository.
+ *
+ * Il remoto dice l'host e il proprietario; la scelta salvata dell'utente, se c'è, vince. Il resto
+ * delle regole è in `chooseRepoAccount` (core, testato).
+ */
+export async function repoAccountChoice(root: string): Promise<AccountChoice> {
+	const [accounts, settings, remote] = await Promise.all([
+		loadAccounts(),
+		loadSettings(),
+		originRemote(root),
+	]);
+	return chooseRepoAccount(accounts, settings.repoAccounts[root] ?? null, remote);
+}
+
+/** Sceglie (o dimentica, con `null`) l'account di un repository: è una preferenza, non un segreto. */
+export async function setRepoAccount(
+	root: string,
+	accountId: string | null
+): Promise<AccountChoice> {
+	const accounts = await loadAccounts();
+	if (accountId && !accounts.some((item) => item.id === accountId))
+		throw new Error("Account non trovato.");
+	const settings = await loadSettings();
+	const repoAccounts = { ...settings.repoAccounts };
+	if (accountId) repoAccounts[root] = accountId;
+	else delete repoAccounts[root];
+	await saveSettings({ ...settings, repoAccounts });
+	return repoAccountChoice(root);
+}
+
+/**
+ * Ambiente per far usare a Git il token in memoria durante un'operazione di rete.
+ *
+ * Con il root si rispetta la scelta fatta per **quel** repository: due account sullo stesso host
+ * altrimenti userebbero sempre il primo salvato.
+ */
 export async function credentialEnvFor(
-	host: string | null
+	host: string | null,
+	root?: string
 ): Promise<Record<string, string> | null> {
 	if (!host) return null;
 	const accounts = await loadAccounts();
-	const account = accounts.find(
-		(item) => item.host.toLowerCase() === host.toLowerCase()
-	);
+	let account: Account | null = null;
+	if (root) {
+		const choice = await repoAccountChoice(root);
+		if (choice.account && choice.account.host.toLowerCase() === host.toLowerCase())
+			account = choice.account;
+	}
+	if (!account)
+		account =
+			accounts.find((item) => item.host.toLowerCase() === host.toLowerCase()) ??
+			null;
 	if (!account) return null;
 	const token = await tokenFor(account);
 	if (!token) return null;

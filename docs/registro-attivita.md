@@ -1,7 +1,45 @@
 # Registro attività — githandler
 
 > Una sezione per giorno, la più recente in alto. Ogni voce dice cosa è stato fatto e perché, in
-> parole semplici. Ultimo aggiornamento: 2026-11-08
+> parole semplici. Ultimo aggiornamento: 2026-11-09
+
+## 2026-11-09
+
+### Accedere senza intoppi, sapere chi comanda su ogni repository, seguire fork e Actions
+
+-   **Cosa**: il pulsante **Accedi** del dialogo account ora funziona con un clic se sulla macchina c'è
+    già un token (GitHub CLI o credential helper di Git), senza chiedere nessun Client ID; se non c'è, lo
+    dice e restano le due strade esplicite (browser o token incollato). Nell'intestazione compare un
+    **chip con l'account** che sta usando il repository attivo: cliccandolo si può scegliere un altro
+    account o togliere la scelta. Dal menu della scheda del repository ora si può **sincronizzare un
+    fork con il repository originale** (merge o rebase), **aprire un file del repository** (dal sistema o
+    nel browser), **esportare il contenuto di HEAD in uno zip** e gestire le **GitHub Actions** (vedere le
+    ultime esecuzioni, ri-eseguirle o annullarle). L'elenco dei repository degli account ha **Carica
+    altri**.
+-   **Perché**: era la richiesta dell'utente — «faccio accedi da browser ma vuole per forza l'id, io
+    dovrei fare solo la login», «come fa per ogni repo a capire con quale account lavorare», «sarebbe
+    carino gestire i sync ai repo originali quando è un fork, magari anche gli actions» — più il resto
+    del TODO.
+-   **Come**: il device flow OAuth **non può funzionare senza un Client ID registrato**: non esiste un
+    flusso anonimo, quindi l'app non finge il contrario. Prima cerca il token che l'utente ha già
+    (`gh auth token`, poi `git credential fill`), lo verifica con `GET /user` e salva l'account; il
+    Client ID resta per l'accesso dal browser. Per l'account, il remoto dice l'host ma non con quale
+    utente è stato clonato: le regole sono, dalla più forte alla più debole, scelta salvata, proprietario
+    del remoto, unico account dell'host, primo di più account — e quest'ultimo caso è **dichiarato** nel
+    chip invece di essere presentato come certezza. Per i fork il repository originale si chiede all'API
+    del provider, il remoto `upstream` si crea solo se manca, e il sync è `fetch` + `merge`/`rebase`
+    **senza forza**: un conflitto resta annullabile. Le Actions sono solo GitHub e usano il token
+    dell'account risolto; l'elenco dei file usa i file tracciati da Git; lo zip è `git archive`, quindi
+    rispetta filtri ed `export-ignore`.
+-   **Verifica**: 140 test automatici verdi (10 nuovi), tipi e build puliti. Prova reale con l'app: un
+    account collegato con il pulsante **Accedi** contro un'API finta (token non scritto su disco, file
+    `0600`), chip che passa da «unico account» a «primo di più account» ed è dichiarato come
+    supposizione, scelta per il repository salvata in `settings.json` e mantenuta dopo aver salvato le
+    impostazioni, sync di un fork con remoto `upstream` creato e merge andato a buon fine, elenco file
+    filtrato e aperto nel browser (URL corretto, anche con spazi nel nome), zip esportato e verificato,
+    Actions lette e ri-eseguite/annullate contro l'API finta, paginazione dei repository da 100 a 200.
+-   **Stato**: completato.
+-   **Riferimento**: commit del repository `~/Projects/githandler` (v0.10.0).
 
 ## 2026-11-08
 

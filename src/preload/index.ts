@@ -86,7 +86,19 @@ const api: GitApi = {
 	saveAccount: (account, token) =>
 		ipcRenderer.invoke("accounts:save", account, token),
 	removeAccount: (id) => ipcRenderer.invoke("accounts:remove", id),
-	accountRepos: (id) => ipcRenderer.invoke("accounts:repos", id),
+	accountRepos: (id, page) =>
+		ipcRenderer.invoke("accounts:repos", id, page),
+	claimAccount: (input) => ipcRenderer.invoke("accounts:claim", input),
+	repoAccount: () => invokeRepo("repo:account"),
+	setRepoAccount: (id) => invokeRepo("repo:account:set", id),
+	forkInfo: () => invokeRepo("repo:forkInfo"),
+	syncFork: (mode) => invokeRepo("repo:syncFork", mode),
+	workflowRuns: () => invokeRepo("actions:runs"),
+	workflowRunAction: (id, action) => invokeRepo("actions:run", id, action),
+	listRepoFiles: (ref) => invokeRepo("repo:listFiles", ref),
+	exportZip: () => invokeRepo("repo:exportZip"),
+	openFileInBrowser: (path, ref) =>
+		invokeRepo("repo:openFileInBrowser", path, ref),
 	openRepoFolder: (root) => ipcRenderer.invoke("repo:openFolder", root),
 	openFile: (root, path) => ipcRenderer.invoke("repo:openFile", root, path),
 	revealFile: (root, path) =>

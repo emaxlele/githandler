@@ -7,13 +7,10 @@ import {
 	parseDeviceToken,
 	parseUserLogin,
 } from "../core/oauth.ts";
-import {
-	accountId,
-	authHeaders,
-	type Account,
-} from "../core/providers.ts";
+import { accountId, authHeaders, type Account } from "../core/providers.ts";
 import type { AccountInput } from "../shared/api.ts";
 import { saveAccount } from "./accounts.ts";
+import { machineToken, type MachineTokenSource } from "./machine-auth.ts";
 
 /**
  * Accesso dal browser (OAuth device flow).
@@ -194,6 +191,34 @@ async function poll(options: {
 	} finally {
 		if (session === mine) session = null;
 	}
+}
+
+/**
+ * Accesso senza chiedere niente: prende un token che l'utente ha **già** sulla macchina.
+ *
+ * È la scorciatoia che rende «Accedi» un clic solo: `gh auth login` e i credential helper di Git
+ * tengono già un token valido, quindi non serve né un Client ID né incollare niente. Il token viene
+ * verificato con l'API del provider per ricavare il nome utente, poi salvato nel solito modo (in
+ * memoria per la sessione). Se non c'è nessun token, l'errore lo dice e la finestra propone le
+ * alternative.
+ */
+export async function claimAccount(input: AccountInput): Promise<{
+	accountId: string;
+	source: MachineTokenSource;
+}> {
+	const found = await machineToken(input.host);
+	if (!found)
+		throw new Error(
+			`Nessun token già presente per ${input.host}: accedi con il browser oppure incolla un token.`
+		);
+	const base = input.apiBase.replace(/\/+$/, "");
+	const login = await fetchLogin(`${base}/user`, input, found.token);
+	const id = accountId(input.provider, input.host, login);
+	await saveAccount(
+		{ ...input, username: login, oauthClientId: input.oauthClientId ?? "" },
+		found.token
+	);
+	return { accountId: id, source: found.source };
 }
 
 /**

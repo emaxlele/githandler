@@ -14,8 +14,12 @@ import {
 	initArgs,
 	normalizeAccount,
 	parseAccounts,
+	chooseRepoAccount,
+	parseCredentialOutput,
 	parseRemoteRepos,
+	remoteIdentity,
 	remoteWeb,
+	reposPageSize,
 	repoNameFromUrl,
 	reposUrl,
 	serializeAccounts,
@@ -294,9 +298,152 @@ test("dal remoto all'indirizzo web, per ogni servizio", () => {
 		fileWebUrl("https://bitbucket.org/o/r.git", "main", "a/b.txt"),
 		"https://bitbucket.org/o/r/src/main/a/b.txt"
 	);
-	// Gitea ha una forma sua (`/src/branch/…`): meglio nessun link
-	assert.equal(fileWebUrl("https://git.example.org/o/r.git", "main", "a.txt"), null);
+	// Gitea/Forgejo non si riconosce dall'host: lo dice il provider dell'account
+	assert.equal(
+		fileWebUrl("https://git.example.org/o/r.git", "main", "a.txt", "gitea"),
+		"https://git.example.org/o/r/src/branch/main/a.txt"
+	);
+	assert.equal(
+		fileWebUrl("https://git.example.org/o/r.git", "main", "a.txt"),
+		null
+	);
+	// il provider vince anche quando l'host sembra un altro servizio
+	assert.equal(
+		fileWebUrl("https://github.com/o/r.git", "dev", "a/b.txt", "gitea"),
+		"https://github.com/o/r/src/branch/dev/a/b.txt"
+	);
 	assert.equal(fileWebUrl("https://github.com/o/r.git", "", "a.txt"), null);
+});
+
+test("identità del remoto: host, namespace, proprietario e nome", () => {
+	assert.deepEqual(remoteIdentity("git@github.com:emaxlele/githandler.git"), {
+		host: "github.com",
+		namespace: "emaxlele",
+		owner: "emaxlele",
+		name: "githandler",
+		base: "https://github.com/emaxlele/githandler",
+		kind: "github",
+	});
+	// GitLab: il namespace può essere un gruppo con sottogruppi, il proprietario è il primo
+	assert.deepEqual(
+		remoteIdentity("https://gitlab.com/gruppo/sotto/progetto.git"),
+		{
+			host: "gitlab.com",
+			namespace: "gruppo/sotto",
+			owner: "gruppo",
+			name: "progetto",
+			base: "https://gitlab.com/gruppo/sotto/progetto",
+			kind: "gitlab",
+		}
+	);
+	assert.equal(remoteIdentity("/tmp/repo.git"), null);
+	assert.equal(remoteIdentity("https://github.com/solo"), null);
+});
+
+test("quale account per un repository: scelta salvata, proprietario, unico, primo", () => {
+	const base: Account = {
+		id: "github:github.com:emaxlele",
+		provider: "github",
+		label: "",
+		host: "github.com",
+		apiBase: "https://api.github.com",
+		username: "emaxlele",
+		addedAt: 1,
+		oauthClientId: "",
+	};
+	const other: Account = {
+		...base,
+		id: "github:github.com:lavoro",
+		username: "lavoro",
+		addedAt: 2,
+	};
+	const gitlab: Account = {
+		...base,
+		id: "gitlab:gitlab.com:emaxlele",
+		provider: "gitlab",
+		host: "gitlab.com",
+		apiBase: "https://gitlab.com/api/v4",
+	};
+	const remote = "git@github.com:emaxlele/githandler.git";
+
+	// 1. la scelta dell'utente vince su tutto
+	assert.deepEqual(
+		(() => {
+			const choice = chooseRepoAccount([base, other], other.id, remote);
+			return [choice.account?.id, choice.reason];
+		})(),
+		[other.id, "saved"]
+	);
+
+	// 2. altrimenti l'utente che corrisponde al proprietario del remoto
+	assert.deepEqual(
+		(() => {
+			const choice = chooseRepoAccount([other, base], null, remote);
+			return [choice.account?.id, choice.reason];
+		})(),
+		[base.id, "owner"]
+	);
+	// il confronto è esatto: `emax` non è `emaxlele`
+	assert.equal(
+		chooseRepoAccount(
+			[{ ...base, id: "github:github.com:emax", username: "emax" }],
+			null,
+			remote
+		).reason,
+		"single"
+	);
+
+	// 3. unico account dell'host
+	assert.equal(
+		chooseRepoAccount([gitlab, base], null, "https://github.com/x/y.git").reason,
+		"single"
+	);
+	assert.equal(
+		chooseRepoAccount([gitlab], null, "https://github.com/x/y.git").account,
+		null
+	);
+
+	// 4. più account dello stesso host, nessuna corrispondenza: il primo, dichiarato
+	const choice = chooseRepoAccount([other, base], null, "https://github.com/terzi/x.git");
+	assert.equal(choice.reason, "first");
+	assert.equal(choice.account?.id, other.id);
+	assert.deepEqual(choice.candidates.map((a) => a.id), [other.id, base.id]);
+
+	// la scelta salvata di un altro host non vale qui
+	assert.equal(
+		chooseRepoAccount([base, gitlab], gitlab.id, remote).account?.id,
+		base.id
+	);
+	// repository senza remoto: nessun host, nessun candidato
+	assert.deepEqual(chooseRepoAccount([base], base.id, null), {
+		account: null,
+		reason: "none",
+		candidates: [],
+		host: null,
+	});
+});
+
+test("l'output di `git credential fill` si legge in modo stretto", () => {
+	assert.deepEqual(parseCredentialOutput("username=emaxlele\npassword=gho_x\n"), {
+		username: "emaxlele",
+		password: "gho_x",
+	});
+	// senza utente è comunque un segreto usabile (alcuni helper lo omettono)
+	assert.deepEqual(parseCredentialOutput("password=abc\n"), {
+		username: "",
+		password: "abc",
+	});
+	assert.equal(parseCredentialOutput("username=x\n"), null);
+	assert.equal(parseCredentialOutput(""), null);
+	// a capo nei valori: sarebbero campi diversi
+	assert.equal(parseCredentialOutput("username=a\nb\npassword=x"), null);
+});
+
+test("le pagine dell'elenco repository hanno la taglia del provider", () => {
+	assert.equal(reposPageSize("github"), 100);
+	assert.equal(reposPageSize("gitlab"), 100);
+	assert.equal(reposPageSize("gitea"), 50);
+	assert.equal(reposPageSize("bitbucket"), 100);
 });
 
 test("clone e init non trasformano l'URL o il path in opzioni", () => {

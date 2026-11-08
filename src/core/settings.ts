@@ -48,6 +48,11 @@ export interface Settings {
 	 * navigare ovunque. `null` = home dell'utente.
 	 */
 	defaultRoot: string | null;
+	/**
+	 * Account scelto a mano per un repository, per root assoluto: `{ "/percorso/repo": "id" }`.
+	 * Serve quando due account stanno sullo stesso host e il remoto non basta a distinguerli.
+	 */
+	repoAccounts: Record<string, string>;
 }
 
 export const MEBIBYTE = 1024 * 1024;
@@ -79,6 +84,7 @@ export function defaultSettings(): Settings {
 		api: { mode: "off", tools: [] },
 		trash: { ...TRASH_DEFAULTS },
 		defaultRoot: null,
+		repoAccounts: {},
 	};
 }
 
@@ -144,10 +150,12 @@ export function normalizeSettings(data: unknown): Settings {
 			: legacyEnabled ?? fallback.trash.enabled;
 
 	const defaultRoot = normalizeDirectory(record.defaultRoot);
+	const repoAccounts = normalizeRepoAccounts(record.repoAccounts);
 
 	return {
 		api: { mode, tools },
 		defaultRoot,
+		repoAccounts,
 		trash: {
 			enabled,
 			maxBytes: clampInt(
@@ -179,6 +187,25 @@ function normalizeDirectory(value: unknown): string | null {
 	if (!trimmed || !trimmed.startsWith("/") || /[\x00\r\n]/.test(trimmed))
 		return null;
 	return trimmed.replace(/\/+$/, "") || "/";
+}
+
+/**
+ * Scelte di account per repository: chiave = root assoluto, valore = id dell'account. Un id è
+ * `provider:host:utente`, senza spazi: tutto il resto si scarta invece di indovinare.
+ */
+function normalizeRepoAccounts(value: unknown): Record<string, string> {
+	const record = asRecord(value);
+	if (!record) return {};
+	const out: Record<string, string> = {};
+	for (const [key, accountId] of Object.entries(record)) {
+		if (typeof accountId !== "string") continue;
+		const root = normalizeDirectory(key);
+		const id = accountId.trim();
+		if (!root) continue;
+		if (!id || id.length > 300 || /[\x00-\x1f]/.test(id)) continue;
+		out[root] = id;
+	}
+	return out;
 }
 
 export function parseSettings(raw: string): Settings {

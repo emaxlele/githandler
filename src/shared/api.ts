@@ -1,5 +1,11 @@
 import type { BlameFile } from "../core/blame.ts";
-import type { Account, RemoteRepo } from "../core/providers.ts";
+import type { WorkflowRun } from "../core/actions.ts";
+import type { ForkInfo, ForkSyncResult } from "../core/fork.ts";
+import type {
+	Account,
+	AccountChoice,
+	RemoteRepo,
+} from "../core/providers.ts";
 import type { PatchMode } from "../core/patch.ts";
 import type { ResetMode } from "../core/ops.ts";
 import type { Settings, TrashUsage } from "../core/settings.ts";
@@ -78,8 +84,31 @@ export interface GitApi {
 	/** Salva o aggiorna un account; il token è facoltativo e non viene scritto su disco. */
 	saveAccount(account: AccountInput, token?: string): Promise<AccountsInfo>;
 	removeAccount(id: string): Promise<AccountsInfo>;
-	/** Elenco dei repository dell'account, letto dall'API del provider. */
-	accountRepos(id: string): Promise<RemoteRepo[]>;
+	/** Elenco dei repository dell'account, letto dall'API del provider (una pagina per volta). */
+	accountRepos(id: string, page?: number): Promise<RemoteRepo[]>;
+	/** Prova a usare un token già presente sulla macchina (`gh`, credential helper). */
+	claimAccount(input: AccountInput): Promise<ClaimResult>;
+	/** Quale account l'app userebbe per il repository attivo, e perché. */
+	repoAccount(): Promise<AccountChoice>;
+	/** Sceglie (o dimentica, con `null`) l'account di un repository. */
+	setRepoAccount(id: string | null): Promise<AccountChoice>;
+	/** Il repository attivo è un fork? E qual è l'originale? */
+	forkInfo(): Promise<ForkInfo>;
+	/** Porta nel ramo locale i commit dell'originale (`merge` o `rebase`, mai forza). */
+	syncFork(mode: "merge" | "rebase"): Promise<ForkSyncResult>;
+	/** Ultime esecuzioni delle GitHub Actions del repository. */
+	workflowRuns(): Promise<WorkflowRun[]>;
+	/** Ri-esegue o annulla un'esecuzione (`rerun` solo se è finita). */
+	workflowRunAction(
+		id: string,
+		action: "rerun" | "cancel"
+	): Promise<void>;
+	/** File tracciati nel ref indicato (o in HEAD); serve al selettore dei file. */
+	listRepoFiles(ref?: string | null): Promise<RepoFileList>;
+	/** Salva il contenuto di HEAD in un archivio zip scelto dall'utente. */
+	exportZip(): Promise<string | null>;
+	/** Apre nel browser un file del repository (nel ramo indicato o in HEAD). */
+	openFileInBrowser(path: string, ref?: string | null): Promise<void>;
 	/** Apre la cartella del repository nel gestore file di sistema. */
 	openRepoFolder(root: string): Promise<void>;
 	/** Apre un file del repository con l'applicazione associata. */
@@ -144,6 +173,19 @@ export interface GitApi {
 export interface Identity {
 	name: string;
 	email: string;
+}
+
+/** Esito di un accesso con un token già presente sulla macchina. */
+export interface ClaimResult {
+	accountId: string;
+	/** da dove arriva: `gh auth token` o il credential helper di Git */
+	source: "github-cli" | "git";
+}
+
+/** Elenco dei file tracciati: `truncated` dice che ce ne sono altri. */
+export interface RepoFileList {
+	files: string[];
+	truncated: boolean;
 }
 
 export interface AccountsInfo {
@@ -242,8 +284,18 @@ export type IpcChannel =
 	| "accounts:save"
 	| "accounts:remove"
 	| "accounts:repos"
+	| "accounts:claim"
 	| "accounts:oauthStart"
 	| "accounts:oauthCancel"
+	| "repo:account"
+	| "repo:account:set"
+	| "repo:forkInfo"
+	| "repo:syncFork"
+	| "actions:runs"
+	| "actions:run"
+	| "repo:listFiles"
+	| "repo:exportZip"
+	| "repo:openFileInBrowser"
 	| "repo:openFolder"
 	| "repo:openFile"
 	| "repo:revealFile"

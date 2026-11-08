@@ -5,9 +5,11 @@ repository (da un URL o da un account GitHub / GitLab / Gitea / Bitbucket), most
 grafo, i diff, e copre il flusso quotidiano: stage (anche parziale), unstage, scarto, commit, checkout
 di un ramo **o di un commit**, undo, pull, push, stash, merge, rebase, cherry-pick e submodule. Dal
 repository si arriva **al file e alla cartella** — apri la posizione, apri il file, salva una copia,
-apri repository e commit nel browser — e il **token si prende dal browser** con il device flow OAuth.
-Lo stesso repository è leggibile da un agente AI tramite un server MCP, spento di default e
-abilitabile comando per comando.
+apri repository e commit nel browser, esporta HEAD in uno zip — e il **token si prende dove c'è già**
+(`gh`, credential helper) oppure **dal browser** con il device flow OAuth. Ogni repository ricorda con
+quale account lavorare, i **fork** si sincronizzano con l'originale e le **GitHub Actions** si leggono,
+si ri-eseguono e si annullano dall'app. Lo stesso repository è leggibile da un agente AI tramite un
+server MCP, spento di default e abilitabile comando per comando.
 
 Il nome: **`git`** davanti, perché è così che si cerca un client Git, e **handler** — chi maneggia il
 repository. Il progetto si è chiamato `gitcraft` (già usato da un altro client Git visuale) e, per
@@ -16,7 +18,7 @@ poche ore dell'8 novembre 2026, `lanecraft` e `gitlattice`.
 Non è un fork di altri client: è una reimplementazione indipendente, clean-room. Nessun codice, stringa,
 icona o asset preso da prodotti esistenti.
 
-## Stato (v0.9)
+## Stato (v0.10)
 
 | Funzione                                            | Stato         |
 | --------------------------------------------------- | ------------- |
@@ -26,6 +28,12 @@ icona o asset preso da prodotti esistenti.
 | **Benvenuto all'avvio** (nessun dialog automatico)  | ✅             |
 | **Azioni su file e cartella dal repository**        | ✅             |
 | **Accesso dal browser (device flow OAuth)**         | ✅             |
+| **«Accedi» con il token già presente** (`gh`, credential helper) | ✅ |
+| **Account scelto per repository** (chip nell'header) | ✅             |
+| **Fork: riconoscimento e sync con l'originale**      | ✅             |
+| **GitHub Actions**: esecuzioni, ri-esecuzione, annulla | ✅           |
+| **File del repository** (elenco filtrabile, browser) | ✅             |
+| **Esporta HEAD in uno zip**                          | ✅             |
 | Storia con grafo a corsie, paginata (2.000/pagina)  | ✅             |
 | Rami, remoti, tag con ahead/behind                  | ✅             |
 | Staging per file, unstage, scarto                   | ✅             |
@@ -187,20 +195,46 @@ indirizzo dell'API.
 -   Senza credential helper il token vale per la sessione: alla riapertura va reinserito, e
     l'interfaccia lo dice invece di far scoprire il problema al primo fetch.
 
-### Il token dal browser
+### Il token: prima dove c'è già, poi dal browser
 
--   **Accedi con il browser** usa il *device flow* OAuth di GitHub e GitLab (anche installazioni
-    proprie): l'app mostra un codice, apre la pagina di verifica e attende. Il token lo riceve il main,
-    che legge il nome dell'utente e salva l'account; alla finestra tornano solo l'esito e l'id
-    dell'account.
--   Serve un **Client ID** di un'applicazione OAuth del provider: è pubblico (viaggia nell'URL), non è
-    un segreto e l'app lo salva accanto agli altri dati dell'account. Il pulsante *Crea…* apre la pagina
-    dove registrarla; per GitHub il device flow va abilitato su quell'applicazione.
+-   **Accedi** è un clic: l'app cerca un token già presente sulla macchina — `gh auth token --hostname
+    <host>` (GitHub CLI), poi il credential helper di Git (`git credential fill`) — lo verifica con
+    `GET /user` e salva l'account. Nessun Client ID da incollare.
+-   Se un token non c'è, resta **Accedi con il browser**: il *device flow* OAuth di GitHub e GitLab
+    (anche installazioni proprie). Il device flow **richiede un Client ID registrato** — non esiste un
+    flusso anonimo — e l'app lo mostra per quello che è: un dato pubblico, salvato accanto agli altri
+    dati dell'account. Il pulsante *Crea…* apre la pagina dove registrarlo; per GitHub il device flow va
+    abilitato su quell'applicazione.
+-   In entrambi i casi il token lo riceve il main, che legge il nome dell'utente e salva l'account; alla
+    finestra tornano solo l'esito e l'id dell'account.
 -   Per Gitea e Bitbucket, che non hanno il device flow, resta **Crea un token nel browser…**: apre la
     pagina dei token del provider, con gli scope già indicati dove il provider li accetta.
 
+### Con quale account lavora un repository
+
+Il remoto dice l'host, non l'account con cui è stato clonato. Le regole, dalla più forte alla più
+debole: la **scelta salvata** per quel repository; un account dello stesso host il cui utente è il
+**proprietario** del remoto; l'**unico** account dell'host; il **primo** di più account. L'ultimo caso
+è una supposizione e il **chip nell'header** lo dichiara: clic per scegliere un altro account o togliere
+la scelta. Fetch, pull, push e clone usano quell'account.
+
 La **cartella di base** (Impostazioni) è il punto di partenza di «Apri», «Crea» e «Clona» e la
 destinazione predefinita dei cloni; non è un limite, dalla finestra di scelta si naviga ovunque.
+
+## Fork e GitHub Actions
+
+Dal menu del tasto destro sulla scheda del repository:
+
+-   **Sincronizza con l'originale (merge/rebase)**: l'app chiede al provider qual è il repository
+    originale, crea il remoto `upstream` la prima volta, poi `fetch` e `merge`/`rebase` del ramo
+    predefinito. Niente forza: un conflitto resta annullabile. Con HEAD staccato il sync si ferma e lo
+    dice.
+-   **GitHub Actions…**: ultime esecuzioni con workflow, stato, ramo ed evento; *Ri-esegui* (i job
+    falliti di un'esecuzione conclusa), *Annulla* (una in corso), *Apri* nel browser. Solo GitHub.
+-   **Apri un file del repository…**: elenco filtrabile dei file tracciati in HEAD, apertura dal sistema
+    o nel browser (Gitea compreso).
+-   **Esporta HEAD in un archivio zip…**: `git archive`, quindi `export-ignore` e i filtri del
+    repository valgono; non-tracciati e modifiche non committate restano fuori.
 
 ## File non tracciati scartati
 

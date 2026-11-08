@@ -24,6 +24,7 @@ import {
 } from "../shared/api.ts";
 import {
 	commitWebUrl,
+	fileWebUrl,
 	hostFromUrl,
 	remoteWeb,
 } from "../core/providers.ts";
@@ -33,12 +34,22 @@ import {
 	accountsInfo,
 	credentialEnvFor,
 	removeAccount,
+	repoAccountChoice,
 	saveAccount,
+	setRepoAccount,
 } from "./accounts.ts";
+import { listWorkflowRuns, runWorkflowAction } from "./actions.ts";
+import { exportArchive } from "./export.ts";
+import { forkInfo, syncFork } from "./fork.ts";
 import { CliGitBackend } from "./backend.ts";
-import { readCommitFile, readWorkingFile, resolveInside } from "./files.ts";
-import { runGit } from "./git.ts";
-import { cancelOAuth, startOAuth } from "./oauth.ts";
+import {
+	listRepoFiles,
+	readCommitFile,
+	readWorkingFile,
+	resolveInside,
+} from "./files.ts";
+import { claimAccount, cancelOAuth, startOAuth } from "./oauth.ts";
+import { originRemote } from "./remote.ts";
 import { cloneRepository, initRepository, type Identity } from "./repos.ts";
 import { loadSettings, saveSettings } from "./settings.ts";
 import { startWatcher } from "./watcher.ts";
@@ -84,15 +95,26 @@ let refreshing = false;
 let refreshPending = false;
 
 /** Il backend di un repository già aperto; un root sconosciuto è un errore, non un'apertura implicita. */
-/** Un backend che conosce anche le credenziali degli account collegati (per fetch/pull/push). */
-function newBackend(): CliGitBackend {
-	return new CliGitBackend({ settings: loadSettings, credentials: credentialEnvFor });
+/**
+ * Un backend che conosce anche le credenziali degli account collegati (per fetch/pull/push).
+ *
+ * Le credenziali dipendono dal **repository**, non solo dall'host: `repoAccounts` dice quale
+ * account usare quando due stanno sullo stesso host. Il root si conosce dopo `open`, quindi la
+ * chiusura lo legge da una scatola che viene riempita subito dopo.
+ */
+function newBackend(rootRef: { root: string | null }): CliGitBackend {
+	return new CliGitBackend({
+		settings: loadSettings,
+		credentials: (host) => credentialEnvFor(host, rootRef.root ?? undefined),
+	});
 }
 
 /** Apre un repository già sul disco: backend, mappa per root, watcher sulla scheda attiva. */
 async function openBackend(target: string): Promise<Awaited<ReturnType<CliGitBackend["open"]>>> {
-	const backend = newBackend();
+	const rootRef: { root: string | null } = { root: null };
+	const backend = newBackend(rootRef);
 	const snapshot = await backend.open(target);
+	rootRef.root = snapshot.info.root;
 	backends.set(snapshot.info.root, backend);
 	activeRoot = snapshot.info.root;
 	watchRepository(snapshot.info.root);
@@ -114,16 +136,6 @@ function broadcast(channel: string, payload: unknown): void {
 
 function sendTerminal(event: TerminalEvent): void {
 	broadcast(TERMINAL_CHANNEL, event);
-}
-
-/** URL del remoto `origin`: serve ai link nel browser, non esiste in un repository senza remoto. */
-async function originRemote(root: string): Promise<string | null> {
-	const result = await runGit(root, ["remote", "get-url", "origin"], {
-		allowFailure: true,
-	});
-	if (result.code !== 0) return null;
-	const remote = result.stdout.trim();
-	return remote || null;
 }
 
 function cleanError(error: unknown): string {
@@ -346,7 +358,30 @@ function registerIpc(): void {
 		saveAccount(account, token)
 	);
 	handle("accounts:remove", (id: string) => removeAccount(id));
-	handle("accounts:repos", (id: string) => accountRepos(id));
+	handle("accounts:repos", (id: string, page?: number) =>
+		accountRepos(id, page)
+	);
+
+	// Account per repository: la scelta salvata (`repoAccounts`) e le regole di `chooseRepoAccount`.
+	handle("repo:account", (root: string) => repoAccountChoice(root));
+	handle("repo:account:set", (root: string, id: string | null) =>
+		setRepoAccount(root, id)
+	);
+
+	// «Accedi» senza Client ID: prima si cerca un token già presente sulla macchina.
+	handle("accounts:claim", (input: AccountInput) => claimAccount(input));
+
+	// Fork e Actions: sono dati del provider, non del repository.
+	handle("repo:forkInfo", (root: string) => forkInfo(root));
+	handle("repo:syncFork", (root: string, mode: "merge" | "rebase") =>
+		syncFork(root, mode)
+	);
+	handle("actions:runs", (root: string) => listWorkflowRuns(root));
+	handle(
+		"actions:run",
+		(root: string, id: string, action: "rerun" | "cancel") =>
+			runWorkflowAction(root, id, action)
+	);
 
 	// Accesso dal browser: il token resta nel main, la finestra riceve solo l'esito.
 	handle("accounts:oauthStart", (input: AccountInput, clientId: string) =>
@@ -393,6 +428,49 @@ function registerIpc(): void {
 			return destination;
 		}
 	);
+
+	// Il file è relativo e non attendibile: `resolveInside` lo verifica. Il servizio arriva
+	// dall'account scelto perché Gitea non si riconosce dall'host.
+	handle(
+		"repo:openFileInBrowser",
+		async (root: string, path: string, ref?: string | null) => {
+			const remote = await originRemote(root);
+			const choice = await repoAccountChoice(root);
+			const branch = ref || backendFor(root).info?.branch || "HEAD";
+			const url = remote
+				? fileWebUrl(remote, branch, path, choice.account?.provider)
+				: null;
+			if (!url)
+				throw new Error(
+					"Questo remoto non ha un indirizzo web per i file: serve un `origin` GitHub, GitLab, Bitbucket o Gitea."
+				);
+			await shell.openExternal(url);
+		}
+	);
+
+	handle("repo:listFiles", (root: string, ref?: string | null) =>
+		listRepoFiles(root, ref ?? null)
+	);
+
+	handle("repo:exportZip", async (root: string) => {
+		const info = backendFor(root).info;
+		const settings = await loadSettings();
+		const options: Electron.SaveDialogOptions = {
+			title: "Esporta HEAD in un archivio zip",
+			defaultPath: join(
+				settings.defaultRoot ?? app.getPath("downloads"),
+				`${info?.name ?? "repository"}.zip`
+			),
+			properties: ["showOverwriteConfirmation", "createDirectory"],
+		};
+		const result = window
+			? await dialog.showSaveDialog(window, options)
+			: await dialog.showSaveDialog(options);
+		const destination = result.filePath;
+		if (result.canceled || !destination) return null;
+		await exportArchive(root, destination);
+		return destination;
+	});
 
 	handle("repo:openInBrowser", async (root: string) => {
 		const web = remoteWeb((await originRemote(root)) ?? "");

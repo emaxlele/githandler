@@ -63,6 +63,7 @@ function trashSettings(
 		api: { mode: "off", tools: [] },
 		defaultRoot: null,
 		trash: { ...defaultSettings().trash, ...patch },
+		repoAccounts: {},
 	};
 }
 

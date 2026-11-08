@@ -1,6 +1,6 @@
 # TODO
 
-Stato al 2026-11-08 (v0.9.0). Le voci spuntate sono in `CHANGELOG.md`.
+Stato al 2026-11-09 (v0.10.0). Le voci spuntate sono in `CHANGELOG.md`.
 
 ## Fatto
 
@@ -45,6 +45,19 @@ Stato al 2026-11-08 (v0.9.0). Le voci spuntate sono in `CHANGELOG.md`.
 -   [x] **Token dal browser**: device flow OAuth per GitHub e GitLab (anche self-hosted) con Client ID
     pubblico salvato nell'account, codice mostrato e pagina aperta, token che resta nel main; pagina dei
     token per Gitea e Bitbucket
+-   [x] **«Accedi» senza Client ID**: token già presente sulla macchina (`gh auth token`, poi
+        `git credential fill`), verificato con `GET /user`; il device flow resta la seconda strada
+-   [x] **Account per repository**: `chooseRepoAccount` (scelta salvata → proprietario del remoto →
+        unico account dell'host → primo, dichiarato), `Settings.repoAccounts`, chip nell'header con
+        menu di scelta
+-   [x] **Fork**: parent dall'API dei 4 provider, remoto `upstream` creato al primo sync, `fetch` +
+        `merge`/`rebase` del ramo predefinito, nessuna forza, HEAD staccato = errore detto
+-   [x] **GitHub Actions**: ultime esecuzioni, ri-esecuzione e annullamento dal menu della scheda, con
+        il token dell'account risolto
+-   [x] **Elenco dei file tracciati** (`git ls-tree -r -z`, `ls-files` senza HEAD) filtrabile, con
+        apertura dal sistema o nel browser; link web ai file anche per Gitea (`/src/branch/<ref>/…`)
+-   [x] **Esporta HEAD in uno zip** con `git archive`, senza dipendenze nuove
+-   [x] **Paginazione dell'elenco repository** (*Carica altri*), una pagina per volta e senza duplicati
 -   [x] **Changes a tutta area**: la voce della barra laterale porta il pannello delle modifiche
         nell'area principale, senza storia né pannello inferiore
 -   [x] **Clic sul ref = cursore sul commit** e **menu contestuale** su rami e commit (checkout, merge,
@@ -96,18 +109,17 @@ Stato al 2026-11-08 (v0.9.0). Le voci spuntate sono in `CHANGELOG.md`.
         Avalonia: è la misura che ha motivato la scelta di Electron
 -   [ ] Decidere se e come pubblicare il repository
 
--   [ ] Azioni sui file solo dove i file si vedono: il File Tree elenca i file **modificati** e il
-        commit selezionato, non tutto il repository. Serve un albero completo pigro (un livello alla
-        volta, `git ls-tree`) per aprire o salvare un file qualunque senza passare da un commit
--   [ ] Salvare una **cartella** intera (o uno zip) dal repository, e trascinare un file fuori dalla
-        finestra: oggi la copia è di un file alla volta
--   [ ] Link web ai file anche per Gitea (`/src/branch/<ref>/<path>`): la forma è nota, manca il canale
-        che serve al menu del file
+-   [ ] Un **albero** completo pigro nel File Tree (un livello alla volta): l'elenco piatto dei file
+        tracciati copre l'apertura di un file qualunque, ma non la navigazione per cartelle
+-   [ ] Trascinare un file fuori dalla finestra; la **cartella** intera come archivio è coperta da
+        «Esporta HEAD in uno zip»
 -   [ ] Device flow: un Client ID predefinito per GitHub nell'app, così l'accesso dal browser funziona
-        senza che l'utente registri una sua applicazione OAuth
--   [ ] Account: l'elenco dei repository legge la prima pagina dell'API (100 su GitHub e GitLab, 50 su
-        Gitea, 100 su Bitbucket). Serve la paginazione o una ricerca lato server per gli account con
-        molti repository
+        senza che l'utente registri una sua applicazione OAuth. Nell'attesa «Accedi» usa il token che
+        c'è già sulla macchina
+-   [ ] Fork: scegliere un ramo dell'originale diverso da quello predefinito, e mostrare quanti commit
+        si sono ricevuti prima del merge invece che solo dopo
+-   [ ] Actions: `rerun-failed-jobs` (oggi `rerun` ripete tutti i job) e i workflow con input;
+        l'annullamento è offerto solo alle esecuzioni non concluse
 -   [ ] Clone e operazioni di rete senza avanzamento: oggi si vede solo l'esito. Un `--progress` letto
         da `stderr` (pipe, non `execFile` buffer) darebbe una barra
 -   [ ] Pannello staccato: quando la finestra principale cambia repository, la finestra dei dettagli

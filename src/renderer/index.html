@@ -137,6 +137,12 @@
 					title="Annulla l'operazione sospesa"
 				></button>
 				<span class="sync hidden" id="repo-sync"></span>
+				<button
+					type="button"
+					class="chip chip-account hidden"
+					id="repo-account"
+					title="Account usato per questo repository: clic per cambiarlo"
+				></button>
 				<span
 					class="chip hidden"
 					id="repo-watch"
@@ -816,7 +822,9 @@
 					Il token serve per elencare i repository e per clonare quelli
 					privati. Non viene scritto da GitHandler: resta in memoria
 					finché l'app è aperta e, se hai un credential helper, viene
-					consegnato a Git per riusarlo.
+					consegnato a Git per riusarlo. «Accedi» usa il token che hai
+					già sulla macchina (GitHub CLI o credential helper di Git);
+					il Client ID serve solo all'accesso dal browser.
 				</p>
 				<div class="account-layout">
 					<div class="account-side">
@@ -879,6 +887,14 @@
 						<div class="account-browser">
 							<button
 								type="button"
+								class="btn btn-small btn-primary"
+								id="account-claim"
+								title="Usa il token che hai già su questa macchina (gh, credential helper di Git)"
+							>
+								Accedi
+							</button>
+							<button
+								type="button"
 								class="btn btn-small"
 								id="account-oauth-start"
 							>
@@ -922,6 +938,13 @@
 						/>
 					</div>
 					<ul class="repo-list" id="remote-repos"></ul>
+					<button
+						type="button"
+						class="btn btn-small hidden"
+						id="btn-more-repos"
+					>
+						Carica altri
+					</button>
 					<div class="field-row">
 						<span class="muted">Clona in</span>
 						<input id="account-dest" autocomplete="off" spellcheck="false" />
@@ -935,6 +958,61 @@
 					<button type="button" class="btn" id="account-close">
 						Chiudi
 					</button>
+				</div>
+			</form>
+		</dialog>
+
+		<dialog class="dialog dialog-wide" id="file-dialog">
+			<form id="file-form">
+				<h2>Apri un file del repository</h2>
+				<p class="hint" id="file-hint">
+					File tracciati in HEAD. Doppio clic per aprire con
+					l'applicazione associata.
+				</p>
+				<div class="field-row">
+					<input
+						id="file-filter"
+						type="search"
+						placeholder="Filtra per percorso…"
+						autocomplete="off"
+					/>
+				</div>
+				<ul class="repo-list file-list" id="file-list"></ul>
+				<div class="dialog-actions">
+					<span class="account-status" id="file-status"></span>
+					<button type="button" class="btn" id="file-browser" disabled>
+						Apri nel browser
+					</button>
+					<button
+						type="button"
+						class="btn btn-primary"
+						id="file-open"
+						disabled
+					>
+						Apri
+					</button>
+					<button type="button" class="btn" id="file-close">Chiudi</button>
+				</div>
+			</form>
+		</dialog>
+
+		<dialog class="dialog dialog-wide" id="actions-dialog">
+			<form id="actions-form">
+				<h2>GitHub Actions</h2>
+				<p class="hint">
+					Ultime esecuzioni del repository. «Ri-esegui» ripete i job
+					falliti; «Annulla» ferma un'esecuzione in corso.
+				</p>
+				<div class="account-repos-head">
+					<strong>Esecuzioni</strong>
+					<button type="button" class="btn btn-small" id="actions-refresh">
+						Aggiorna
+					</button>
+				</div>
+				<ul class="repo-list actions-list" id="actions-list"></ul>
+				<div class="dialog-actions">
+					<span class="account-status" id="actions-status"></span>
+					<button type="button" class="btn" id="actions-close">Chiudi</button>
 				</div>
 			</form>
 		</dialog>

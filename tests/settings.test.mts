@@ -148,6 +148,7 @@ test("la serializzazione si rilegge uguale", () => {
 			maxFiles: 500,
 			quotaBytes: 2 * 1024 * MEBIBYTE,
 		},
+		repoAccounts: { "/tmp/repo": "github:github.com:emaxlele" },
 	};
 	assert.deepEqual(parseSettings(serializeSettings(settings)), settings);
 });
@@ -187,6 +188,7 @@ test("senza file valgono i default; salvare e rileggere conserva i valori", asyn
 			maxFiles: 100,
 			quotaBytes: 512 * MEBIBYTE,
 		},
+		repoAccounts: {},
 	};
 	await saveSettings(custom);
 	assert.deepEqual(await loadSettings(), custom);

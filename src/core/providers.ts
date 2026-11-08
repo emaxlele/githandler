@@ -438,26 +438,169 @@ export function commitWebUrl(remote: string, sha: string): string | null {
 }
 
 /**
- * Link web a un file in un ramo o in un commit. Gitea e i server non riconosciuti hanno forme
- * diverse (`/src/branch/…`): lì si preferisce nessun link a un link sbagliato.
+ * Link web a un file in un ramo o in un commit.
+ *
+ * Il servizio non si può sempre dedurre dall'host: Gitea/Forgejo può stare su qualunque dominio.
+ * Per questo il provider dell'account collegato, quando c'è, vince sulla deduzione; senza, le forme
+ * note (GitHub, GitLab, Bitbucket) si riconoscono dall'host e per il resto nessun link, che è meglio
+ * di uno sbagliato.
  */
-export function fileWebUrl(remote: string, ref: string, path: string): string | null {
+export function fileWebUrl(
+	remote: string,
+	ref: string,
+	path: string,
+	provider?: ProviderId
+): string | null {
 	const web = remoteWeb(remote);
 	if (!web) return null;
+	const kind: RemoteKind = provider ?? web.kind;
 	if (!ref.trim() || !path.trim()) return null;
 	const encodedRef = encodePath(ref);
 	const encodedPath = encodePath(path);
 	if (!encodedRef || !encodedPath) return null;
-	switch (web.kind) {
+	switch (kind) {
 		case "github":
 			return `${web.base}/blob/${encodedRef}/${encodedPath}`;
 		case "gitlab":
 			return `${web.base}/-/blob/${encodedRef}/${encodedPath}`;
 		case "bitbucket":
 			return `${web.base}/src/${encodedRef}/${encodedPath}`;
+		// Gitea/Forgejo distingue i rami dai commit: `/src/branch/<ref>` e `/src/commit/<sha>`
+		case "gitea":
+			return `${web.base}/src/branch/${encodedRef}/${encodedPath}`;
 		default:
 			return null;
 	}
+}
+
+/** Campi che `git credential fill` può scrivere oltre ai due che ci servono. */
+const CREDENTIAL_KEYS = new Set([
+	"protocol",
+	"host",
+	"path",
+	"username",
+	"password",
+	"url",
+	"wwwauth",
+	"capability",
+]);
+
+/**
+ * Nome utente e segreto letti da `git credential fill`.
+ *
+ * Il formato è `chiave=valore`, una per riga. Si accettano solo le chiavi del protocollo: una riga
+ * che non ha la forma giusta significa output strano, e in quel caso si restituisce `null` invece di
+ * indovinare. Un helper che scrivesse `password=x
+password=y` farebbe vincere l'ultima, come fa git.
+ */
+export function parseCredentialOutput(raw: string): {
+	username: string;
+	password: string;
+} | null {
+	let username = "";
+	let password = "";
+	for (const line of raw.split("\n")) {
+		const value = line.replace(/\r$/, "");
+		if (!value.trim()) continue;
+		const eq = value.indexOf("=");
+		if (eq <= 0) return null;
+		const key = value.slice(0, eq).trim();
+		const field = value.slice(eq + 1).trim();
+		if (!CREDENTIAL_KEYS.has(key)) return null;
+		if (key === "username") username = field;
+		if (key === "password") password = field;
+	}
+	if (!password) return null;
+	if (username && !LINE_SAFE.test(username)) return null;
+	if (!LINE_SAFE.test(password)) return null;
+	return { username, password };
+}
+
+/** Identità di un repository a partire dal remoto: host, namespace (`gruppo/sotto`) e nome. */
+export interface RemoteIdentity {
+	host: string;
+	/** tutto quello che sta fra l'host e il nome: `proprietario` o `gruppo/sottogruppo` */
+	namespace: string;
+	/** primo segmento del namespace: l'utente o l'organizzazione */
+	owner: string;
+	name: string;
+	base: string;
+	kind: RemoteKind;
+}
+
+export function remoteIdentity(remote: string): RemoteIdentity | null {
+	const web = remoteWeb(remote);
+	if (!web) return null;
+	const segments = web.base
+		.replace(/^https:\/\//, "")
+		.split("/")
+		.filter(Boolean);
+	// il primo segmento è l'host (con eventuale porta)
+	const path = segments.slice(1);
+	if (path.length < 2) return null;
+	const name = path[path.length - 1]!;
+	const namespace = path.slice(0, -1).join("/");
+	const owner = path[0]!;
+	return { host: web.host, namespace, owner, name, base: web.base, kind: web.kind };
+}
+
+export type AccountChoiceReason = "saved" | "owner" | "single" | "first" | "none";
+
+export interface AccountChoice {
+	account: Account | null;
+	/**
+	 * Perché quell'account: scelto a mano per il repository, utente uguale al proprietario del
+	 * remoto, unico account di quell'host, primo di più account, oppure nessuno.
+	 */
+	reason: AccountChoiceReason;
+	/** account dello stesso host, in ordine di salvataggio: la UI li propone */
+	candidates: Account[];
+	/** host del remoto, se riconoscibile */
+	host: string | null;
+}
+
+/**
+ * Quale account usare per un repository.
+ *
+ * Un repository non dice con quale account è stato clonato: il remoto dice **l'host** (e il
+ * namespace, che spesso è l'utente). Le regole, dalla più forte alla più debole:
+ *
+ * 1. la scelta salvata dall'utente per questo repository (`repoAccounts`);
+ * 2. un account dello stesso host il cui utente è il proprietario del remoto (`github.com/emaxlele/x`);
+ * 3. l'unico account di quell'host;
+ * 4. il primo di più account dello stesso host — meglio di niente, e la UI lo dichiara.
+ */
+export function chooseRepoAccount(
+	accounts: Account[],
+	savedId: string | null,
+	remote: string | null
+): AccountChoice {
+	const identity = remote ? remoteIdentity(remote) : null;
+	const host = identity?.host ?? null;
+	const candidates = host
+		? accounts.filter((item) => item.host.toLowerCase() === host.toLowerCase())
+		: [];
+	const saved = savedId
+		? candidates.find((item) => item.id === savedId) ?? null
+		: null;
+	if (saved) return { account: saved, reason: "saved", candidates, host };
+	if (!identity) return { account: null, reason: "none", candidates, host };
+	// confronto esatto: `emax` non deve prendere il repository di `emaxlele`
+	const ownerMatch = candidates.find(
+		(item) => item.username.toLowerCase() === identity.owner.toLowerCase()
+	);
+	if (ownerMatch)
+		return { account: ownerMatch, reason: "owner", candidates, host };
+	if (candidates.length === 1)
+		return { account: candidates[0]!, reason: "single", candidates, host };
+	if (candidates.length > 1)
+		return { account: candidates[0]!, reason: "first", candidates, host };
+	return { account: null, reason: "none", candidates, host };
+}
+
+/** Dimensione di una pagina dell'elenco repository: serve alla UI per sapere se c'è altro. */
+export function reposPageSize(provider: ProviderId): number {
+	return provider === "gitea" ? 50 : 100;
 }
 
 export function cloneArgs(url: string, dest: string): string[] {

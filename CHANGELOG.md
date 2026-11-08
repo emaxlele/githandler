@@ -1,5 +1,71 @@
 # Changelog
 
+## [0.10.0] — 2026-11-09
+
+### Un clic per accedere, quando il token c'è già
+
+-   **«Accedi»** nel dialogo account non chiede niente: cerca un token **già presente sulla macchina** —
+    prima `gh auth token --hostname <host>` (GitHub CLI), poi il credential helper di Git
+    (`git credential fill`). Se lo trova, legge l'utente dall'API e salva l'account.
+-   Il device flow OAuth **richiede un Client ID registrato**: non esiste un flusso anonimo. Per questo
+    il Client ID resta, ma non è più la prima strada: è la seconda, insieme alla pagina dei token.
+-   Il token trovato viene verificato con `GET /user` prima di salvare: un token scaduto non crea un
+    account che poi fallisce al primo clone. Anche questo token resta in memoria e non finisce su disco.
+
+### Ogni repository sa con quale account lavora
+
+-   **Chip dell'account** nell'header: dice quale account tiene il repository attivo e perché. Clic per
+    sceglierne un altro, o per togliere la scelta e tornare alla deduzione automatica.
+-   Le regole, dalla più forte alla più debole: scelta salvata per quel repository; account dello stesso
+    host il cui utente è il proprietario del remoto (confronto esatto); unico account dell'host; primo
+    di più account. L'ultimo caso è una **supposizione**, e il chip lo dichiara invece di farla passare
+    per certezza.
+-   La scelta vive in `Settings.repoAccounts` (`{ "/percorso/repo": "provider:host:utente" }`): sono
+    preferenze, non segreti, e salvare le impostazioni dalla finestra non le cancella.
+-   Fetch, pull, push e clone usano quell'account: `credentialEnvFor(host, root)` risolve il repository,
+    non solo l'host. Due account sullo stesso host non si rubano più le credenziali.
+
+### Fork: riconoscere l'originale e sincronizzarsi
+
+-   Menu della scheda: **Sincronizza con l'originale (merge)** e **(rebase)**. L'originale si ricava
+    dall'API del provider (`parent` per GitHub e Gitea, `forked_from_project` per GitLab,
+    `parent`+`links` per Bitbucket).
+-   Al primo sync il remoto `upstream` viene **creato**; un remoto già configurato non viene riscritto.
+    Poi `fetch upstream --prune` e `merge`/`rebase` del ramo predefinito dell'originale. Niente forza:
+    un conflitto lascia l'operazione a metà e annullabile, come merge e rebase normali.
+-   Con HEAD staccato il sync si ferma e lo dice: non c'è un ramo da allineare. Un repository che non è
+    un fork lo dice invece di aggiungere un remoto inventato.
+
+### GitHub Actions
+
+-   Menu della scheda → **GitHub Actions…**: ultime esecuzioni con workflow, stato, ramo ed evento;
+    **Ri-esegui** per una esecuzione conclusa, **Annulla** per una in corso, **Apri** nel browser.
+-   Solo GitHub ha le Actions in questa forma: su un altro servizio il dialogo lo dice. Il token è
+    quello dell'account risolto per il repository; l'id dell'esecuzione deve essere numerico prima di
+    diventare un pezzo di percorso.
+
+### File e archivio
+
+-   **Apri un file del repository…**: elenco filtrabile dei file **tracciati** in HEAD (o nell'indice se
+    non c'è ancora un commit), con apertura dal sistema o nel browser. Oltre 20.000 file l'elenco è
+    dichiarato troncato; il dialogo ne disegna al massimo 400 alla volta.
+-   **Apri nel browser** ora funziona anche per Gitea/Forgejo (`/src/branch/<ref>/<path>`): il servizio
+    arriva dal provider dell'account, perché Gitea non si riconosce dall'host.
+-   **Esporta HEAD in un archivio zip…**: `git archive --format=zip`, quindi `export-ignore` e i filtri
+    del repository valgono; file non tracciati e modifiche non committate restano fuori, coerentemente
+    con il nome del comando.
+-   **Carica altri** nell'elenco dei repository dell'account: una pagina per volta, senza duplicati.
+
+### Sotto il cofano
+
+-   `src/core/fork.ts` e `src/core/actions.ts` (indirizzi e parser puri), `src/main/remote.ts`,
+    `src/main/machine-auth.ts`, `src/main/fork.ts`, `src/main/actions.ts`, `src/main/export.ts`.
+-   `chooseRepoAccount`, `remoteIdentity` e `parseCredentialOutput` nel core; `repoAccountChoice`,
+    `setRepoAccount` e `credentialEnvFor(host, root)` nel main.
+-   `listRepoFiles` usa `git ls-tree -r -z` e ricade su `git ls-files -z` quando HEAD non esiste.
+-   140 test (10 nuovi su identità remota, scelta dell'account, parser delle credenziali, fork e
+    Actions).
+
 ## [0.9.0] — 2026-11-08
 
 ### Arrivare al file, e alla cartella, dal repository

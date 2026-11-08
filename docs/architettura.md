@@ -190,6 +190,37 @@ dell'utente, salva l'account e manda alla finestra solo l'esito (`ok` + id dell'
 finire nel DOM, nella clipboard o in un log del renderer. L'unica cosa che l'utente copia a mano è il
 **Client ID**, che è pubblico per definizione: viaggia nell'URL di autorizzazione.
 
+### 2.12.1 Un repository non dice con quale account è stato clonato
+
+Il remoto dà **l'host** e il namespace, non l'identità con cui è stato fatto il clone: due account
+sullo stesso host sono, per Git, la stessa cosa. L'app non può indovinare, quindi rende la scelta
+esplicita e la mette in una funzione pura del core (`chooseRepoAccount`), dove le regole si leggono e
+si provano:
+
+1. la scelta salvata dall'utente per quel repository (`Settings.repoAccounts`, chiave = root assoluto);
+2. un account dello stesso host il cui utente è il **proprietario** del remoto, con confronto esatto
+   (`emax` non deve prendere i repository di `emaxlele`);
+3. l'**unico** account di quell'host;
+4. il **primo** di più account — una supposizione, e la UI la dichiara (chip con bordo tratteggiato e
+   titolo «primo di più account»).
+
+Il root viaggia in `credentialEnvFor(host, root)`: la credenziale si risolve per repository, non solo
+per host, altrimenti il primo account salvato vincerebbe sempre. `repoAccounts` è una preferenza, non
+un segreto: sta nelle impostazioni normalizzate e la finestra la riporta intatta quando salva il resto.
+
+### 2.12.2 L'originale di un fork e le esecuzioni non stanno nel repository
+
+Parent di un fork e workflow run sono **dati del provider**, non oggetti Git: il repository non li ha
+e `git` non li può leggere. Per questo il core costruisce gli indirizzi e legge le risposte
+(`src/core/fork.ts`, `src/core/actions.ts`), il main fa le chiamate con il token dell'account risolto,
+e il renderer riceve solo dati già normalizzati.
+
+Due conseguenze di sicurezza: l'**id** di un'esecuzione deve essere numerico prima di diventare un
+pezzo di percorso (`/actions/runs/<id>/rerun`), e il **commit** di un fork non viene mai forzato: il
+sync è `fetch` + `merge`/`rebase`, quindi un conflitto è un'operazione annullabile come le altre. Il
+remoto `upstream` si crea solo se manca: un remoto già configurato (un mirror, un fork interno) non
+viene riscritto da un'euristica.
+
 ### 2.13 Un percorso che arriva dalla finestra non è un percorso fidato
 
 La finestra non ha accesso al filesystem, ma può chiedere «apri questo file», «mostralo nella sua
