@@ -1,0 +1,274 @@
+# Architettura: UI web, core separato, backend sostituibile
+
+> Documento di riferimento di `gitcraft`, scritto per essere **riusato** in altri progetti desktop
+> (client Git, editor, pannelli di controllo, IDE). Le stesse scelte valgono per qualsiasi app in cui
+> la UI è testo/forme e il lavoro vero sta nel leggere dati e comandarli.
+> Ultimo aggiornamento: 2026-11-08
+
+## 1. L'idea in una frase
+
+**Un renderer web impacchettato e identico ovunque, un core puro senza dipendenze dal framework, e un
+solo punto che tocca il sistema operativo dietro un'interfaccia sostituibile.**
+
+Il valore non è Electron: è il **confine**. Electron è solo l'implementazione del livello superiore
+che oggi conviene; il livello sotto può diventare un'altra cosa senza riscrivere l'app.
+
+```
+┌───────────────────────────── renderer (Chromium) ─────────────────────────────┐
+│  UI in TypeScript, DOM puro o framework leggero.                             │
+│  Nessuna API di sistema, nessun filesystem, nessuna shell.                   │
+│  Disegna solo ciò che è visibile (liste virtualizzate).                      │
+└──────────────────────────────────────┬───────────────────────────────────────┘
+                                       │  preload: contratto tipizzato
+                                       │  (funzioni, non stringhe di canale sparse)
+┌──────────────────────────────────────▼───────────────────────────────────────┐
+│  main process                                                                │
+│                                                                              │
+│    Api  ──────────────►  Backend (interfaccia)                               │
+│                              │                                               │
+│                              ├── CliBackend      oggi: il binario `git`      │
+│                              ├── Libgit2Backend  dopo misura: `koffi`        │
+│                              └── MockBackend     test della UI senza git     │
+└──────────────────────────────────────┬───────────────────────────────────────┘
+                                       │
+                                 src/core (puro)
+                    parsing · geometria · diff · patch · regole
+```
+
+Tre proprietà che rendono l'architettura solida:
+
+1.  **Il core non conosce né il framework né il sistema operativo.** Importa solo i propri tipi.
+    Si testa con `node --test`, si può compilare in WASM, si può riscrivere in un altro linguaggio
+    dietro le stesse funzioni.
+2.  **Un solo strato tocca il disco.** Sostituire CLI con libreria nativa è un cambio di
+    implementazione, non un refactor dell'app.
+3.  **Il renderer non ha privilegi.** Se un bug di UI o una dipendenza compromessa prendono il
+    renderer, non hanno accesso al filesystem: vedono solo le funzioni esposte dal preload.
+
+## 2. Le regole operative
+
+Sono le regole che hanno retto finora; ognuna nasce da un errore concreto o da un costo misurato.
+
+### 2.1 Il core è puro e testabile
+
+-   Nessun import di `electron`, `node:fs`, `node:child_process` dentro `src/core`.
+-   Funzioni che prendono **stringhe e tipi** e restituiscono **strutture**: `parseLog(raw)`,
+    `parseStatus(raw)`, `layoutGraph(commits)`, `buildPatch(file, selection, mode)`.
+-   Test con input reali (output veri di Git, non inventati) e casi limite: record troncati, path con
+    spazi, rename, conflitti, file senza newline finale.
+
+Perché: è il livello dove i bug sono silenziosi. Un parser che "aggiusta" un input malformato produce
+dati falsi e nessuno se ne accorge finché l'utente non perde un commit.
+
+### 2.2 Un solo punto tocca il sistema
+
+`GitBackend` dichiara le operazioni; `CliGitBackend` le implementa. Nessun altro file apre file o
+esegue processi. Quando arriverà `Libgit2Backend`, il resto dell'app non cambierà di una riga.
+
+### 2.3 Mai una shell
+
+`execFile("git", [ ...argomenti ])`, mai `exec("git " + stringa)`, mai un template con il path
+dell'utente. Un path con spazi, apici, `$` o newline non deve poter diventare un comando. Vale anche
+per i path che arrivano dalla UI: vanno validati (`assertSafePath`) prima di essere passati.
+
+### 2.4 Mutazioni e letture non hanno lo stesso backend obbligatorio
+
+| Cosa                                   | Chi lo fa, oggi             | Perché                                                                                 |
+| -------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------- |
+| Letture (log, ref, diff, alberi)       | backend, sostituibile       | sono dati: una libreria nativa può leggerli meglio                                     |
+| Mutazioni (add, commit, switch, fetch) | **sempre `git` CLI**        | hook, Git LFS, credential helper, `core.autocrlf`, filtri: nessuna libreria li replica |
+| Stato del working tree                 | `git status --porcelain=v2` | deve coincidere con ciò che farà il commit: una sola verità                            |
+
+Questa asimmetria è il punto che protegge dal bug peggiore possibile per un client Git: **due verità
+sullo stesso repository**. Se un giorno lo stato verrà calcolato da libgit2, serve un test di parità
+contro `git` su un repository con hook, attributi, LFS e submodule.
+
+### 2.5 Il contratto è tipizzato e chiuso
+
+-   Un'interfaccia (`GitApi`) fra renderer e main, un'unione di canali, funzioni con parametri
+    tipizzati. Zero `any`, zero stringhe di canale sparse nel codice.
+-   Il renderer non riceve mai un oggetto del main "per caso": riceve il modello (`Snapshot`,
+    `DiffFile`, …) definito in `src/core/types.ts`.
+-   Gli errori attraversano il confine come messaggi leggibili, non come stack trace: il main li
+    ripulisce (`cleanError`) e la UI li mostra in un toast, senza far finta che sia andato tutto bene.
+
+### 2.6 Il payload è il costo, quindi si tiene piccolo
+
+Il renderer non deve ricevere "tutto": riceve ciò che sta per disegnare.
+
+-   Storia paginata (es. 5.000 commit), non l'intero repository.
+-   Elenco dei file di un commit, poi **solo** il diff del file selezionato: due chiamate, non una
+    gigante.
+-   Il diff si ricostruisce lato renderer quando serve (lo stage parziale usa il diff già in memoria),
+    senza richiederlo di nuovo a Git.
+
+### 2.7 Lista virtualizzata dal primo giorno
+
+Nel DOM esistono solo le righe visibili (`virtualization`): il costo di disegno non cresce con la
+storia. Nel grafo, l'SVG è ridisegnato sulla finestra visibile. Un framework non serve, e ogni
+astrazione in più è un costo che si paga su ogni riga.
+
+### 2.8 Le preferenze stanno dove non servono permessi
+
+Il formato del diff, il tema, la larghezza dei pannelli: `localStorage` nel renderer. Il backend non
+deve sapere nulla dell'aspetto dell'app. Se un giorno servirà sincronizzare, si aggiunge un canale.
+
+## 3. I contratti, in concreto
+
+```ts
+// src/main/backend.ts — ciò che l'app può chiedere al mondo
+export interface GitBackend {
+	open(dir: string): Promise<Snapshot>;
+	refresh(): Promise<Snapshot>;
+	commitFiles(sha: string): Promise<CommitFile[]>;
+	commitPatch(sha: string, path: string): Promise<DiffFile>;
+	worktreePatch(path: string, staged: boolean): Promise<DiffFile>;
+	stage(paths: string[]): Promise<Snapshot>;
+	applyPatch(path: string, patch: string, mode: PatchMode): Promise<Snapshot>;
+	unstage(paths: string[]): Promise<Snapshot>;
+	discard(paths: string[]): Promise<Snapshot>;
+	commit(message: string, all: boolean): Promise<Snapshot>;
+	checkout(branch: string): Promise<Snapshot>;
+	createBranch(name: string): Promise<Snapshot>;
+	fetch(): Promise<Snapshot>;
+}
+```
+
+```ts
+// src/shared/api.ts — ciò che il renderer può chiedere, uno a uno
+export interface GitApi {
+	open(path?: string): Promise<Snapshot | null>;
+	refresh(): Promise<Snapshot>;
+	commitFiles(sha: string): Promise<CommitFile[]>;
+	commitPatch(sha: string, path: string): Promise<DiffFile>;
+	worktreePatch(path: string, staged: boolean): Promise<DiffFile>;
+	stage(paths: string[]): Promise<Snapshot>;
+	applyPatch(path: string, patch: string, mode: PatchMode): Promise<Snapshot>;
+	unstage(paths: string[]): Promise<Snapshot>;
+	discard(paths: string[]): Promise<Snapshot>;
+	commit(message: string, all: boolean): Promise<Snapshot>;
+	checkout(branch: string): Promise<Snapshot>;
+	createBranch(name: string): Promise<Snapshot>;
+	fetch(): Promise<Snapshot>;
+}
+```
+
+Le due liste si somigliano di proposito: sono lo stesso vocabolario, ma il primo vive nel main e può
+crescere (metodi che il renderer non usa), il secondo è la superficie pubblica e va tenuta minima.
+
+**Come si sostituisce il backend.** Si implementa `GitBackend` con un'altra tecnologia, si sceglie in
+un punto solo quale istanziare, e si tiene il vecchio adapter come oracolo nei test: gli stessi input
+sui due backend devono produrre lo stesso `Snapshot`. La UI non cambia.
+
+## 4. Dove si paga, misurato
+
+Il motivo per cui questa architettura regge è che il costo è **noto e localizzato**. Numeri misurati
+il 2026-11-08 (Ubuntu 26.04, Node 24, git 2.53, `npm run bench`):
+
+| Voce                                 | Costo                   | Contromisura                                        |
+| ------------------------------------ | ----------------------- | --------------------------------------------------- |
+| `git log` 5.000 commit               | 35 ms                   | —                                                   |
+| parsing + layout in TS               | 11,5 ms                 | — (non è il problema)                               |
+| `git log` 50.000 commit              | 370 ms                  | paginazione, caricamento progressivo                |
+| `git status` 100.000 file            | 82 ms (cache calda)     | `fs.watch` + refresh incrementale, `core.fsmonitor` |
+| payload di 50.000 commit al renderer | ~8,4 MB da serializzare | paginazione, modelli compatti                       |
+| diff di un file grande               | disegno del DOM         | virtualizzazione, rendering a stringhe, poi WASM    |
+
+**L'"overload" di Electron non è il linguaggio: sono tre costi distinti.** Vale la pena nominarli,
+perché si confondono facilmente:
+
+1.  **Payload IPC.** Ogni oggetto che attraversa `ipcRenderer.invoke` viene serializzato
+    (structured clone) e ricostruito: con decine di MB il costo si vede e la memoria del renderer
+    raddoppia. Si risolve **non mandando tutto**: paginazione e chiamate mirate.
+2.  **Disegno del DOM.** Migliaia di nodi in una lista fanno scattare layout e paint a ogni scroll.
+    Si risolve con la virtualizzazione, non con un altro linguaggio.
+3.  **Blocco del main process.** Un'operazione sincrona pesante nel main ferma IPC e finestra. Si
+    risolve rendendo asincrono o spostando in `worker_threads`/`utilityProcess`.
+
+A questi si aggiungono le trappole di piattaforma del §5, che sono un'altra categoria (avvio, non
+prestazioni).
+
+**Regola**: nessuna ottimizzazione senza una riga di misura che la giustifichi. Le soglie e l'ordine
+di intervento sono in [`backend-performance.md`](backend-performance.md).
+
+## 5. Trappole verificate di Electron su Linux
+
+Vengono da due progetti reali (`clevo-control`, `gitcraft`) su Ubuntu 26.04.
+
+| Trappola                         | Sintomo                                                                                              | Rimedio                                                                                                          |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Processo GPU non disponibile** | `GPU process isn't usable`, schermo nero, crash all'avvio                                            | `app.disableHardwareAcceleration()` di default per app testuali; `GITCRAFT_GPU=1` per riaccenderla dove funziona |
+| **AppArmor su Ubuntu 23.10+**    | il sandbox di Chromium (`chrome-sandbox`) fallisce: `kernel.apparmor_restrict_unprivileged_userns=1` | profilo AppArmor nel `.deb`/`.rpm`; `--no-sandbox` **solo** in sviluppo (abbassa la sicurezza)                   |
+| **Nessun display**               | non si può verificare la resa in CI o via SSH                                                        | modalità headless con screenshot pilotati (`--ozone-platform=headless`, `--disable-gpu`), come `npm run shots`   |
+| **`sandbox: true` e preload**    | il preload non ha accesso a `require`                                                                | solo `contextBridge` + `ipcRenderer`, niente `nodeIntegration`                                                   |
+
+Conseguenza di progetto: un'app Electron su Linux **non è "build e via"**. Il pacchetto deve includere
+il profilo AppArmor e va provato su un'installazione pulita, non solo con `npm start`.
+
+## 6. Verifica: come si sa che è solida
+
+Quattro livelli, dal più economico al più costoso. Se un livello manca, gli altri non bastano.
+
+1.  **Test del core** (`node --test`): parser, geometria, patch, con input reali e casi limite.
+2.  **Test di integrazione contro la tecnologia vera**: repository Git temporaneo creato nel test,
+    comandi eseguiti davvero, si controlla il contenuto dell'indice e non solo l'exit code.
+3.  **`typecheck` e `build`** con `strict` attivo: il confine tipizzato non serve se i tipi sono larghi.
+4.  **Verifica visiva senza display**: screenshot headless, e quando serve pilotare la UI
+    (`executeJavaScript`) per dimostrare che un'azione ha davvero l'effetto atteso. Un'azione non è
+    "fatta" finché non si è visto l'effetto, non il pulsante.
+
+Più, quando si parla di prestazioni, un **benchmark riproducibile** (`npm run bench`): repository
+generato, tempi mediani, numeri nel documento. Le decisioni di architettura si prendono su quelli.
+
+## 7. Checklist per un nuovo progetto
+
+Copiabile così com'è; le voci in corsivo sono le più facili da saltare e le più costose da recuperare.
+
+1.  Renderer senza privilegi: `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`.
+2.  _Un solo file che tocca il sistema_, dietro un'interfaccia.
+3.  _Core puro_ in una cartella senza import del framework, con test che non avviano l'app.
+4.  Contratto IPC tipizzato, un canale per operazione, nessuna stringa sparsa.
+5.  Errori del backend mostrati all'utente, con il messaggio reale.
+6.  Liste virtualizzate e payload paginati fin dall'inizio.
+7.  _Niente shell_: `execFile` con array di argomenti; validare i path che arrivano dalla UI.
+8.  Mutazioni sullo strumento che le sa fare davvero (CLI), letture sostituibili.
+9.  Preferenze nel renderer (`localStorage`), non nel main.
+10. Packaging che include i profili di sicurezza (AppArmor su Linux) e modalità headless per la
+    verifica.
+11. Benchmark e soglie scritte **prima** di discutere di ottimizzazioni.
+
+## 8. Cosa questa architettura non risolve
+
+Va detto, per non venderla per quello che non è:
+
+-   **Non dà un aspetto nativo.** Un'app Electron si riconosce; se il criterio è "sembrare parte del
+    sistema", servono GTK/Qt e un altro stack.
+-   **Non è leggera**: ~100-150 MB di runtime e un processo Chromium. Per un'app testuale è
+    accettabile, per un'utilità da 2 MB no.
+-   **Non elimina il costo di avvio del processo** per ogni query: ~5-20 ms a chiamata. Per query
+    ripetute e minute (blame riga per riga, storia di un file) è il punto in cui un backend
+    in-process (`koffi` + libgit2) si ripaga.
+-   **Non rende gratuita la sicurezza**: sandbox, preload minimale, AppArmor e path validati restano
+    lavoro da fare.
+
+## 9. Riuso
+
+Per un altro progetto cambia solo il §3: il vocabolario del backend e i tipi del dominio. Le regole
+del §2, le trappole del §5 e la checklist del §7 restano identiche — è esattamente il motivo per cui
+questo documento esiste.
+
+Esempi di traduzione:
+
+| Progetto                            | Backend                       | Core puro                                             |
+| ----------------------------------- | ----------------------------- | ----------------------------------------------------- |
+| client Git                          | `git` CLI → `koffi`+libgit2   | parsing porcelain, diff, patch, layout del grafo      |
+| pannello hardware (`clevo-control`) | `koffi` su `/dev/*` e `ioctl` | parsing dei valori, isteresi delle ventole, curve     |
+| editor                              | filesystem + watcher          | parsing della sintassi, indici, ricerca               |
+| client di database                  | driver + CLI                  | parsing dei risultati, piano di query, diff di schema |
+
+## Riferimenti
+
+-   [`backend-performance.md`](backend-performance.md) — misure del backend e soglie di intervento
+-   [`../README.md`](../README.md) — avvio, comandi, note Linux
+-   [`../src/core/`](../src/core) — le funzioni pure
+-   [`../src/main/backend.ts`](../src/main/backend.ts) — il confine

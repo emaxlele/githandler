@@ -42,6 +42,9 @@ Tre scelte che spiegano il resto:
     arrivano solo se una misura supera una soglia: i numeri e le soglie stanno in
     [`docs/backend-performance.md`](docs/backend-performance.md).
 
+Il quadro completo — regole, contratti fra i tre livelli, costi misurati e trappole Linux — è in
+[`docs/architettura.md`](docs/architettura.md), scritto per essere riusato in altri progetti desktop.
+
 ## Comandi
 
 ```bash

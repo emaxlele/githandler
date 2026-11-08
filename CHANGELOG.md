@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.2] — 2026-11-08
+
+### Documentazione
+
+-   `docs/architettura.md`: il documento di riferimento dell'architettura (renderer senza privilegi,
+    core puro, backend sostituibile), scritto per essere riusato in altri progetti desktop. Contiene
+    le regole operative, i contratti fra i tre livelli, i costi misurati, le tre accezioni di
+    "overload" di Electron, le trappole verificate su Linux e la checklist di avvio di un progetto.
+-   Il `README` rimanda a quel documento.
+
 ## [0.2.1] — 2026-11-08
 
 ### Aggiunto

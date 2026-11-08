@@ -5,6 +5,24 @@
 
 ## 2026-11-08
 
+### L'architettura scritta una volta, per riusarla negli altri progetti
+
+-   **Cosa**: aggiunto `docs/architettura.md`, il documento che descrive l'impianto del programma e
+    le regole che lo tengono in piedi: interfaccia separata dal resto (non ha permessi sul computer),
+    nucleo di calcolo isolato (si può provare senza avviare l'applicazione) e un solo punto che parla
+    con il sistema operativo dietro un'interfaccia sostituibile. C'è anche la parte che serviva per
+    una futura sostituzione del motore di lettura di Git, e la spiegazione dei tre costi diversi che
+    di solito vengono chiamati "pesantezza" di Electron.
+-   **Perché**: la scelta funziona e va replicata in altri programmi simili (editor, pannelli di
+    controllo, client di database) senza ripartire da zero ogni volta. Il documento è scritto per
+    essere copiato in un nuovo progetto e adattato nella sola parte che parla del dominio.
+-   **Cosa contiene**: le regole (niente comandi costruiti concatenando testo, una sola fonte di
+    verità sullo stato del repository, dati scambiati in piccole porzioni), i numeri misurati, le
+    trappole note di Electron su Linux (accelerazione grafica, blocco di sicurezza di Ubuntu), i
+    criteri per dichiarare finito un lavoro e la lista di controllo per un nuovo progetto.
+-   **Stato**: completato, solo documentazione: nessun cambio al programma.
+-   **Riferimento**: commit successivo a `a67fd6e`.
+
 ### Misura del backend: TS non è il collo di bottiglia
 
 -   **Cosa**: aggiunto un benchmark (`npm run bench`) che crea un repository di prova e misura i
