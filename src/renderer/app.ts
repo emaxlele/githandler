@@ -20,11 +20,11 @@ import { LogView } from "./log-view.ts";
 
 declare global {
 	interface Window {
-		lanecraft: GitApi;
+		gitlattice: GitApi;
 	}
 }
 
-const api = window.lanecraft;
+const api = window.gitlattice;
 
 type Tab = "changes" | "commit" | "blame";
 
@@ -70,7 +70,7 @@ const state: State = {
 /** Il formato del diff è una preferenza dell'utente: si ricorda fra un avvio e l'altro. */
 function savedLayout(): DiffLayout {
 	try {
-		return localStorage.getItem("lanecraft.diffLayout") === "split"
+		return localStorage.getItem("gitlattice.diffLayout") === "split"
 			? "split"
 			: "unified";
 	} catch {
@@ -804,7 +804,7 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
 		if (layout === state.diffLayout) return;
 		state.diffLayout = layout;
 		try {
-			localStorage.setItem("lanecraft.diffLayout", layout);
+			localStorage.setItem("gitlattice.diffLayout", layout);
 		} catch {
 			// storage negato: la preferenza vale solo per questa sessione
 		}

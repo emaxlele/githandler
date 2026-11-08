@@ -38,7 +38,7 @@ import {
  * dipende proprio da come Git tratta i path e i byte.
  */
 
-const root = await mkdtemp(join(tmpdir(), "lanecraft-trash-"));
+const root = await mkdtemp(join(tmpdir(), "gitlattice-trash-"));
 const extraRoots: string[] = [];
 
 function git(...args: string[]): string {
@@ -355,7 +355,7 @@ test("commits e snapshot del trash non entrano nella storia", async () => {
 });
 
 test("in un worktree collegato il trash ha un namespace proprio", async () => {
-	const base = await mkdtemp(join(tmpdir(), "lanecraft-trash-wt-"));
+	const base = await mkdtemp(join(tmpdir(), "gitlattice-trash-wt-"));
 	extraRoots.push(base);
 	const mainRepo = join(base, "main");
 	execFileSync("git", ["init", "-b", "main", mainRepo]);
@@ -376,7 +376,7 @@ test("in un worktree collegato il trash ha un namespace proprio", async () => {
 	// un ref di un altro scope non deve essere toccato dalla potatura di questo worktree
 	execFileSync(
 		"git",
-		["update-ref", "refs/lanecraft/trash/main/finto", "HEAD"],
+		["update-ref", "refs/gitlattice/trash/main/finto", "HEAD"],
 		{ cwd: mainRepo }
 	);
 
@@ -389,26 +389,26 @@ test("in un worktree collegato il trash ha un namespace proprio", async () => {
 	}).trim();
 	assert.match(
 		trashRef(wtGitDir, id),
-		/^refs\/lanecraft\/trash\/wt-[0-9a-f]{8}\//
+		/^refs\/gitlattice\/trash\/wt-[0-9a-f]{8}\//
 	);
 
 	// gli oggetti e i ref vivono nel database comune: il repository principale li vede
 	const refs = execFileSync(
 		"git",
-		["for-each-ref", "--format=%(refname)", "refs/lanecraft/trash"],
+		["for-each-ref", "--format=%(refname)", "refs/gitlattice/trash"],
 		{ cwd: mainRepo, encoding: "utf8" }
 	);
 	assert.ok(refs.includes(id));
-	assert.ok(refs.includes("refs/lanecraft/trash/main/finto"));
+	assert.ok(refs.includes("refs/gitlattice/trash/main/finto"));
 
 	await local.undo();
 	assert.equal(await readFile(join(wt, "nuovo.txt"), "utf8"), "ramo laterale\n");
 	assert.ok(
 		execFileSync(
 			"git",
-			["for-each-ref", "--format=%(refname)", "refs/lanecraft/trash"],
+			["for-each-ref", "--format=%(refname)", "refs/gitlattice/trash"],
 			{ cwd: mainRepo, encoding: "utf8" }
-		).includes("refs/lanecraft/trash/main/finto")
+		).includes("refs/gitlattice/trash/main/finto")
 	);
 });
 
@@ -430,11 +430,11 @@ test("un file ricreato non viene sovrascritto dall'annullamento", async () => {
 
 test("le copie della v0.4 restano ripristinabili", async () => {
 	const gitDirPath = gitDir();
-	const legacy = join(gitDirPath, "lanecraft", "trash", "1-legacy");
+	const legacy = join(gitDirPath, "gitlattice", "trash", "1-legacy");
 	await mkdir(legacy, { recursive: true });
 	await writeFile(join(legacy, "vecchio.txt"), "dalla v0.4\n");
 	await writeFile(
-		join(gitDirPath, "lanecraft", "undo.json"),
+		join(gitDirPath, "gitlattice", "undo.json"),
 		`${JSON.stringify(
 			[
 				{
@@ -462,7 +462,7 @@ test("le copie della v0.4 restano ripristinabili", async () => {
 });
 
 test("senza commit la copia basta: lo scarto resta annullabile", async () => {
-	const dir = await mkdtemp(join(tmpdir(), "lanecraft-trash-nohead-"));
+	const dir = await mkdtemp(join(tmpdir(), "gitlattice-trash-nohead-"));
 	extraRoots.push(dir);
 	execFileSync("git", ["init", "-b", "main"], { cwd: dir });
 	const local = new CliGitBackend({ settings: async () => trashSettings() });

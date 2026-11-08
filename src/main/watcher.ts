@@ -16,7 +16,7 @@ export interface WatcherOptions {
 	ignore?: (relativePath: string) => boolean;
 }
 
-const IGNORED_PREFIXES = [".git/objects/", ".git/lfs/", ".git/lanecraft/"];
+const IGNORED_PREFIXES = [".git/objects/", ".git/lfs/", ".git/gitlattice/"];
 const IGNORED_SEGMENTS = ["node_modules", ".cache"];
 
 /** Il path è relativo alla radice del repository, con separatori `/`. */

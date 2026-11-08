@@ -20,7 +20,7 @@ export function logArgs(options: RawLogOptions = {}): string[] {
 	if (skip > 0) args.push(`--skip=${skip}`);
 	// `--all` prende ogni ref e HEAD; i nostri ref di servizio (snapshot e trash) non sono storia
 	// del progetto e non devono comparire né nella UI né nel conteggio.
-	if (options.all !== false) args.push("--exclude=refs/lanecraft/*", "--all");
+	if (options.all !== false) args.push("--exclude=refs/gitlattice/*", "--all");
 	args.push(`--pretty=format:${LOG_FORMAT}`);
 	return args;
 }

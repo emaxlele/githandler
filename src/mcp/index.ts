@@ -21,14 +21,14 @@ function respond(response: JsonRpcResponse): void {
 
 async function main(): Promise<void> {
 	const repo =
-		argValue("--repo") ?? process.env.LANECRAFT_REPO ?? process.cwd();
+		argValue("--repo") ?? process.env.GITLATTICE_REPO ?? process.cwd();
 	const backend = new CliGitBackend({ settings: loadSettings });
 
 	try {
 		await backend.open(repo);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
-		process.stderr.write(`lanecraft mcp: ${message}\n`);
+		process.stderr.write(`gitlattice mcp: ${message}\n`);
 		process.exitCode = 2;
 		return;
 	}
@@ -65,7 +65,7 @@ async function main(): Promise<void> {
 			.catch((error: unknown) => {
 				const message =
 					error instanceof Error ? error.message : String(error);
-				process.stderr.write(`lanecraft mcp: ${message}\n`);
+				process.stderr.write(`gitlattice mcp: ${message}\n`);
 			});
 	});
 
@@ -76,6 +76,6 @@ async function main(): Promise<void> {
 
 void main().catch((error: unknown) => {
 	const message = error instanceof Error ? error.message : String(error);
-	process.stderr.write(`lanecraft mcp: ${message}\n`);
+	process.stderr.write(`gitlattice mcp: ${message}\n`);
 	process.exit(1);
 });

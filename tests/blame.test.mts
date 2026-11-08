@@ -8,7 +8,7 @@ import { after, test } from "node:test";
 import { parseBlame, UNCOMMITTED_SHA } from "../src/core/blame.ts";
 import { CliGitBackend } from "../src/main/backend.ts";
 
-const root = await mkdtemp(join(tmpdir(), "lanecraft-blame-"));
+const root = await mkdtemp(join(tmpdir(), "gitlattice-blame-"));
 
 function git(...args: string[]): string {
 	return execFileSync("git", args, { cwd: root, encoding: "utf8" });

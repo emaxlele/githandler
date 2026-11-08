@@ -13,7 +13,7 @@ import { CliGitBackend } from "../src/main/backend.ts";
  * repository temporaneo, quindi verifica insieme il parser e i comandi effettivamente invocati.
  */
 
-const root = await mkdtemp(join(tmpdir(), "lanecraft-test-"));
+const root = await mkdtemp(join(tmpdir(), "gitlattice-test-"));
 
 function git(...args: string[]): string {
 	return execFileSync("git", args, { cwd: root, encoding: "utf8" });
