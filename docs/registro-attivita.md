@@ -5,6 +5,36 @@
 
 ## 2026-11-08
 
+### Si può partire da zero: creare un repository, clonarlo, collegare un account
+
+-   **Cosa**: l'app ora sa **creare** un repository nuovo (chiedendo, se si vuole, nome ed email da usare
+    solo lì), **clonare** da un URL o **dall'elenco dei repository di un account** GitHub, GitLab,
+    Gitea/Forgejo o Bitbucket, e **gestire gli account** cambiando il token quando serve. Si può anche
+    **spostare il programma su un commit preciso**, non solo su un ramo. All'avvio, se non c'è nessun
+    progetto aperto, compare una **schermata di benvenuto** con le quattro scelte e non più la finestra
+    di sistema; il tondino **«+»** delle schede, che prima stava in basso a sinistra, è ora **centrato**.
+-   **Perché**: erano i punti mancanti segnalati nella revisione — chi apre GitHandler la prima volta non
+    aveva modo di creare o scaricare un progetto, il checkout funzionava solo sui rami, esisteva solo
+    GitHub e il token non si poteva cambiare. In più la cartella da cui partire si sceglie una volta e
+    vale per tutte le finestre di apertura e di clonazione.
+-   **Come**: la creazione usa `git init` e scrive l'identità **solo nel repository**, mai nella
+    configurazione globale dell'utente. Il clone prende il nome della cartella dall'URL e avvisa se la
+    destinazione esiste già. Per gli account l'app conserva soltanto i dati dell'utente (provider, host,
+    indirizzo dell'API, nome utente, etichetta): il **token non viene mai scritto** in un file
+    dell'app, resta in memoria e viene passato a Git al momento dell'operazione, quindi non compare
+    nemmeno nell'elenco dei processi. Se sulla macchina c'è un gestore di credenziali di Git, il token
+    viene anche consegnato a quello. Togliendo l'account il token esce dalla memoria dell'app, ma quello
+    che Git ha salvato resta di Git.
+-   **In più**: chiudendo l'ultima scheda si torna al benvenuto (prima l'ultima non si poteva chiudere) e
+    i comandi che hanno bisogno di un repository sono spenti quando non ce n'è uno aperto. Dopo un
+    checkout su un commit l'intestazione mostra lo stato reale invece del ramo di prima.
+-   **Verifica**: 120 test automatici verdi (10 nuovi), build riuscita. Prova reale: repository creato da
+    zero, clone da un repository locale, checkout di un commit e ritorno al ramo con *Annulla*, account
+    di prova con elenco di due repository e clone da lì, token sbagliato che produce un messaggio chiaro,
+    file degli account con permessi `0600` e senza token.
+-   **Stato**: completato.
+-   **Riferimento**: commit `3367768` del repository `~/Projects/githandler`.
+
 ### Pannello dei dettagli ridimensionabile, a icona e in una finestra sua
 
 -   **Cosa**: il riquadro in basso (commit, modifiche, albero dei file, blame, terminale) ora si può
