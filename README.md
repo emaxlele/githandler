@@ -76,6 +76,27 @@ npm run mcp -- --repo .   # server MCP su stdio, sola lettura (vedi docs/mcp.md)
 Flag di avvio: `--repo <path>`, `--watch` (sorveglianza del repository, o `GITLATTICE_WATCH=1`),
 `--no-watch` per spegnerla quando è attiva per ambiente.
 
+## Installazione locale (Ubuntu)
+
+Il pacchetto `.deb` con profilo AppArmor è in milestone 4; nel frattempo l'app si installa nel
+profilo utente, senza sudo:
+
+```bash
+./build/install-local.sh
+```
+
+Lo script compila i bundle e scrive launcher, voce nel menu e icona:
+
+| Cosa          | Dove                                                        |
+| ------------- | ----------------------------------------------------------- |
+| Launcher      | `~/.local/bin/gitlattice`                                   |
+| Voce nel menu | `~/.local/share/applications/gitlattice.desktop`            |
+| Icona         | `~/.local/share/icons/hicolor/scalable/apps/gitlattice.svg` |
+
+Il launcher ricompila con esbuild a ogni avvio, così il menu apre sempre il codice corrente:
+`gitlattice --repo ~/Projects/AI_Knowledge`. Per AppArmor su Ubuntu il sandbox di Chromium resta
+spento (`--no-sandbox`).
+
 ## API per l'AI
 
 `dist/mcp/index.js` è un server MCP su stdio che può esporre `repo_status`, `history`,

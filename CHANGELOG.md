@@ -43,6 +43,10 @@
     un ref orfano è innocuo e la potatura successiva lo toglie.
 -   Migrazione del file delle impostazioni: `trashUntracked` (v0.4) diventa `trash.enabled`, con i
     limiti nuovi ai valori di default. `normalizeSettings` limita i valori a intervalli sensati.
+-   **Installazione locale su Ubuntu** (`build/install-local.sh`): scrive il launcher
+    `~/.local/bin/gitlattice`, la voce nel menu applicazioni e l'icona SVG; niente sudo, niente
+    pacchetto. Il launcher ricompila i bundle a ogni avvio, quindi il menu apre sempre il codice
+    corrente.
 
 ### Test
 

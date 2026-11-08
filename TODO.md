@@ -24,6 +24,8 @@ Stato al 2026-11-08 (v0.5.0). Le voci spuntate sono in `CHANGELOG.md`.
         configurabili, ripristino senza sovrascrivere, copie v0.4 ancora leggibili
 -   [x] **Worktree e sotto-repo**: namespace del trash per worktree collegato; `.git` annidati
         conservati per intero con codifica reversibile dei path che Git rifiuta
+-   [x] **Installazione locale su Ubuntu** (`./build/install-local.sh`): launcher in
+        `~/.local/bin/gitlattice`, voce nel menu applicazioni e icona SVG, senza sudo
 
 ## Aperto
 
@@ -35,7 +37,8 @@ Stato al 2026-11-08 (v0.5.0). Le voci spuntate sono in `CHANGELOG.md`.
     -   [ ] Solo sopra soglia: `koffi` + libgit2 per le letture calde
 -   [ ] Milestone 4 — prodotto
     -   [ ] Packaging `.deb` con profilo AppArmor (Ubuntu 24.04+ blocca il sandbox di Chromium):
-            richiede verifica su macchina pulita
+            richiede verifica su macchina pulita. Nel frattempo `./build/install-local.sh` installa
+            launcher, voce nel menu e icona nel profilo utente
     -   [ ] AppImage e pacchetto `.rpm`
     -   [ ] Rebase interattivo, cherry-pick, stash, worktree, submodule
     -   [ ] Preferenze e temi

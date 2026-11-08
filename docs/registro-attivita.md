@@ -22,7 +22,7 @@
     test e build rieseguiti dopo il cambio. Il repository GitHub è stato rinominato e il codice
     pushato.
 -   **Stato**: completato, test verdi e build riuscita.
--   **Riferimento**: commit v0.5.0 (rinomina).
+-   **Riferimento**: commit `6daa167` del repository `~/Projects/gitlattice`.
 
 ### La copia di sicurezza dei file non tracciati ora vive dentro Git
 
