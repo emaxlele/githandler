@@ -5,6 +5,32 @@
 
 ## 2026-11-08
 
+### L'interfaccia ora ha la struttura dei client Git desktop più usati
+
+-   **Cosa**: la finestra è stata ridisegnata. In alto ci sono le azioni con icona e nome (Apri,
+    Fetch, Aggiorna, Annulla) e, al centro, il nome del repository con il ramo. Sopra la storia c'è la
+    scheda del repository aperto. A sinistra ci sono _Changes_ con il numero di file modificati, _All
+    Commits_, la casella di filtro e gli elenchi di rami, remoti e tag. Al centro la storia mostra
+    cinque colonne: il grafo colorato, il messaggio con le etichette dei rami e dei tag, l'autore con
+    le iniziali colorate, il codice breve del commit e la data. In basso quattro schede: _Commit_, con
+    autore e committer separati (sono due persone diverse dopo un rebase), codice, genitori e
+    messaggio; _Changes_, con i file pronti per il commit e quelli ancora da aggiungere in due
+    elenchi; _File Tree_, con la cartella del progetto ad albero; _Blame_.
+-   **Perché**: la versione precedente funzionava ma la disposizione era nostrana: chi arriva da un
+    altro client Git deve poter ritrovare le stesse zone senza imparare una nuova mappa. La richiesta
+    era di avere la stessa organizzazione delle foto di riferimento, con libertà sui dettagli visivi;
+    il tema scuro del progetto è rimasto.
+-   **Come**: solo la disposizione è stata presa a modello, non il codice né le immagini di altri
+    programmi. I comandi mostrati sono soltanto quelli che l'app sa fare davvero: niente pulsanti per
+    pull, push, stash o più repository aperti insieme, che non esistono ancora. Aggiunto anche il
+    dettaglio completo del commit (autore, committer, date, genitori, corpo del messaggio), che prima
+    mancava.
+-   **Corretto anche**: i commit di merge comparivano senza alcun file; ora mostrano le modifiche
+    rispetto al ramo in cui il merge è stato fatto.
+-   **Stato**: completato, 99 test automatici verdi, build riuscita, app installata e aperta da
+    `/tmp/gitdemo` per la prova.
+-   **Riferimento**: commit v0.5.0 del repository `~/Projects/githandler`.
+
 ### Il progetto si chiama GitHandler
 
 -   **Cosa**: il programma ora si chiama **GitHandler**. Sono cambiati il nome dell'app e della
@@ -23,7 +49,7 @@
     test e build rieseguiti dopo il cambio. Il repository GitHub è stato rinominato e il codice
     pushato.
 -   **Stato**: completato, test verdi e build riuscita.
--   **Riferimento**: commit `6daa167` del repository `~/Projects/githandler`.
+-   **Riferimento**: commit `9cd4d86` del repository `~/Projects/githandler`.
 
 ### La copia di sicurezza dei file non tracciati ora vive dentro Git
 

@@ -11,6 +11,32 @@
     dell'utente il secondo. Cartella, pacchetto, ref (`refs/githandler/*`), configurazione
     (`~/.config/githandler`) e variabili (`GITHANDLER_*`) seguono il nuovo nome.
 
+### Interfaccia
+
+-   **Finestra ridisegnata** sulla disposizione dei client Git desktop affermati, con il tema scuro
+    del progetto: **toolbar** con le azioni etichettate (Apri, Fetch, Aggiorna, Annulla) e, al centro,
+    repository e ramo; **scheda del repository** aperto sopra la storia; **barra laterale** con _Changes_
+    e il conteggio, _All Commits_, filtro di ricerca e Branches / Remotes / Tags con intestazioni
+    comprimibili.
+-   **Storia a cinque colonne**: grafo a corsie, messaggio con i badge dei ref, autore con avatar a
+    iniziali e colore stabile per nome, SHA breve, data completa.
+-   **Pannello inferiore a quattro schede**: `Commit` (AUTHOR e COMMITTER separati con le rispettive
+    date, SHA, PARENTS, messaggio e file toccati), `Changes` (Staged e Unstaged separati, diff a
+    destra, riquadro del commit), `File Tree` (albero dei file del commit selezionato o del working
+    tree, con cartelle comprimibili e _Comprimi/Espandi_, diff a destra) e `Blame`.
+-   **Nuovo `commitDetails`** nel backend (`git show -s` con autore, committer, date ISO 8601, oggetto
+    e corpo) e canale IPC `git:commitDetails`: la lista della storia non porta il committer, che dopo
+    rebase e cherry-pick è una persona diversa.
+-   Solo le funzioni che esistono hanno un comando: niente pulsanti finti per pull, push, stash o
+    schede multiple di repository.
+
+### Corretto
+
+-   **I merge mostravano un commit senza file**: `git show --name-status` su un merge non stampa nulla
+    senza `--first-parent`. Ora i file del merge sono quelli del primo genitore, come nei client Git
+    grafici.
+-   Il formato del diff scelto (unified/affiancato) si applica anche alla scheda `File Tree`.
+
 ### Cambiato
 
 -   **La copia dei file non tracciati vive in Git**: i byte diventano blob (`hash-object -w`),
@@ -49,10 +75,11 @@
 
 ### Test
 
--   10 nuovi test (97 in totale): oggetti e ref, ripristino di cartelle, symlink ed eseguibili,
+-   12 nuovi test (99 in totale): oggetti e ref, ripristino di cartelle, symlink ed eseguibili,
     byte CRLF/binari e nomi con `%`/newline, sotto-repo con `.git`, file speciali, limiti per
-    operazione, quota con sfalcio, conflitti, copie v0.4, repository senza HEAD, worktree collegato e
-    assenza dei commit del trash nella storia.
+    operazione, quota con sfalcio, conflitti, copie v0.4, repository senza HEAD, worktree collegato,
+    assenza dei commit del trash nella storia, dettaglio del commit (autore e committer distinti,
+    output troncato rifiutato).
 
 ## [0.4.0] — 2026-11-08
 

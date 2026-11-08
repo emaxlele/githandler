@@ -20,6 +20,27 @@ export interface Commit {
 	refs: Decoration[];
 }
 
+/** Autore o committer di un commit, con la data ISO 8601 che stampa Git (`%aI`). */
+export interface CommitPerson {
+	name: string;
+	email: string;
+	date: string;
+}
+
+/**
+ * Dettaglio di un commit. Autore e committer possono essere persone diverse (rebase, cherry-pick,
+ * patch applicate da terzi) e questa informazione non sta nella lista della storia.
+ */
+export interface CommitDetails {
+	sha: string;
+	parents: string[];
+	author: CommitPerson;
+	committer: CommitPerson;
+	subject: string;
+	/** corpo del messaggio, senza l'oggetto */
+	body: string;
+}
+
 export interface RefInfo {
 	name: string;
 	short: string;

@@ -6,97 +6,173 @@
 			http-equiv="Content-Security-Policy"
 			content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
 		/>
-		<title>githandler</title>
+		<title>GitHandler</title>
 		<link rel="stylesheet" href="./styles.css" />
 	</head>
 	<body>
-		<header class="topbar">
-			<div class="topbar-repo">
-				<span class="repo-name" id="repo-name">githandler</span>
-				<span class="chip hidden" id="repo-branch"></span>
+		<header class="toolbar">
+			<div class="toolbar-group">
+				<button class="tool" id="btn-open" title="Apri un repository">
+					<svg viewBox="0 0 20 20" aria-hidden="true">
+						<path
+							d="M2.5 6.5a2 2 0 0 1 2-2h2.4l1.4 1.7h7.2a2 2 0 0 1 2 2v6.3a2 2 0 0 1-2 2H4.5a2 2 0 0 1-2-2z"
+						/>
+					</svg>
+					<span>Apri</span>
+				</button>
+				<button
+					class="tool"
+					id="btn-fetch"
+					title="git fetch --all --prune"
+				>
+					<svg viewBox="0 0 20 20" aria-hidden="true">
+						<path d="M10 2.5v9" />
+						<path d="M6.2 8l3.8 3.8L13.8 8" />
+						<path d="M3.5 15.5h13" />
+					</svg>
+					<span>Fetch</span>
+				</button>
+				<button class="tool" id="btn-refresh" title="Ctrl+R">
+					<svg viewBox="0 0 20 20" aria-hidden="true">
+						<path d="M16 10a6 6 0 1 1-1.8-4.3" />
+						<path d="M16 3.5V8h-4.4" />
+					</svg>
+					<span>Aggiorna</span>
+				</button>
+				<button
+					class="tool"
+					id="btn-undo"
+					title="Annulla l'ultima operazione"
+					disabled
+				>
+					<svg viewBox="0 0 20 20" aria-hidden="true">
+						<path d="M7 5.5H4v3.2" />
+						<path d="M4.3 8.5A6.2 6.2 0 1 1 5 14" />
+					</svg>
+					<span>Annulla</span>
+				</button>
+			</div>
+
+			<div class="toolbar-center">
+				<span class="toolbar-repo" id="repo-name"
+					>nessun repository</span
+				>
+				<span class="toolbar-branch" id="repo-head">
+					<svg viewBox="0 0 20 20" aria-hidden="true">
+						<path d="M6 4.5v11" />
+						<circle cx="6" cy="4" r="1.6" />
+						<circle cx="6" cy="16" r="1.6" />
+						<circle cx="14" cy="7" r="1.6" />
+						<path d="M14 8.6c0 3-2.6 2.4-5.2 3.6" />
+					</svg>
+					<span id="repo-branch">—</span>
+				</span>
+			</div>
+
+			<div class="toolbar-group toolbar-right">
+				<span class="sync hidden" id="repo-sync"></span>
 				<span
 					class="chip hidden"
 					id="repo-watch"
 					title="Il repository viene riletto quando cambia sul disco (--watch)"
 					>Live</span
 				>
-				<span class="sync hidden" id="repo-sync"></span>
-			</div>
-			<div class="topbar-actions">
-				<button class="btn" id="btn-open">Apri repository…</button>
-				<button
-					class="btn"
-					id="btn-undo"
-					title="Annulla l'ultima operazione"
-					disabled
-				>
-					Annulla
-				</button>
-				<button class="btn" id="btn-refresh" title="Ctrl+R">
-					Aggiorna
-				</button>
-				<button
-					class="btn"
-					id="btn-fetch"
-					title="git fetch --all --prune"
-				>
-					Fetch
-				</button>
-				<button
-					class="btn"
-					id="btn-settings"
-					title="Permessi delle API e copia dei file non tracciati"
-				>
-					Impostazioni
-				</button>
 			</div>
 		</header>
 
+		<nav class="repo-tabs" aria-label="Repository aperti">
+			<button class="repo-tab is-active" id="repo-tab">
+				<span class="repo-tab-name" id="repo-tab-name"
+					>Nessun repository</span
+				>
+				<span class="repo-tab-branch" id="repo-tab-branch"></span>
+			</button>
+			<button
+				class="repo-tab-add"
+				id="btn-new-tab"
+				title="Apri un repository"
+			>
+				+
+			</button>
+		</nav>
+
 		<div class="workspace">
 			<aside class="sidebar">
-				<section class="side-section">
-					<h2>
-						Rami locali
-						<button
-							class="icon-btn"
-							id="btn-new-branch"
-							title="Nuovo ramo"
-						>
-							+
-						</button>
-					</h2>
-					<form class="new-branch hidden" id="new-branch-form">
-						<input
-							id="new-branch-name"
-							placeholder="nome del ramo"
-							autocomplete="off"
-						/>
-					</form>
-					<ul class="ref-list" id="list-branches"></ul>
-				</section>
-				<section class="side-section">
-					<h2>Remoti</h2>
-					<ul class="ref-list" id="list-remotes"></ul>
-				</section>
-				<section class="side-section">
-					<h2>Tag</h2>
-					<ul class="ref-list" id="list-tags"></ul>
-				</section>
-				<section class="side-section side-footer">
-					<span class="muted" id="commit-count">—</span>
-				</section>
-			</aside>
+				<div class="side-head">
+					<span class="side-repo" id="side-repo">—</span>
+					<button
+						class="icon-btn"
+						id="btn-settings"
+						title="Permessi delle API e copia dei file non tracciati"
+					>
+						<svg viewBox="0 0 20 20" aria-hidden="true">
+							<circle cx="10" cy="10" r="2.6" />
+							<path
+								d="M10 2.8v2M10 15.2v2M2.8 10h2M15.2 10h2M4.9 4.9l1.4 1.4M13.7 13.7l1.4 1.4M15.1 4.9l-1.4 1.4M6.3 13.7l-1.4 1.4"
+							/>
+						</svg>
+					</button>
+				</div>
 
-			<main class="main">
-				<div class="log-search">
+				<button class="side-entry is-active" id="side-changes">
+					<svg viewBox="0 0 20 20" aria-hidden="true">
+						<path d="M5 3.5h6l4 4v9H5z" />
+						<path d="M11 3.5v4h4" />
+					</svg>
+					<span>Changes</span>
+					<span class="badge" id="changes-count">0</span>
+				</button>
+				<button class="side-entry" id="side-commits">
+					<svg viewBox="0 0 20 20" aria-hidden="true">
+						<circle cx="10" cy="4.5" r="1.8" />
+						<circle cx="10" cy="15.5" r="1.8" />
+						<path d="M10 6.3v7.4" />
+					</svg>
+					<span>All Commits</span>
+				</button>
+
+				<div class="side-tools">
+					<button
+						class="icon-btn"
+						id="btn-new-branch"
+						title="Nuovo ramo"
+					>
+						<svg viewBox="0 0 20 20" aria-hidden="true">
+							<path d="M6 4.5v11" />
+							<circle cx="6" cy="4" r="1.6" />
+							<circle cx="6" cy="16" r="1.6" />
+							<circle cx="14" cy="7" r="1.6" />
+							<path d="M14 8.6c0 3-2.6 2.4-5.2 3.6" />
+						</svg>
+					</button>
+					<button
+						class="icon-btn"
+						id="btn-search-focus"
+						title="Cerca nella storia"
+					>
+						<svg viewBox="0 0 20 20" aria-hidden="true">
+							<circle cx="9" cy="9" r="5" />
+							<path d="M12.8 12.8 16.5 16.5" />
+						</svg>
+					</button>
+				</div>
+
+				<form class="new-branch hidden" id="new-branch-form">
+					<input
+						id="new-branch-name"
+						placeholder="nome del ramo"
+						autocomplete="off"
+					/>
+				</form>
+
+				<div class="side-filter">
 					<input
 						id="search-input"
 						type="search"
-						placeholder="Cerca nella storia — testo, author:nome, file:percorso"
+						placeholder="Filter"
 						autocomplete="off"
 						spellcheck="false"
 					/>
-					<span class="search-info" id="search-info"></span>
 					<button
 						class="icon-btn hidden"
 						id="btn-search-clear"
@@ -105,6 +181,27 @@
 						×
 					</button>
 				</div>
+				<div class="search-info" id="search-info"></div>
+
+				<section class="side-section">
+					<h2><span>Branches</span></h2>
+					<ul class="ref-list" id="list-branches"></ul>
+				</section>
+				<section class="side-section">
+					<h2><span>Remotes</span></h2>
+					<ul class="ref-list" id="list-remotes"></ul>
+				</section>
+				<section class="side-section">
+					<h2><span>Tags</span></h2>
+					<ul class="ref-list" id="list-tags"></ul>
+				</section>
+
+				<div class="side-footer">
+					<span class="muted" id="commit-count">—</span>
+				</div>
+			</aside>
+
+			<main class="main">
 				<div class="log" id="log">
 					<div class="log-spacer" id="log-spacer"></div>
 					<div class="log-window" id="log-window">
@@ -124,14 +221,16 @@
 					<nav class="tabs">
 						<button
 							class="tab is-active"
-							data-tab="changes"
-							id="tab-changes"
+							data-tab="commit"
+							id="tab-commit"
 						>
-							Modifiche
-							<span class="badge" id="changes-count">0</span>
-						</button>
-						<button class="tab" data-tab="commit" id="tab-commit">
 							Commit
+						</button>
+						<button class="tab" data-tab="changes" id="tab-changes">
+							Changes
+						</button>
+						<button class="tab" data-tab="tree" id="tab-tree">
+							File Tree
 						</button>
 						<button class="tab" data-tab="blame" id="tab-blame">
 							Blame
@@ -159,23 +258,45 @@
 						</div>
 					</nav>
 
-					<div class="panel is-active" id="panel-changes">
+					<div class="panel is-active" id="panel-commit">
+						<div class="files">
+							<div class="commit-meta" id="commit-meta"></div>
+							<ul class="file-list" id="commit-files"></ul>
+						</div>
+						<div class="diff-area">
+							<div class="diff-body" id="commit-diff">
+								<div class="empty-small">
+									Seleziona un commit.
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="panel" id="panel-changes">
 						<div class="files">
 							<div class="files-head">
-								<button
-									class="btn btn-small"
-									id="btn-stage-all"
-								>
-									Stage tutto
-								</button>
+								<span class="files-title">Staged</span>
 								<button
 									class="btn btn-small"
 									id="btn-unstage-all"
 								>
-									Unstage tutto
+									Unstage
 								</button>
 							</div>
-							<ul class="file-list" id="changes-list"></ul>
+							<ul class="file-list" id="changes-list-staged"></ul>
+							<div class="files-head">
+								<span class="files-title">Unstaged</span>
+								<button
+									class="btn btn-small"
+									id="btn-stage-all"
+								>
+									Stage
+								</button>
+							</div>
+							<ul
+								class="file-list"
+								id="changes-list-unstaged"
+							></ul>
 						</div>
 						<div class="diff-area">
 							<div class="diff-body" id="changes-diff">
@@ -208,32 +329,51 @@
 						</div>
 					</div>
 
-					<div class="panel" id="panel-commit">
+					<div class="panel" id="panel-tree">
 						<div class="files">
-							<div class="commit-meta" id="commit-meta"></div>
-							<ul class="file-list" id="commit-files"></ul>
+							<div class="files-head">
+								<span class="files-title" id="tree-title"
+									>File tree</span
+								>
+								<button
+									class="btn btn-small"
+									id="btn-tree-toggle"
+								>
+									Comprimi
+								</button>
+							</div>
+							<ul class="tree-list" id="tree-list"></ul>
 						</div>
 						<div class="diff-area">
-							<div class="diff-body" id="commit-diff">
+							<div class="diff-body" id="tree-diff">
 								<div class="empty-small">
-									Seleziona un commit.
+									Seleziona un file dall'albero.
 								</div>
 							</div>
 						</div>
 					</div>
 
 					<div class="panel" id="panel-blame">
-						<div class="blame-head">
-							<span class="blame-path" id="blame-path"></span>
-							<span class="muted"
-								>chi ha scritto ogni riga, dal più recente</span
-							>
-						</div>
-						<div class="blame" id="blame-scroll">
-							<div class="blame-spacer" id="blame-spacer"></div>
-							<div class="blame-window" id="blame-window"></div>
-							<div class="empty" id="blame-empty">
-								Seleziona un file da Modifiche o da un commit.
+						<div class="blame-pane">
+							<div class="blame-head">
+								<span class="blame-path" id="blame-path"></span>
+								<span class="muted"
+									>chi ha scritto ogni riga, dal più
+									recente</span
+								>
+							</div>
+							<div class="blame" id="blame-scroll">
+								<div
+									class="blame-spacer"
+									id="blame-spacer"
+								></div>
+								<div
+									class="blame-window"
+									id="blame-window"
+								></div>
+								<div class="empty" id="blame-empty">
+									Seleziona un file da Changes o da un commit.
+								</div>
 							</div>
 						</div>
 					</div>

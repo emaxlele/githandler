@@ -1,7 +1,16 @@
 import type { CommitFile, DiffFile, DiffHunk } from "./types.ts";
 
 export function commitFilesArgs(sha: string): string[] {
-	return ["show", "--name-status", "--format=", "-z", "--no-color", sha];
+	// `--first-parent`: un merge senza questo flag non mostra alcun file.
+	return [
+		"show",
+		"--name-status",
+		"--first-parent",
+		"--format=",
+		"-z",
+		"--no-color",
+		sha,
+	];
 }
 
 export function commitDiffArgs(

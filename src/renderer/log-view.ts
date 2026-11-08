@@ -1,5 +1,13 @@
 import type { Commit, GraphRow } from "../core/types.ts";
-import { byId, clear, el, fullDate, relativeTime } from "./dom.ts";
+import {
+	avatarColor,
+	byId,
+	clear,
+	el,
+	fullDate,
+	initials,
+	shortDate,
+} from "./dom.ts";
 
 const ROW_H = 28;
 const LANE_W = 12;
@@ -191,17 +199,18 @@ export class LogView {
 		message.title = commit.subject;
 		subject.appendChild(message);
 
-		const author = el("div", "row-author", commit.author);
-		author.title = commit.email;
+		const author = el("div", "row-author");
+		author.title = `${commit.author} <${commit.email}>`;
+		const avatar = el("span", "avatar", initials(commit.author));
+		avatar.style.background = avatarColor(commit.author);
+		author.append(avatar, el("span", "name", commit.author));
 
-		const time = el(
-			"div",
-			"row-time",
-			relativeTime(commit.timestamp * 1000)
-		);
+		const sha = el("div", "row-sha", commit.sha.slice(0, 8));
+
+		const time = el("div", "row-time", shortDate(commit.timestamp * 1000));
 		time.title = fullDate(commit.timestamp * 1000);
 
-		row.append(subject, author, time);
+		row.append(subject, author, sha, time);
 		return row;
 	}
 

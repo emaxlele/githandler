@@ -26,6 +26,13 @@ Stato al 2026-11-08 (v0.5.0). Le voci spuntate sono in `CHANGELOG.md`.
         conservati per intero con codifica reversibile dei path che Git rifiuta
 -   [x] **Installazione locale su Ubuntu** (`./build/install-local.sh`): launcher in
         `~/.local/bin/githandler`, voce nel menu applicazioni e icona SVG, senza sudo
+-   [x] **Interfaccia sul modello dei client Git desktop**: toolbar etichettata, scheda del repository,
+        barra laterale Changes / All Commits, storia a cinque colonne, pannello
+        Commit / Changes / File Tree / Blame
+-   [x] **Dettaglio commit con autore e committer separati** (`git show -s`, canale
+        `git:commitDetails`), SHA e parents nel pannello
+-   [x] **File dei merge** (`--first-parent` in `commitFilesArgs`): senza, il commit di merge compariva
+        senza alcun file
 
 ## Aperto
 
@@ -41,6 +48,8 @@ Stato al 2026-11-08 (v0.5.0). Le voci spuntate sono in `CHANGELOG.md`.
             launcher, voce nel menu e icona nel profilo utente
     -   [ ] AppImage e pacchetto `.rpm`
     -   [ ] Rebase interattivo, cherry-pick, stash, worktree, submodule
+    -   [ ] Schede multiple di repository nella stessa finestra: oggi il `+` apre un altro repository
+            sostituendo quello corrente
     -   [ ] Preferenze e temi
 -   [ ] Verificare la resa del testo su un diff da ~3.000 righe contro WebKitGTK (Tauri/Wails) e
         Avalonia: è la misura che ha motivato la scelta di Electron

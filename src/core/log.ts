@@ -1,4 +1,4 @@
-import type { Commit, Decoration, RefInfo } from "./types.ts";
+import type { Commit, CommitDetails, Decoration, RefInfo } from "./types.ts";
 
 /**
  * Separatori scelti per non collidere con nomi, email o messaggi:
@@ -20,7 +20,8 @@ export function logArgs(options: RawLogOptions = {}): string[] {
 	if (skip > 0) args.push(`--skip=${skip}`);
 	// `--all` prende ogni ref e HEAD; i nostri ref di servizio (snapshot e trash) non sono storia
 	// del progetto e non devono comparire né nella UI né nel conteggio.
-	if (options.all !== false) args.push("--exclude=refs/githandler/*", "--all");
+	if (options.all !== false)
+		args.push("--exclude=refs/githandler/*", "--all");
 	args.push(`--pretty=format:${LOG_FORMAT}`);
 	return args;
 }
@@ -53,6 +54,63 @@ export function parseLog(raw: string): Commit[] {
 		});
 	}
 	return commits;
+}
+
+/**
+ * Dettaglio di un commit: la lista della storia non porta committer né corpo del messaggio, e il
+ * pannello di dettaglio li mostra separati dall'autore.
+ */
+export const COMMIT_DETAILS_FORMAT =
+	"%H%x00%P%x00%an%x00%ae%x00%aI%x00%cn%x00%ce%x00%cI%x00%s%x00%b";
+
+export function commitDetailsArgs(sha: string): string[] {
+	return ["show", "-s", `--format=${COMMIT_DETAILS_FORMAT}`, sha, "--"];
+}
+
+export function parseCommitDetails(raw: string): CommitDetails | null {
+	const fields = raw.replace(/\n+$/, "").split("\x00");
+	// Un output troncato non deve produrre un dettaglio a metà.
+	if (fields.length < 10) return null;
+	const [
+		sha,
+		parents,
+		authorName,
+		authorEmail,
+		authorDate,
+		committerName,
+		committerEmail,
+		committerDate,
+		subject,
+		body,
+	] = fields as [
+		string,
+		string,
+		string,
+		string,
+		string,
+		string,
+		string,
+		string,
+		string,
+		string
+	];
+	if (!/^[0-9a-f]{7,64}$/.test(sha)) return null;
+	return {
+		sha,
+		parents: parents ? parents.split(" ").filter(Boolean) : [],
+		author: {
+			name: authorName,
+			email: authorEmail,
+			date: authorDate,
+		},
+		committer: {
+			name: committerName,
+			email: committerEmail,
+			date: committerDate,
+		},
+		subject,
+		body: body.replace(/\s+$/, ""),
+	};
 }
 
 /** `git for-each-ref`: una riga per ref, campi separati da NUL, record da \x1e. */

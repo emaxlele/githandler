@@ -6,6 +6,7 @@ import { CHANGED_CHANNEL, type RepoChangeEvent } from "../shared/api.ts";
 const api: GitApi = {
 	open: (path) => ipcRenderer.invoke("git:open", path),
 	refresh: () => ipcRenderer.invoke("git:refresh"),
+	commitDetails: (sha) => ipcRenderer.invoke("git:commitDetails", sha),
 	commitFiles: (sha) => ipcRenderer.invoke("git:commitFiles", sha),
 	commitPatch: (sha, path) =>
 		ipcRenderer.invoke("git:commitPatch", sha, path),

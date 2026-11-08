@@ -10,12 +10,26 @@ import {
 	type Settings,
 	type TrashUsage,
 } from "../core/settings.ts";
-import type { Commit, CommitFile, DiffFile, Snapshot } from "../core/types.ts";
+import type {
+	Commit,
+	CommitDetails,
+	CommitFile,
+	DiffFile,
+	Snapshot,
+	StatusEntry,
+} from "../core/types.ts";
 import { describeUndo } from "../core/undo.ts";
 import type { GitApi } from "../shared/api.ts";
 import { BlameView } from "./blame-view.ts";
 import { pickKey, renderDiff, type DiffLayout } from "./diff-view.ts";
-import { byId, clear, el, fullDate } from "./dom.ts";
+import {
+	avatarColor,
+	byId,
+	clear,
+	el,
+	initials,
+	shortDate,
+} from "./dom.ts";
 import { LogView } from "./log-view.ts";
 
 declare global {
@@ -26,7 +40,7 @@ declare global {
 
 const api = window.githandler;
 
-type Tab = "changes" | "commit" | "blame";
+type Tab = "changes" | "commit" | "tree" | "blame";
 
 interface State {
 	snapshot: Snapshot | null;
@@ -36,8 +50,13 @@ interface State {
 	hasMore: boolean;
 	loadingMore: boolean;
 	selectedCommit: string | null;
+	commitDetails: CommitDetails | null;
 	commitFiles: CommitFile[];
 	commitPath: string | null;
+	/** file selezionato nella scheda File Tree */
+	treePath: string | null;
+	/** cartelle chiuse nell'albero; vuoto = tutto aperto */
+	treeCollapsed: Set<string>;
 	changePath: string | null;
 	changeStaged: boolean;
 	/** Diff attualmente disegnato per il working tree: serve a ricostruire le patch parziali. */
@@ -56,14 +75,17 @@ const state: State = {
 	hasMore: false,
 	loadingMore: false,
 	selectedCommit: null,
+	commitDetails: null,
 	commitFiles: [],
 	commitPath: null,
+	treePath: null,
+	treeCollapsed: new Set(),
 	changePath: null,
 	changeStaged: false,
 	changeDiff: null,
 	picked: new Set(),
 	diffLayout: savedLayout(),
-	tab: "changes",
+	tab: "commit",
 	searchQuery: null,
 };
 
@@ -81,9 +103,16 @@ function savedLayout(): DiffLayout {
 const ui = {
 	repoName: byId("repo-name"),
 	repoBranch: byId("repo-branch"),
+	repoTabName: byId("repo-tab-name"),
+	repoTabBranch: byId("repo-tab-branch"),
+	sideRepo: byId("side-repo"),
+	sideChanges: byId<HTMLButtonElement>("side-changes"),
+	sideCommits: byId<HTMLButtonElement>("side-commits"),
+	btnSearchFocus: byId<HTMLButtonElement>("btn-search-focus"),
 	repoWatch: byId("repo-watch"),
 	repoSync: byId("repo-sync"),
 	btnOpen: byId<HTMLButtonElement>("btn-open"),
+	btnNewTab: byId<HTMLButtonElement>("btn-new-tab"),
 	btnUndo: byId<HTMLButtonElement>("btn-undo"),
 	btnRefresh: byId<HTMLButtonElement>("btn-refresh"),
 	btnFetch: byId<HTMLButtonElement>("btn-fetch"),
@@ -100,13 +129,20 @@ const ui = {
 	commitCount: byId("commit-count"),
 	tabChanges: byId<HTMLButtonElement>("tab-changes"),
 	tabCommit: byId<HTMLButtonElement>("tab-commit"),
+	tabTree: byId<HTMLButtonElement>("tab-tree"),
 	tabBlame: byId<HTMLButtonElement>("tab-blame"),
 	panelChanges: byId("panel-changes"),
 	panelCommit: byId("panel-commit"),
+	panelTree: byId("panel-tree"),
 	panelBlame: byId("panel-blame"),
+	treeList: byId("tree-list"),
+	treeDiff: byId("tree-diff"),
+	treeTitle: byId("tree-title"),
+	btnTreeToggle: byId<HTMLButtonElement>("btn-tree-toggle"),
 	blamePath: byId("blame-path"),
 	changesCount: byId("changes-count"),
-	changesList: byId("changes-list"),
+	changesListStaged: byId("changes-list-staged"),
+	changesListUnstaged: byId("changes-list-unstaged"),
 	changesDiff: byId("changes-diff"),
 	commitFilesList: byId("commit-files"),
 	commitDiff: byId("commit-diff"),
@@ -184,8 +220,10 @@ function applySnapshot(snapshot: Snapshot): void {
 	}
 
 	ui.repoName.textContent = snapshot.info.name;
+	ui.sideRepo.textContent = snapshot.info.name;
+	ui.repoTabName.textContent = snapshot.info.name;
 	ui.repoBranch.textContent = snapshot.info.branch ?? "HEAD staccato";
-	ui.repoBranch.classList.remove("hidden");
+	ui.repoTabBranch.textContent = snapshot.info.branch ?? "detached";
 
 	const { ahead, behind } = snapshot.status;
 	ui.repoSync.textContent = `↑${ahead} ↓${behind}`;
@@ -377,6 +415,12 @@ async function loadLog(): Promise<void> {
 		);
 		logView.setData(state.commits, layoutGraph(state.commits));
 		ui.searchInfo.textContent = "";
+		// senza selezione il pannello Commit resterebbe vuoto all'apertura
+		if (!state.selectedCommit && state.commits[0]) {
+			const first = state.commits[0].sha;
+			if (state.tab === "commit") void selectCommit(first);
+			else logView.select(first);
+		}
 		return;
 	}
 
@@ -466,22 +510,44 @@ function renderRefs(snapshot: Snapshot): void {
 	}
 }
 
+/** Un file è nello stage quando l'indice è cambiato; può comparire in entrambe le liste. */
 function renderChanges(snapshot: Snapshot): void {
 	const entries = snapshot.status.entries;
 	ui.changesCount.textContent = String(entries.length);
-	clear(ui.changesList);
 
+	const staged = entries.filter((entry) => entry.index !== ".");
+	const unstaged = entries.filter(
+		(entry) => entry.kind === "untracked" || entry.worktree !== "."
+	);
+
+	fillChangeList(ui.changesListStaged, staged, true);
+	fillChangeList(ui.changesListUnstaged, unstaged, false);
+	renderTree(snapshot);
+}
+
+function fillChangeList(
+	container: HTMLElement,
+	entries: StatusEntry[],
+	staged: boolean
+): void {
+	clear(container);
 	if (entries.length === 0) {
-		const empty = el("li", "muted", "Nessuna modifica.");
+		const empty = el(
+			"li",
+			"muted",
+			staged ? "Nessun file nello stage." : "Nessuna modifica."
+		);
 		empty.style.cursor = "default";
-		ui.changesList.appendChild(empty);
+		container.appendChild(empty);
 		return;
 	}
 
 	for (const entry of entries) {
 		const item = el("li");
 		item.dataset.path = entry.path;
-		if (entry.path === state.changePath) item.classList.add("is-selected");
+		item.dataset.side = staged ? "staged" : "unstaged";
+		if (entry.path === state.changePath && state.changeStaged === staged)
+			item.classList.add("is-selected");
 
 		const code =
 			entry.kind === "untracked"
@@ -495,10 +561,9 @@ function renderChanges(snapshot: Snapshot): void {
 		item.appendChild(el("span", "name", entry.path));
 
 		const acts = el("span", "acts");
-		const fullyStaged = entry.index !== "." && entry.worktree === ".";
-		const toggle = el("button", "icon-btn", fullyStaged ? "−" : "+");
-		toggle.dataset.act = fullyStaged ? "unstage" : "stage";
-		toggle.title = fullyStaged
+		const toggle = el("button", "icon-btn", staged ? "−" : "+");
+		toggle.dataset.act = staged ? "unstage" : "stage";
+		toggle.title = staged
 			? "Togli dallo stage"
 			: "Aggiungi allo stage";
 		acts.appendChild(toggle);
@@ -509,22 +574,225 @@ function renderChanges(snapshot: Snapshot): void {
 		acts.appendChild(discard);
 
 		item.appendChild(acts);
-		ui.changesList.appendChild(item);
+		container.appendChild(item);
 	}
+}
+
+// ── albero dei file ──────────────────────────────────────────────────────────
+
+interface TreeNode {
+	name: string;
+	path: string;
+	dir: boolean;
+	status: string | null;
+	children: TreeNode[];
+}
+
+function buildTree(files: Array<{ path: string; status: string }>): TreeNode {
+	const root: TreeNode = {
+		name: "",
+		path: "",
+		dir: true,
+		status: null,
+		children: [],
+	};
+
+	for (const file of files) {
+		const parts = file.path.split("/").filter(Boolean);
+		let node = root;
+		for (let i = 0; i < parts.length; i++) {
+			const dir = i < parts.length - 1;
+			const path = parts.slice(0, i + 1).join("/");
+			let child = node.children.find(
+				(candidate) => candidate.name === parts[i] && candidate.dir === dir
+			);
+			if (!child) {
+				child = {
+					name: parts[i]!,
+					path,
+					dir,
+					status: dir ? null : file.status,
+					children: [],
+				};
+				node.children.push(child);
+			}
+			node = child;
+		}
+	}
+
+	const sort = (node: TreeNode): void => {
+		node.children.sort((a, b) =>
+			a.dir === b.dir
+				? a.name.localeCompare(b.name)
+				: a.dir
+				? -1
+				: 1
+		);
+		for (const child of node.children) sort(child);
+	};
+	sort(root);
+	return root;
+}
+
+/** I file dell'albero: quelli del commit selezionato, altrimenti il working tree. */
+function treeFiles(snapshot: Snapshot): Array<{ path: string; status: string }> {
+	if (state.selectedCommit) {
+		return state.commitFiles.map((file) => ({
+			path: file.path,
+			status: file.status,
+		}));
+	}
+	return snapshot.status.entries.map((entry) => ({
+		path: entry.path,
+		status:
+			entry.kind === "untracked"
+				? "?"
+				: entry.worktree !== "."
+				? entry.worktree
+				: entry.index,
+	}));
+}
+
+function renderTree(snapshot: Snapshot): void {
+	const files = treeFiles(snapshot);
+	ui.treeTitle.textContent = state.selectedCommit
+		? "File tree · commit"
+		: "File tree · working tree";
+	clear(ui.treeList);
+
+	if (files.length === 0) {
+		ui.treeList.appendChild(el("li", "muted", "Nessun file."));
+		return;
+	}
+
+	const fragment = document.createDocumentFragment();
+	const walk = (node: TreeNode, depth: number): void => {
+		for (const child of node.children) {
+			const collapsed = state.treeCollapsed.has(child.path);
+			const row = el("div", "tree-node");
+			if (child.dir) row.classList.add("is-dir");
+			row.style.paddingLeft = `${10 + depth * 14}px`;
+			row.dataset.path = child.path;
+			row.dataset.dir = String(child.dir);
+
+			const twisty = el("span", "twisty", child.dir ? (collapsed ? "▸" : "▾") : "");
+			if (!child.dir) twisty.classList.add("is-leaf");
+			row.appendChild(twisty);
+
+			if (child.status) {
+				const badge = el(
+					"span",
+					`st st-${
+						child.status === "?" ? "a" : child.status.toLowerCase()
+					}`,
+					child.status
+				);
+				row.appendChild(badge);
+			}
+			row.appendChild(el("span", "label", child.name));
+			if (!child.dir && child.path === state.treePath)
+				row.classList.add("is-selected");
+			fragment.appendChild(row);
+
+			if (child.dir && !collapsed) walk(child, depth + 1);
+		}
+	};
+	walk(buildTree(files), 0);
+	ui.treeList.appendChild(fragment);
+}
+
+function renderCommitMeta(): void {
+	clear(ui.commitMeta);
+	const commit = state.commits.find((c) => c.sha === state.selectedCommit);
+	if (!commit) {
+		ui.commitMeta.appendChild(
+			el("div", "meta-empty", "Seleziona un commit dalla storia.")
+		);
+		return;
+	}
+
+	const details = state.commitDetails;
+	const author = details?.author;
+	const committer = details?.committer;
+
+	const person = (
+		label: string,
+		name: string,
+		email: string,
+		date: string | null
+	): HTMLElement => {
+		const wrap = el("div");
+		wrap.appendChild(el("div", "meta-label", label));
+		const line = el("div", "meta-person");
+		const avatar = el("span", "avatar", initials(name));
+		avatar.style.background = avatarColor(name);
+		const who = el("div", "who");
+		who.appendChild(el("strong", undefined, name));
+		if (date) {
+			const when = new Date(date);
+			who.appendChild(
+				el(
+					"span",
+					undefined,
+					Number.isNaN(when.getTime())
+						? date
+						: shortDate(when.getTime())
+				)
+			);
+		}
+		who.appendChild(el("span", undefined, email));
+		line.append(avatar, who);
+		wrap.appendChild(line);
+		return wrap;
+	};
+
+	const grid = el("div", "meta-grid");
+	grid.appendChild(
+		person(
+			"Author",
+			author?.name ?? commit.author,
+			author?.email ?? commit.email,
+			author?.date ?? new Date(commit.timestamp * 1000).toISOString()
+		)
+	);
+	if (committer) {
+		grid.appendChild(
+			person("Committer", committer.name, committer.email, committer.date)
+		);
+	}
+	ui.commitMeta.appendChild(grid);
+
+	const ids = el("div", "meta-ids");
+	const idLine = (key: string, value: string): HTMLElement => {
+		const line = el("div", "line");
+		line.appendChild(el("span", "key", key));
+		const text = el("span", "value", value);
+		text.title = value;
+		line.appendChild(text);
+		return line;
+	};
+	ids.appendChild(idLine("SHA", commit.sha));
+	ids.appendChild(
+		idLine(
+			"Parents",
+			(details?.parents ?? commit.parents).map((p) => p.slice(0, 8)).join(" ") ||
+				"—"
+		)
+	);
+	ui.commitMeta.appendChild(ids);
+
+	const message = el("div", "meta-message");
+	message.appendChild(
+		el("div", "subject", details?.subject ?? commit.subject)
+	);
+	if (details?.body)
+		message.appendChild(el("div", "body", details.body));
+	ui.commitMeta.appendChild(message);
 }
 
 function renderCommitFiles(): void {
 	clear(ui.commitFilesList);
-	const commit = state.snapshot?.commits.find(
-		(c) => c.sha === state.selectedCommit
-	);
-	clear(ui.commitMeta);
-	if (commit) {
-		const sha = el("div", "sha", commit.sha.slice(0, 10));
-		const subject = el("div", "subject", commit.subject);
-		ui.commitMeta.append(sha, subject);
-		ui.commitMeta.title = fullDate(commit.timestamp * 1000);
-	}
+	renderCommitMeta();
 
 	if (state.commitFiles.length === 0) {
 		ui.commitFilesList.appendChild(el("li", "muted", "Nessun file."));
@@ -535,8 +803,15 @@ function renderCommitFiles(): void {
 		const item = el("li");
 		item.dataset.path = file.path;
 		if (file.path === state.commitPath) item.classList.add("is-selected");
+		const code = file.status === "?" ? "?" : file.status;
 		item.appendChild(
-			el("span", `st st-${file.status.toLowerCase()}`, file.status)
+			el(
+				"span",
+				`st ${
+					code === "?" ? "st-a" : `st-${code.toLowerCase()}`
+				}`,
+				code
+			)
 		);
 		item.appendChild(el("span", "name", file.path));
 		ui.commitFilesList.appendChild(item);
@@ -558,13 +833,20 @@ async function refresh(): Promise<void> {
 async function selectCommit(sha: string): Promise<void> {
 	state.selectedCommit = sha;
 	state.commitPath = null;
+	state.commitDetails = null;
+	state.treePath = null;
 	setTab("commit");
 	logView.select(sha);
 
-	const files = await guard("Commit", () => api.commitFiles(sha));
+	const [details, files] = await Promise.all([
+		guard("Dettaglio commit", () => api.commitDetails(sha)),
+		guard("Commit", () => api.commitFiles(sha)),
+	]);
 	if (!files) return;
+	state.commitDetails = details;
 	state.commitFiles = files;
 	renderCommitFiles();
+	if (state.snapshot) renderTree(state.snapshot);
 
 	const first = files[0];
 	if (first) await selectCommitFile(first.path);
@@ -575,7 +857,9 @@ async function selectCommitFile(path: string): Promise<void> {
 	const sha = state.selectedCommit;
 	if (!sha) return;
 	state.commitPath = path;
+	state.treePath = path;
 	renderCommitFiles();
+	if (state.snapshot) renderTree(state.snapshot);
 	const file = await guard("Diff", () => api.commitPatch(sha, path));
 	if (file) {
 		renderDiff(ui.commitDiff, file, "Nessuna differenza.", {
@@ -584,14 +868,49 @@ async function selectCommitFile(path: string): Promise<void> {
 	}
 }
 
-async function selectChange(path: string): Promise<void> {
+/** Diff della scheda File Tree: stesso backend, riquadro diverso. */
+async function selectTreeFile(path: string): Promise<void> {
+	state.treePath = path;
+	if (state.snapshot) renderTree(state.snapshot);
+
+	if (state.selectedCommit) {
+		const sha = state.selectedCommit;
+		state.commitPath = path;
+		renderCommitFiles();
+		const file = await guard("Diff", () => api.commitPatch(sha, path));
+		if (file) {
+			renderDiff(ui.treeDiff, file, "Nessuna differenza.", {
+				layout: state.diffLayout,
+			});
+		}
+		return;
+	}
+
+	const entry = state.snapshot?.status.entries.find(
+		(item) => item.path === path
+	);
+	const staged = entry
+		? entry.index !== "." && entry.worktree === "."
+		: false;
+	const file = await guard("Diff", () => api.worktreePatch(path, staged));
+	if (file) {
+		renderDiff(ui.treeDiff, file, "Nessuna differenza.", {
+			layout: state.diffLayout,
+			mode: staged ? "unstage" : "stage",
+		});
+	}
+}
+
+async function selectChange(path: string, staged?: boolean): Promise<void> {
 	const entry = state.snapshot?.status.entries.find(
 		(item) => item.path === path
 	);
 	if (!entry) return;
 	if (state.changePath !== path) clearPicked();
 	state.changePath = path;
-	state.changeStaged = entry.index !== "." && entry.worktree === ".";
+	// Il lato conta: lo stesso file può stare in "Staged" e in "Unstaged" con diff diversi.
+	state.changeStaged =
+		staged ?? (entry.index !== "." && entry.worktree === ".");
 	if (state.snapshot) renderChanges(state.snapshot);
 	await loadChangeDiff();
 }
@@ -679,13 +998,20 @@ async function reloadOpenDiff(): Promise<void> {
 
 function setTab(tab: Tab): void {
 	state.tab = tab;
-	ui.tabChanges.classList.toggle("is-active", tab === "changes");
-	ui.tabCommit.classList.toggle("is-active", tab === "commit");
-	ui.tabBlame.classList.toggle("is-active", tab === "blame");
-	ui.panelChanges.classList.toggle("is-active", tab === "changes");
-	ui.panelCommit.classList.toggle("is-active", tab === "commit");
-	ui.panelBlame.classList.toggle("is-active", tab === "blame");
+	const tabs: Array<[Tab, HTMLElement, HTMLElement]> = [
+		["changes", ui.tabChanges, ui.panelChanges],
+		["commit", ui.tabCommit, ui.panelCommit],
+		["tree", ui.tabTree, ui.panelTree],
+		["blame", ui.tabBlame, ui.panelBlame],
+	];
+	for (const [name, button, panel] of tabs) {
+		button.classList.toggle("is-active", tab === name);
+		panel.classList.toggle("is-active", tab === name);
+	}
+	ui.sideChanges.classList.toggle("is-active", tab === "changes");
+	ui.sideCommits.classList.toggle("is-active", tab !== "changes");
 	if (tab === "blame") void loadBlame();
+	if (tab === "tree" && state.snapshot) renderTree(state.snapshot);
 }
 
 /** Blame del file aperto: quello delle Modifiche, altrimenti quello del commit selezionato. */
@@ -813,6 +1139,9 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
 		if (state.tab === "commit" && state.commitPath) {
 			void selectCommitFile(state.commitPath);
 		}
+		if (state.tab === "tree" && state.treePath) {
+			void selectTreeFile(state.treePath);
+		}
 	});
 }
 // la preferenza salvata deve essere visibile già al primo avvio
@@ -843,7 +1172,21 @@ ui.settingsForm.addEventListener("submit", (event) => {
 
 ui.tabChanges.addEventListener("click", () => setTab("changes"));
 ui.tabCommit.addEventListener("click", () => setTab("commit"));
+ui.tabTree.addEventListener("click", () => setTab("tree"));
 ui.tabBlame.addEventListener("click", () => setTab("blame"));
+
+ui.sideChanges.addEventListener("click", () => setTab("changes"));
+ui.sideCommits.addEventListener("click", () => setTab("commit"));
+ui.btnSearchFocus.addEventListener("click", () => ui.searchInput.focus());
+ui.btnNewTab.addEventListener("click", () => ui.btnOpen.click());
+
+for (const section of document.querySelectorAll<HTMLElement>(
+	".side-section"
+)) {
+	section.querySelector("h2")?.addEventListener("click", () => {
+		section.classList.toggle("is-collapsed");
+	});
+}
 
 ui.searchInput.addEventListener("keydown", (event) => {
 	if (event.key === "Enter") {
@@ -865,16 +1208,51 @@ ui.btnSearchClear.addEventListener("click", () => {
 	void runSearch("");
 });
 
-ui.changesList.addEventListener("click", (event) => {
+function changeListClick(event: Event): void {
 	const target = event.target as HTMLElement;
-	const action = target.closest<HTMLElement>(".icon-btn")?.dataset.act;
-	const path = target.closest<HTMLElement>("li")?.dataset.path;
+	const item = target.closest<HTMLElement>("li");
+	const path = item?.dataset.path;
 	if (!path) return;
+	const action = target.closest<HTMLElement>(".icon-btn")?.dataset.act;
+	const staged = item?.dataset.side === "staged";
 
 	if (action === "stage") void stage([path]);
 	else if (action === "unstage") void unstage([path]);
 	else if (action === "discard") void discard([path]);
-	else void selectChange(path);
+	else void selectChange(path, staged);
+}
+
+ui.changesListStaged.addEventListener("click", changeListClick);
+ui.changesListUnstaged.addEventListener("click", changeListClick);
+
+ui.treeList.addEventListener("click", (event) => {
+	const target = (event.target as HTMLElement).closest<HTMLElement>(".tree-node");
+	const path = target?.dataset.path;
+	if (!path || !target) return;
+	if (target.dataset.dir === "true") {
+		if (state.treeCollapsed.has(path)) state.treeCollapsed.delete(path);
+		else state.treeCollapsed.add(path);
+		if (state.snapshot) renderTree(state.snapshot);
+		return;
+	}
+	void selectTreeFile(path);
+});
+
+ui.btnTreeToggle.addEventListener("click", () => {
+	const collapse = ui.btnTreeToggle.textContent?.trim() === "Comprimi";
+	state.treeCollapsed.clear();
+	if (collapse && state.snapshot) {
+		const collect = (node: TreeNode): void => {
+			for (const child of node.children) {
+				if (!child.dir) continue;
+				state.treeCollapsed.add(child.path);
+				collect(child);
+			}
+		};
+		collect(buildTree(treeFiles(state.snapshot)));
+	}
+	ui.btnTreeToggle.textContent = collapse ? "Espandi" : "Comprimi";
+	if (state.snapshot) renderTree(state.snapshot);
 });
 
 ui.changesDiff.addEventListener("click", (event) => {

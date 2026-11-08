@@ -3,6 +3,7 @@ import type { PatchMode } from "../core/patch.ts";
 import type { Settings, TrashUsage } from "../core/settings.ts";
 import type {
 	Commit,
+	CommitDetails,
 	CommitFile,
 	CommitPage,
 	DiffFile,
@@ -18,6 +19,8 @@ export interface GitApi {
 	open(path?: string): Promise<Snapshot | null>;
 	/** Rilegge storia, ref e stato del repository corrente. */
 	refresh(): Promise<Snapshot>;
+	/** Autore, committer, SHA, genitori e messaggio di un commit. */
+	commitDetails(sha: string): Promise<CommitDetails | null>;
 	/** File toccati da un commit. */
 	commitFiles(sha: string): Promise<CommitFile[]>;
 	/** Patch di un singolo file in un commit. */
@@ -56,6 +59,7 @@ export interface GitApi {
 export type IpcChannel =
 	| "git:open"
 	| "git:refresh"
+	| "git:commitDetails"
 	| "git:commitFiles"
 	| "git:commitPatch"
 	| "git:worktreePatch"

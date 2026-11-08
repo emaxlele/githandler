@@ -12,8 +12,10 @@ import {
 import { layoutGraph } from "../core/graph.ts";
 import {
 	attachRefs,
+	commitDetailsArgs,
 	logArgs,
 	LOG_FORMAT,
+	parseCommitDetails,
 	parseLog,
 	parseRefs,
 	refsArgs,
@@ -36,6 +38,7 @@ import {
 } from "../core/undo.ts";
 import type {
 	Commit,
+	CommitDetails,
 	CommitFile,
 	CommitPage,
 	DiffFile,
@@ -172,6 +175,14 @@ export class CliGitBackend implements GitBackend {
 			undo: undoLog[0] ?? null,
 			hasMore: commits.length === HISTORY_PAGE_SIZE,
 		};
+	}
+
+	async commitDetails(sha: string): Promise<CommitDetails | null> {
+		const info = this.#requireInfo();
+		const result = await runGit(info.root, commitDetailsArgs(sha), {
+			allowFailure: true,
+		});
+		return result.code === 0 ? parseCommitDetails(result.stdout) : null;
 	}
 
 	async commitFiles(sha: string): Promise<CommitFile[]> {

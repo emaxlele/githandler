@@ -33,6 +33,22 @@ icona o asset preso da prodotti esistenti.
 | Syntax highlighting (CodeMirror 6)                 | ⏳ milestone 2 |
 | `.deb` con profilo AppArmor, rebase, stash         | ⏳ milestone 4 |
 
+## Interfaccia
+
+La finestra segue la disposizione dei client Git desktop affermati, con un tema scuro proprio:
+
+-   **Toolbar** con le azioni etichettate (Apri, Fetch, Aggiorna, Annulla) e, al centro, repository e
+    ramo corrente. Sopra la storia c'è la scheda del repository aperto.
+-   **Barra laterale**: nome del repository, *Changes* con il conteggio, *All Commits*, filtro di
+    ricerca e i ref divisi in Branches / Remotes / Tags.
+-   **Storia** in cinque colonne: grafo a corsie, messaggio con i badge dei ref, autore con avatar a
+    iniziali, SHA breve, data.
+-   **Pannello inferiore** con quattro schede: `Commit` (AUTHOR e COMMITTER separati, SHA, PARENTS,
+    messaggio e file toccati), `Changes` (Staged e Unstaged divisi, diff, riquadro del commit),
+    `File Tree` (albero dei file del commit o del working tree, diff a destra) e `Blame`.
+
+Solo le funzioni che esistono hanno un comando: niente pulsanti finti per pull, push o stash.
+
 ## Architettura
 
 ```

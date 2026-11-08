@@ -115,6 +115,7 @@ function registerIpc(): void {
 	});
 
 	handle("git:refresh", () => backend.refresh());
+	handle("git:commitDetails", (sha: string) => backend.commitDetails(sha));
 	handle("git:commitFiles", (sha: string) => backend.commitFiles(sha));
 	handle("git:commitPatch", (sha: string, path: string) =>
 		backend.commitPatch(sha, path)
@@ -226,8 +227,13 @@ async function runShots(): Promise<void> {
 		],
 		[
 			`document.getElementById("tab-changes")?.click();
-			 document.querySelector("#changes-list li")?.click();`,
+			 document.querySelector("#changes-list-unstaged li")?.click();`,
 			target.replace(/\.png$/, "-changes.png"),
+		],
+		[
+			`document.getElementById("tab-tree")?.click();
+			 document.querySelector("#tree-list .tree-node:last-child")?.click();`,
+			target.replace(/\.png$/, "-tree.png"),
 		],
 		[
 			`document.getElementById("tab-blame")?.click()`,

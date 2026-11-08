@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { attachRefs, parseLog, parseRefs } from "../src/core/log.ts";
+import {
+	attachRefs,
+	parseCommitDetails,
+	parseLog,
+	parseRefs,
+} from "../src/core/log.ts";
 
 const raw = [
 	"aaaa1111\x00\x00Ana\x00ana@example.com\x001700000000\x00Primo commit\x1e",
@@ -71,4 +76,44 @@ test("attachRefs collega le decorazioni per SHA", () => {
 		["head"]
 	);
 	assert.deepEqual(commits[2]!.refs, []);
+});
+
+test("parseCommitDetails separa autore, committer, date e corpo", () => {
+	const details = parseCommitDetails(
+		[
+			"aaaa1111",
+			"bbbb2222 cccc3333",
+			"Ana",
+			"ana@example.com",
+			"2026-11-08T10:00:00+01:00",
+			"Carla",
+			"carla@example.com",
+			"2026-11-08T11:30:00+01:00",
+			"Oggetto breve",
+			"Prima riga del corpo\nSeconda riga\n",
+		].join("\x00") + "\n"
+	);
+
+	assert.ok(details);
+	assert.equal(details.sha, "aaaa1111");
+	assert.deepEqual(details.parents, ["bbbb2222", "cccc3333"]);
+	assert.deepEqual(details.author, {
+		name: "Ana",
+		email: "ana@example.com",
+		date: "2026-11-08T10:00:00+01:00",
+	});
+	assert.equal(details.committer.name, "Carla");
+	assert.equal(details.committer.date, "2026-11-08T11:30:00+01:00");
+	assert.equal(details.subject, "Oggetto breve");
+	assert.equal(details.body, "Prima riga del corpo\nSeconda riga");
+});
+
+test("parseCommitDetails rifiuta output troncato o SHA non valido", () => {
+	assert.equal(parseCommitDetails("aaaa1111\x00\x00Ana"), null);
+	assert.equal(
+		parseCommitDetails(
+			"non-uno-sha\x00\x00A\x00a@b\x002026-01-01\x00C\x00c@d\x002026-01-01\x00s\x00"
+		),
+		null
+	);
 });
