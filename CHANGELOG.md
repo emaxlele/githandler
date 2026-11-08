@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.1] — 2026-11-08
+
+### Aggiunto
+
+-   `npm run bench`: misura il costo reale del backend su un repository temporaneo — `git log` e
+    parsing di 5.000 e 50.000 commit, layout del grafo, `git status` su 100.000 file.
+-   `docs/backend-performance.md`: i numeri, il confronto `git` CLI / libgit2 (hook, filtri, LFS,
+    sparse checkout) e le soglie oltre le quali ha senso un core nativo.
+
 ## [0.2.0] — 2026-11-08
 
 ### Aggiunto

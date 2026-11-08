@@ -39,7 +39,8 @@ Tre scelte che spiegano il resto:
     `skip-worktree`: nessuna libreria li replica davvero. `execFile` senza shell, con argomenti come
     array, quindi un path con spazi o apici non può diventare un comando.
 -   **Niente ottimizzazioni premature.** Rust, WASM e `koffi`+libgit2 sono dietro un'interfaccia e
-    arrivano solo se una misura supera una soglia (vedi `docs/plans/`).
+    arrivano solo se una misura supera una soglia: i numeri e le soglie stanno in
+    [`docs/backend-performance.md`](docs/backend-performance.md).
 
 ## Comandi
 
@@ -52,6 +53,7 @@ npm test                  # parser, grafo e integrazione con git vero
 npm run typecheck
 npm run build             # dist/main, dist/preload, dist/renderer
 npm run dev               # rebuild continuo dei bundle
+npm run bench             # misure del backend (log, parsing, grafo, status)
 ```
 
 ## Note su Linux

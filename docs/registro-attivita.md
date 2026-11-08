@@ -5,6 +5,22 @@
 
 ## 2026-11-08
 
+### Misura del backend: TS non è il collo di bottiglia
+
+-   **Cosa**: aggiunto un benchmark (`npm run bench`) che crea un repository di prova e misura i
+    tempi veri: lettura della storia, parsing, disegno del grafo, stato su 100.000 file. I risultati
+    sono scritti in `docs/backend-performance.md`, con le soglie oltre le quali conviene cambiare
+    architettura.
+-   **Perché**: era in discussione se spostare il core in un linguaggio nativo (Zig o Rust con
+    libgit2). La decisione va presa sui numeri: 5.000 commit costano 35 ms di `git log` e 11 ms di
+    parsing; 100.000 file di `git status` costano 82 ms. Il linguaggio del client non è il problema.
+-   **Cosa resta da sapere**: libgit2 non esegue hook né i filtri esterni (Git LFS), non gestisce lo
+    sparse checkout e richiederebbe di reimplementare i credential helper: usarlo al posto della
+    CLI creerebbe due verità sullo stesso repository. Va eventualmente usato solo per letture calde,
+    con un test di parità contro `git`.
+-   **Stato**: documentato, nessun cambio di architettura.
+-   **Riferimento**: commit successivo a `874c818`.
+
 ### Diff affiancato, con le modifiche evidenziate dentro la riga
 
 -   **Cosa**: si può leggere il diff in due modi: a colonna singola (come `git diff`) oppure con il

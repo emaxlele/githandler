@@ -30,6 +30,8 @@ Stato al 2026-11-08. Le voci spuntate sono in `CHANGELOG.md`.
     -   [ ] AppImage e pacchetto `.rpm`
     -   [ ] Rebase interattivo, cherry-pick, stash, worktree, submodule
     -   [ ] Preferenze e temi
+-   [x] Benchmark del backend (`npm run bench`): 5.000 commit = 35 ms di `git log` e 11 ms di
+        parsing; 100.000 file di `status` = 82 ms. Numeri e soglie in `docs/backend-performance.md`
 -   [ ] Verificare la resa del testo su un diff da ~3.000 righe contro WebKitGTK (Tauri/Wails) e
         Avalonia: è la misura che ha motivato la scelta di Electron
 -   [ ] Decidere se e come pubblicare il repository

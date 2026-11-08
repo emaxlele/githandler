@@ -17,5 +17,5 @@
 		"types": ["node"],
 		"noEmit": true
 	},
-	"include": ["src/**/*.ts", "tests/**/*.mts"]
+	"include": ["src/**/*.ts", "tests/**/*.mts", "bench/**/*.mts"]
 }
