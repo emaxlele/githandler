@@ -1,0 +1,28 @@
+{
+	"name": "gitcraft",
+	"productName": "gitcraft",
+	"version": "0.1.0",
+	"description": "Client Git desktop Linux-first: grafo della storia, diff, staging e commit",
+	"main": "dist/main/index.js",
+	"private": true,
+	"license": "MIT",
+	"author": "emaxlele",
+	"scripts": {
+		"build": "node esbuild.mjs",
+		"start": "npm run build && electron .",
+		"dev": "node esbuild.mjs --watch",
+		"test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test tests/*.test.mts",
+		"typecheck": "tsc --noEmit",
+		"shots": "npm run build && electron . --shots --ozone-platform=headless --ozone-override-screen-size=1440,940 --disable-gpu --no-sandbox"
+	},
+	"devDependencies": {
+		"@types/node": "^24.10.1",
+		"electron": "^45.2.3",
+		"esbuild": "^0.28.2",
+		"typescript": "^5.9.3"
+	},
+	"allowScripts": {
+		"electron@45.2.3": true,
+		"esbuild@0.28.2": true
+	}
+}

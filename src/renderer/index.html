@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="it">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			http-equiv="Content-Security-Policy"
+			content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+		/>
+		<title>gitcraft</title>
+		<link rel="stylesheet" href="./styles.css" />
+	</head>
+	<body>
+		<header class="topbar">
+			<div class="topbar-repo">
+				<span class="repo-name" id="repo-name">gitcraft</span>
+				<span class="chip hidden" id="repo-branch"></span>
+				<span class="sync hidden" id="repo-sync"></span>
+			</div>
+			<div class="topbar-actions">
+				<button class="btn" id="btn-open">Apri repository…</button>
+				<button class="btn" id="btn-refresh" title="Ctrl+R">
+					Aggiorna
+				</button>
+				<button
+					class="btn"
+					id="btn-fetch"
+					title="git fetch --all --prune"
+				>
+					Fetch
+				</button>
+			</div>
+		</header>
+
+		<div class="workspace">
+			<aside class="sidebar">
+				<section class="side-section">
+					<h2>
+						Rami locali
+						<button
+							class="icon-btn"
+							id="btn-new-branch"
+							title="Nuovo ramo"
+						>
+							+
+						</button>
+					</h2>
+					<form class="new-branch hidden" id="new-branch-form">
+						<input
+							id="new-branch-name"
+							placeholder="nome del ramo"
+							autocomplete="off"
+						/>
+					</form>
+					<ul class="ref-list" id="list-branches"></ul>
+				</section>
+				<section class="side-section">
+					<h2>Remoti</h2>
+					<ul class="ref-list" id="list-remotes"></ul>
+				</section>
+				<section class="side-section">
+					<h2>Tag</h2>
+					<ul class="ref-list" id="list-tags"></ul>
+				</section>
+				<section class="side-section side-footer">
+					<span class="muted" id="commit-count">—</span>
+				</section>
+			</aside>
+
+			<main class="main">
+				<div class="log" id="log">
+					<div class="log-spacer" id="log-spacer"></div>
+					<div class="log-window" id="log-window">
+						<svg
+							class="log-graph"
+							id="log-graph"
+							aria-hidden="true"
+						></svg>
+						<div class="log-rows" id="log-rows"></div>
+					</div>
+					<div class="empty" id="log-empty">
+						Nessun repository aperto.
+					</div>
+				</div>
+
+				<div class="bottom">
+					<nav class="tabs">
+						<button
+							class="tab is-active"
+							data-tab="changes"
+							id="tab-changes"
+						>
+							Modifiche
+							<span class="badge" id="changes-count">0</span>
+						</button>
+						<button class="tab" data-tab="commit" id="tab-commit">
+							Commit
+						</button>
+					</nav>
+
+					<div class="panel is-active" id="panel-changes">
+						<div class="files">
+							<div class="files-head">
+								<button
+									class="btn btn-small"
+									id="btn-stage-all"
+								>
+									Stage tutto
+								</button>
+								<button
+									class="btn btn-small"
+									id="btn-unstage-all"
+								>
+									Unstage tutto
+								</button>
+							</div>
+							<ul class="file-list" id="changes-list"></ul>
+						</div>
+						<div class="diff-area">
+							<div class="diff-body" id="changes-diff">
+								<div class="empty-small">
+									Seleziona un file.
+								</div>
+							</div>
+							<div class="commit-box">
+								<textarea
+									id="commit-message"
+									rows="3"
+									placeholder="Messaggio di commit (Ctrl+Invio per confermare)"
+								></textarea>
+								<div class="commit-actions">
+									<label class="check">
+										<input
+											type="checkbox"
+											id="commit-all"
+										/>
+										<span>includi non staged (-a)</span>
+									</label>
+									<button
+										class="btn btn-primary"
+										id="btn-commit"
+									>
+										Commit
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="panel" id="panel-commit">
+						<div class="files">
+							<div class="commit-meta" id="commit-meta"></div>
+							<ul class="file-list" id="commit-files"></ul>
+						</div>
+						<div class="diff-area">
+							<div class="diff-body" id="commit-diff">
+								<div class="empty-small">
+									Seleziona un commit.
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</main>
+		</div>
+
+		<div class="toast hidden" id="toast"></div>
+		<script src="./app.js"></script>
+	</body>
+</html>
