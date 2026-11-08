@@ -23,7 +23,7 @@ test("i path rumorosi non interessano", () => {
 	assert.equal(isInterestingPath(".git/HEAD"), true);
 	assert.equal(isInterestingPath(".git/objects/ab/cdef"), false);
 	assert.equal(isInterestingPath(".git/lfs/objects/aa"), false);
-	assert.equal(isInterestingPath(".git/gitlattice/undo.json"), false);
+	assert.equal(isInterestingPath(".git/githandler/undo.json"), false);
 	assert.equal(isInterestingPath("node_modules/x/index.js"), false);
 	assert.equal(isInterestingPath("cache/node_modules/x.js"), false);
 	assert.equal(isInterestingPath(".git/index.lock"), false);
@@ -45,7 +45,7 @@ test("il debounce chiama una sola volta", async () => {
 });
 
 test("una scrittura nel repository produce un evento", async () => {
-	const dir = await mkdtemp(join(tmpdir(), "gitlattice-watch-"));
+	const dir = await mkdtemp(join(tmpdir(), "githandler-watch-"));
 	dirs.push(dir);
 
 	let notify: () => void = () => undefined;
@@ -74,7 +74,7 @@ test("una scrittura nel repository produce un evento", async () => {
 });
 
 test("i file ignorati non generano eventi", async () => {
-	const dir = await mkdtemp(join(tmpdir(), "gitlattice-watch-ignore-"));
+	const dir = await mkdtemp(join(tmpdir(), "githandler-watch-ignore-"));
 	dirs.push(dir);
 
 	let calls = 0;

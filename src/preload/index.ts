@@ -42,4 +42,4 @@ const api: GitApi = {
 	},
 };
 
-contextBridge.exposeInMainWorld("gitlattice", api);
+contextBridge.exposeInMainWorld("githandler", api);

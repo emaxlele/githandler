@@ -19,7 +19,7 @@ npm run build
 node dist/mcp/index.js --repo ~/Projects/qualche-repo
 ```
 
-Senza `--repo` usa `GITLATTICE_REPO`, altrimenti la directory corrente. Se il percorso non è un
+Senza `--repo` usa `GITHANDLER_REPO`, altrimenti la directory corrente. Se il percorso non è un
 repository, esce con codice 2 e un messaggio su stderr.
 
 Il server parla JSON-RPC a righe: una richiesta per riga su stdin, una risposta per riga su stdout.
@@ -51,9 +51,9 @@ qualsiasi `tools/call` restituisce un errore.
 La policy è un file JSON letto a **ogni richiesta**:
 
 ```
-$GITLATTICE_CONFIG_DIR/gitlattice/settings.json   # override, per test e installazioni portabili
-$XDG_CONFIG_HOME/gitlattice/settings.json
-~/.config/gitlattice/settings.json              # tipico
+$GITHANDLER_CONFIG_DIR/githandler/settings.json   # override, per test e installazioni portabili
+$XDG_CONFIG_HOME/githandler/settings.json
+~/.config/githandler/settings.json              # tipico
 ```
 
 ```json
@@ -81,7 +81,7 @@ Conseguenze pratiche:
 -   **Un file corrotto o assente equivale a `off`.** Il parser scarta campi ignoti, duplicati e
     valori non validi; non esiste un input che apra l'API per errore.
 -   **Il client non può allargare i permessi.** `tools/list` è filtrato e `tools/call` ricontrolla:
-    chiedere un tool non esposto restituisce `Tool "..." is not enabled in the gitlattice settings.`,
+    chiedere un tool non esposto restituisce `Tool "..." is not enabled in the githandler settings.`,
     non un'esecuzione.
 -   **L'app scrive il file in modo atomico** (`settings.json.tmp` + `rename`) con permessi `0600`,
     così un file a metà non può aprire l'API.
@@ -95,13 +95,13 @@ Conseguenze pratiche:
 	"$schema": "https://opencode.ai/config.json",
 	"mcp": {
 		"servers": {
-			"gitlattice": {
+			"githandler": {
 				"type": "local",
 				"command": [
 					"node",
-					"/home/emaxlele/Projects/gitlattice/dist/mcp/index.js",
+					"/home/emaxlele/Projects/githandler/dist/mcp/index.js",
 					"--repo",
-					"/home/emaxlele/Projects/gitlattice"
+					"/home/emaxlele/Projects/githandler"
 				]
 			}
 		}
@@ -117,12 +117,12 @@ forma comoda se lo si vuole in ogni progetto.
 ```json title="claude_desktop_config.json"
 {
 	"mcpServers": {
-		"gitlattice": {
+		"githandler": {
 			"command": "node",
 			"args": [
-				"/home/emaxlele/Projects/gitlattice/dist/mcp/index.js",
+				"/home/emaxlele/Projects/githandler/dist/mcp/index.js",
 				"--repo",
-				"/home/emaxlele/Projects/gitlattice"
+				"/home/emaxlele/Projects/githandler"
 			]
 		}
 	}

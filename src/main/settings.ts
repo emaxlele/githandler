@@ -12,19 +12,19 @@ import {
 /**
  * Il file delle impostazioni vive fuori dal repository, in una posizione standard:
  *
- *   $GITLATTICE_CONFIG_DIR/gitlattice/settings.json   (override per test e installazioni portabili)
- *   $XDG_CONFIG_HOME/gitlattice/settings.json
- *   ~/.config/gitlattice/settings.json
+ *   $GITHANDLER_CONFIG_DIR/githandler/settings.json   (override per test e installazioni portabili)
+ *   $XDG_CONFIG_HOME/githandler/settings.json
+ *   ~/.config/githandler/settings.json
  *
  * Lo legge anche il server MCP, quindi UI e API condividono la stessa policy senza un canale IPC
  * fra processi diversi. Un file assente o corrotto equivale ai default: API spenta.
  */
 
 export function settingsDirectory(): string {
-	const override = process.env.GITLATTICE_CONFIG_DIR;
-	if (override) return join(override, "gitlattice");
+	const override = process.env.GITHANDLER_CONFIG_DIR;
+	if (override) return join(override, "githandler");
 	const base = process.env.XDG_CONFIG_HOME || join(homedir(), ".config");
-	return join(base, "gitlattice");
+	return join(base, "githandler");
 }
 
 export function settingsFile(): string {

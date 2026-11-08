@@ -13,7 +13,7 @@ import { CliGitBackend } from "../src/main/backend.ts";
  * il contenuto del file, non solo che il comando sia andato a buon fine.
  */
 
-const root = await mkdtemp(join(tmpdir(), "gitlattice-undo-"));
+const root = await mkdtemp(join(tmpdir(), "githandler-undo-"));
 
 function git(...args: string[]): string {
 	return execFileSync("git", args, { cwd: root, encoding: "utf8" });
@@ -65,7 +65,7 @@ test("il journal si riscrive in modo stabile", () => {
 	);
 	assert.equal(entries.length, 1);
 	assert.equal(entries[0]!.label, "Commit: prova");
-	assert.equal(snapshotRef("10-commit"), "refs/gitlattice/snapshots/10-commit");
+	assert.equal(snapshotRef("10-commit"), "refs/githandler/snapshots/10-commit");
 });
 
 test("il commit si annulla con un soft reset", async () => {
@@ -76,8 +76,8 @@ test("il commit si annulla con un soft reset", async () => {
 	assert.ok(afterCommit.undo);
 	assert.equal(afterCommit.undo!.kind, "commit");
 	assert.match(
-		git("for-each-ref", "refs/gitlattice/snapshots"),
-		/refs\/gitlattice\/snapshots\//,
+		git("for-each-ref", "refs/githandler/snapshots"),
+		/refs\/githandler\/snapshots\//,
 	);
 
 	const undone = await backend.undo();
@@ -125,7 +125,7 @@ test("il checkout si annulla tornando al ramo precedente", async () => {
 });
 
 test("un commit fallito non lascia voci da annullare", async () => {
-	const clean = await mkdtemp(join(tmpdir(), "gitlattice-undo-fail-"));
+	const clean = await mkdtemp(join(tmpdir(), "githandler-undo-fail-"));
 	execFileSync("git", ["init", "-b", "main"], { cwd: clean });
 	execFileSync("git", ["config", "user.name", "Test"], { cwd: clean });
 	execFileSync("git", ["config", "user.email", "test@example.com"], {
@@ -145,7 +145,7 @@ test("un commit fallito non lascia voci da annullare", async () => {
 });
 
 test("il repository senza commit non registra nulla", async () => {
-	const empty = await mkdtemp(join(tmpdir(), "gitlattice-undo-empty-"));
+	const empty = await mkdtemp(join(tmpdir(), "githandler-undo-empty-"));
 	execFileSync("git", ["init", "-b", "main"], { cwd: empty });
 	const other = new CliGitBackend();
 	await other.open(empty);

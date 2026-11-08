@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
 
-const config = await mkdtemp(join(tmpdir(), "gitlattice-settings-"));
-process.env.GITLATTICE_CONFIG_DIR = config;
+const config = await mkdtemp(join(tmpdir(), "githandler-settings-"));
+process.env.GITHANDLER_CONFIG_DIR = config;
 
 const {
 	allowedTools,
@@ -150,8 +150,8 @@ test("le modalità decidono quali tool sono esposti", () => {
 });
 
 test("il file delle impostazioni vive nella config dir", () => {
-	assert.equal(settingsDirectory(), join(config, "gitlattice"));
-	assert.equal(settingsFile(), join(config, "gitlattice", "settings.json"));
+	assert.equal(settingsDirectory(), join(config, "githandler"));
+	assert.equal(settingsFile(), join(config, "githandler", "settings.json"));
 });
 
 test("senza file valgono i default; salvare e rileggere conserva i valori", async () => {

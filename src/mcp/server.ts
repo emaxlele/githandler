@@ -23,7 +23,7 @@ import type { GitBackend } from "../main/backend.ts";
  * errore, non un'esecuzione.
  */
 
-export const SERVER_INFO = { name: "gitlattice", version: "0.5.0" } as const;
+export const SERVER_INFO = { name: "githandler", version: "0.5.0" } as const;
 export const PROTOCOL_VERSION = "2024-11-05";
 
 export interface McpContext {
@@ -367,7 +367,7 @@ export async function handleRequest(
 			capabilities: { tools: {} },
 			serverInfo: SERVER_INFO,
 			instructions:
-				"Read-only access to a Git repository for analysis. Use history, show_commit, worktree_diff and blame to inspect; this server cannot modify the repository. Only tools enabled in the gitlattice settings are exposed.",
+				"Read-only access to a Git repository for analysis. Use history, show_commit, worktree_diff and blame to inspect; this server cannot modify the repository. Only tools enabled in the githandler settings are exposed.",
 		});
 	}
 
@@ -386,7 +386,7 @@ export async function handleRequest(
 			return ok(
 				id,
 				failure(
-					`Tool "${name}" is not enabled in the gitlattice settings.`
+					`Tool "${name}" is not enabled in the githandler settings.`
 				)
 			);
 		try {

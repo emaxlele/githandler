@@ -8,7 +8,7 @@ Stato al 2026-11-08 (v0.5.0). Le voci spuntate sono in `CHANGELOG.md`.
         togliere dallo stage)
 -   [x] Diff affiancato (prima/dopo) con accoppiamento riga per riga ed evidenza della porzione
         cambiata; scelta ricordata fra un avvio e l'altro
--   [x] Undo generale (journal in `.git/gitlattice/undo.json`, `refs/gitlattice/snapshots/*`): commit,
+-   [x] Undo generale (journal in `.git/githandler/undo.json`, `refs/githandler/snapshots/*`): commit,
         checkout e scarto, con pulsante e `Ctrl+Z`
 -   [x] Ricerca nella storia: testo letterale, `author:`, `file:`; usata da UI e API
 -   [x] Refresh automatico su `fs.watch` con debounce, filtro e chip Live (`--watch`)
@@ -20,12 +20,12 @@ Stato al 2026-11-08 (v0.5.0). Le voci spuntate sono in `CHANGELOG.md`.
 -   [x] **Blame nella UI**: terza scheda del pannello inferiore, virtualizzata
 -   [x] **Paginazione della storia**: pagine da 2.000 commit, caricamento automatico in fondo
 -   [x] **File non tracciati recuperabili come oggetti Git**: blob, albero e commit sotto
-        `refs/gitlattice/trash/<scope>/<id>`, con quota totale (5 GiB) e limiti per operazione
+        `refs/githandler/trash/<scope>/<id>`, con quota totale (5 GiB) e limiti per operazione
         configurabili, ripristino senza sovrascrivere, copie v0.4 ancora leggibili
 -   [x] **Worktree e sotto-repo**: namespace del trash per worktree collegato; `.git` annidati
         conservati per intero con codifica reversibile dei path che Git rifiuta
 -   [x] **Installazione locale su Ubuntu** (`./build/install-local.sh`): launcher in
-        `~/.local/bin/gitlattice`, voce nel menu applicazioni e icona SVG, senza sudo
+        `~/.local/bin/githandler`, voce nel menu applicazioni e icona SVG, senza sudo
 
 ## Aperto
 

@@ -12,7 +12,7 @@ import {
 } from "../src/core/search.ts";
 import { CliGitBackend } from "../src/main/backend.ts";
 
-const root = await mkdtemp(join(tmpdir(), "gitlattice-search-"));
+const root = await mkdtemp(join(tmpdir(), "githandler-search-"));
 
 function git(...args: string[]): string {
 	return execFileSync("git", args, { cwd: root, encoding: "utf8" });

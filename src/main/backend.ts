@@ -288,7 +288,7 @@ export class CliGitBackend implements GitBackend {
 		const toRestore = paths.filter((path) => !isUntracked(path));
 
 		// Il contenuto tracciato si conserva in uno stash commit. I file non tracciati diventano
-		// oggetti Git sotto `refs/gitlattice/trash/...`: se qualcosa va storto non si cancella nulla.
+		// oggetti Git sotto `refs/githandler/trash/...`: se qualcosa va storto non si cancella nulla.
 		let stashSha = "";
 		if (toRestore.length > 0) {
 			const stash = await runGit(info.root, ["stash", "create"], {
@@ -575,7 +575,7 @@ export class CliGitBackend implements GitBackend {
 	}
 
 	#undoPath(info: RepoInfo): string {
-		return join(info.gitDir, "gitlattice", "undo.json");
+		return join(info.gitDir, "githandler", "undo.json");
 	}
 
 	async #readUndo(): Promise<UndoEntry[]> {

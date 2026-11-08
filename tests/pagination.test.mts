@@ -8,7 +8,7 @@ import { after, test } from "node:test";
 import { logArgs } from "../src/core/log.ts";
 import { CliGitBackend } from "../src/main/backend.ts";
 
-const root = await mkdtemp(join(tmpdir(), "gitlattice-pages-"));
+const root = await mkdtemp(join(tmpdir(), "githandler-pages-"));
 
 function git(...args: string[]): string {
 	return execFileSync("git", args, { cwd: root, encoding: "utf8" });
@@ -39,7 +39,7 @@ test("logArgs traduce skip in --skip", () => {
 	const all = args.indexOf("--all");
 	assert.ok(all > 0);
 	// l'esclusione deve precedere `--all`, altrimenti i nostri ref rientrerebbero nel log
-	assert.equal(args[all - 1], "--exclude=refs/gitlattice/*");
+	assert.equal(args[all - 1], "--exclude=refs/githandler/*");
 	assert.ok(!logArgs({ skip: 0 }).some((arg) => arg.startsWith("--skip")));
 	assert.deepEqual(logArgs({ all: false }).slice(0, 3), [
 		"log",
