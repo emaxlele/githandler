@@ -5,6 +5,51 @@
 
 ## 2026-11-08
 
+### I file non tracciati scartati si possono recuperare
+
+-   **Cosa**: scartando un file che Git non aveva mai tracciato, l'app ne conserva prima una copia
+    dentro il repository (`.git/gitcraft/trash/`) e poi lo cancella. Il pulsante **Annulla** lo
+    riporta com'era, cartelle comprese. La copia si spegne dalle impostazioni.
+-   **Perché**: era l'unico punto in cui un clic poteva distruggere lavoro in modo definitivo: Git
+    non può annullare la cancellazione di un file che non ha mai tracciato. Chi usa l'app per pulire
+    una cartella di prove si trovava senza rete.
+-   **Come**: la copia vale fino a 25 MB e 2.000 file per operazione; oltre il limite lo scarto si
+    ferma e lo dice, invece di cancellare senza copia. Se nel frattempo è stato ricreato un file con
+    lo stesso nome, il ripristino non lo sovrascrive: si ferma e chiede di spostarlo. Le copie
+    vecchie vengono eliminate quando la voce esce dalla cronologia delle operazioni annullabili.
+-   **Stato**: completato e provato su file, cartelle annidate, oltre-limite e conflitto.
+-   **Riferimento**: commit v0.4.0.
+
+### Un interruttore per l'API dell'AI
+
+-   **Cosa**: nelle impostazioni c'è una sezione _API per l'AI_ con quattro scelte: spenta (default),
+    solo lettura, tutte, oppure selettiva con la lista dei singoli comandi. Il server per gli agenti
+    espone soltanto ciò che è stato consentito: se è spento non mostra nessun comando, e una richiesta
+    per un comando non abilitato viene rifiutata.
+-   **Perché**: prima il server esponeva sempre i cinque comandi di lettura. Chi collega un agente
+    deve poter decidere cosa vede, e il default deve essere "niente" finché non lo si abilita.
+-   **Come**: le impostazioni vivono in un file di configurazione dell'utente
+    (`~/.config/gitcraft/settings.json`) condiviso da interfaccia e server; il server lo rilegge a
+    ogni richiesta, quindi togliere un permesso ha effetto subito, senza riavviare nulla. Un file
+    mancante o rovinato vale come "spenta". Il file è scritto in modo atomico e leggibile solo dal
+    proprietario.
+-   **Stato**: completato, provato con test automatici e con il server su stdio.
+-   **Riferimento**: commit v0.4.0.
+
+### Blame nell'app e storia a pagine
+
+-   **Cosa**: nuova scheda **Blame** nel pannello in basso: per ogni riga del file si vede chi l'ha
+    scritta, in quale commit e con quale messaggio; le righe non ancora committate sono marcate. La
+    storia ora si carica a pagine da 2.000 commit e continua da sola quando si scorre in fondo.
+-   **Perché**: il blame si poteva già leggere dall'API ma non dall'app, ed era l'ultima voce di
+    parità con i client grafici più diffusi. La paginazione evita di costruire in memoria l'intera
+    storia di repository molto grandi.
+-   **Come**: la lista del blame disegna solo le righe visibili, come già la storia; il colore sul
+    lato identifica il commit. La paginazione usa `git log --skip`, non tiene duplicati e riparte
+    dalla prima pagina a ogni aggiornamento.
+-   **Stato**: completato, verificato a schermo e con test.
+-   **Riferimento**: commit v0.4.0.
+
 ### Si può annullare l'ultima operazione
 
 -   **Cosa**: aggiunto "Annulla" (pulsante in alto e `Ctrl+Z`). Prima di un commit, di un cambio di
@@ -13,8 +58,9 @@
     di prima, i file scartati tornano con il contenuto che avevano.
 -   **Perché**: era il punto in cui un client grafico può fare danni veri con un clic. il client concorrente non ha
     questa funzione, un client a pagamento la riserva al piano a pagamento.
--   **Cosa resta da sapere**: i file che Git non traccia, se scartati, vengono cancellati
-    definitivamente: la finestra di conferma lo dice. Lo stato salvato vive dentro il repository
+-   **Cosa resta da sapere**: i file che Git non traccia, se scartati, venivano cancellati
+    definitivamente: la finestra di conferma lo dice. (Dalla v0.4 non è più così: prima della
+    cancellazione l'app ne conserva una copia e `Annulla` li ripristina — vedi la voce più in alto.) Lo stato salvato vive dentro il repository
     (`.git/gitcraft/` e i riferimenti `refs/gitcraft/snapshots/`), non in un database dell'app.
 -   **Stato**: completato, provato su repository veri (commit, scarto e cambio ramo annullati).
 -   **Riferimento**: commit successivo a `7cda117`.

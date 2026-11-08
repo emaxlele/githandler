@@ -3,30 +3,31 @@
 Client Git desktop **Linux-first**, in TypeScript su Electron. Apre un repository vero, mostra la
 storia con il grafo, mostra i diff e copre il flusso quotidiano: stage (anche parziale), unstage,
 scarto, commit, checkout, undo. Lo stesso repository è leggibile da un agente AI tramite un server
-MCP in sola lettura.
+MCP, spento di default e abilitabile comando per comando.
 
 Non è un fork di altri client: è una reimplementazione indipendente, clean-room. Nessun codice, stringa,
 icona o asset preso da prodotti esistenti.
 
-## Stato (v0.3)
+## Stato (v0.4)
 
-| Funzione                                      | Stato          |
-| --------------------------------------------- | -------------- |
-| Apertura repository                           | ✅             |
-| Storia con grafo a corsie                     | ✅             |
-| Rami, remoti, tag con ahead/behind            | ✅             |
-| Staging per file, unstage, scarto             | ✅             |
-| **Staging parziale per hunk e per riga**      | ✅             |
-| Diff unified e **affiancato** con intra-riga  | ✅             |
-| Commit (anche `-a`), checkout, nuovo ramo     | ✅             |
-| Fetch                                         | ✅             |
-| **Undo generale** (commit, checkout, scarto)  | ✅             |
-| **Ricerca nella storia** (`author:`, `file:`) | ✅             |
-| **Aggiornamento automatico** (`--watch`)      | ✅             |
-| **Server MCP in sola lettura** per l'AI       | ✅             |
-| Syntax highlighting, blame nella UI           | ⏳ milestone 2 |
-| Paginazione oltre 5.000 commit                | ⏳ milestone 3 |
-| `.deb` con profilo AppArmor, rebase, stash    | ⏳ milestone 4 |
+| Funzione                                           | Stato          |
+| -------------------------------------------------- | -------------- |
+| Apertura repository                                | ✅             |
+| Storia con grafo a corsie, paginata (2.000/pagina) | ✅             |
+| Rami, remoti, tag con ahead/behind                 | ✅             |
+| Staging per file, unstage, scarto                  | ✅             |
+| **Staging parziale per hunk e per riga**           | ✅             |
+| Diff unified e **affiancato** con intra-riga       | ✅             |
+| Commit (anche `-a`), checkout, nuovo ramo          | ✅             |
+| Fetch                                              | ✅             |
+| **Undo generale** (commit, checkout, scarto)       | ✅             |
+| **File non tracciati recuperabili** (trash)        | ✅             |
+| **Ricerca nella storia** (`author:`, `file:`)      | ✅             |
+| **Aggiornamento automatico** (`--watch`)           | ✅             |
+| **Blame nella UI** (pannello virtualizzato)        | ✅             |
+| **Server MCP con permessi configurabili**          | ✅             |
+| Syntax highlighting (CodeMirror 6)                 | ⏳ milestone 2 |
+| `.deb` con profilo AppArmor, rebase, stash         | ⏳ milestone 4 |
 
 ## Architettura
 
@@ -72,9 +73,24 @@ Flag di avvio: `--repo <path>`, `--watch` (sorveglianza del repository, o `GITCR
 
 ## API per l'AI
 
-`dist/mcp/index.js` è un server MCP su stdio che espone `repo_status`, `history`, `show_commit`,
-`worktree_diff` e `blame`. Nessun tool scrive: legge con lo stesso backend della UI. Configurazione
-per OpenCode, Claude e limiti in [`docs/mcp.md`](docs/mcp.md).
+`dist/mcp/index.js` è un server MCP su stdio che può esporre `repo_status`, `history`,
+`show_commit`, `worktree_diff` e `blame`. Nessun tool scrive: legge con lo stesso backend della UI.
+
+**I permessi si decidono nell'app**, non nel file di configurazione del client: _Impostazioni → API
+per l'AI_. Il default è **spento**; si può abilitare tutto, solo la lettura, o scegliere i singoli
+comandi. Il server rilegge la policy a ogni richiesta, quindi un client già collegato smette di
+vedere i tool appena li si toglie. La policy vive in
+`$XDG_CONFIG_HOME/gitcraft/settings.json` (override con `GITCRAFT_CONFIG_DIR`) ed è la stessa per
+UI e MCP. Configurazione per OpenCode, Claude e limiti in [`docs/mcp.md`](docs/mcp.md).
+
+## File non tracciati scartati
+
+Git non può annullare la cancellazione di un file che non ha mai tracciato. Prima di cancellarlo
+l'app ne conserva una copia in `.git/gitcraft/trash/<id>/`, così `Annulla` lo ripristina come gli
+altri. La copia è attiva di default e si spegne dalle impostazioni; il limite è 25 MB e 2.000 file
+per operazione. Oltre il limite lo scarto si ferma e lo dice, invece di cancellare senza rete. Se
+nel frattempo è stato ricreato un file con lo stesso nome, il ripristino non sovrascrive: si ferma e
+chiede di spostarlo.
 
 ## Note su Linux
 

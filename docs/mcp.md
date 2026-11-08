@@ -25,7 +25,8 @@ repository, esce con codice 2 e un messaggio su stderr.
 Il server parla JSON-RPC a righe: una richiesta per riga su stdin, una risposta per riga su stdout.
 Tutto ciò che non è protocollo va su stderr, quindi il canale non si corrompe.
 
-Verifica manuale:
+Verifica manuale (con l'API abilitata nelle impostazioni; altrimenti `repo_status` risponde con
+l'errore "not enabled"):
 
 ```bash
 printf '%s\n' \
@@ -33,6 +34,47 @@ printf '%s\n' \
   '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"repo_status","arguments":{}}}' \
   | node dist/mcp/index.js --repo .
 ```
+
+## Permessi: spento di default
+
+Il server non espone niente finché non lo si abilita dall'app, in **Impostazioni → API per l'AI**.
+Prima di collegare un client, quindi, il server risponde a `initialize` ma `tools/list` è vuoto e
+qualsiasi `tools/call` restituisce un errore.
+
+| Modo     | Cosa espone                                                    |
+| -------- | -------------------------------------------------------------- |
+| `off`    | niente (default)                                               |
+| `read`   | i cinque tool di lettura                                       |
+| `all`    | tutto, compresi eventuali tool che scrivono quando esisteranno |
+| `custom` | solo i tool spuntati nella lista                               |
+
+La policy è un file JSON letto a **ogni richiesta**:
+
+```
+$GITCRAFT_CONFIG_DIR/gitcraft/settings.json   # override, per test e installazioni portabili
+$XDG_CONFIG_HOME/gitcraft/settings.json
+~/.config/gitcraft/settings.json              # tipico
+```
+
+```json
+{
+	"api": { "mode": "custom", "tools": ["history", "blame"] },
+	"trashUntracked": true
+}
+```
+
+Conseguenze pratiche:
+
+-   **Si cambia dall'app, non dal client.** Il server è un processo figlio del client MCP: non ha un
+    canale per ricevere la policy, la rilegge dal disco. Togliere un tool dalle impostazioni lo fa
+    sparire alla richiesta successiva, senza riavviare né l'app né il client.
+-   **Un file corrotto o assente equivale a `off`.** Il parser scarta campi ignoti, duplicati e
+    valori non validi; non esiste un input che apra l'API per errore.
+-   **Il client non può allargare i permessi.** `tools/list` è filtrato e `tools/call` ricontrolla:
+    chiedere un tool non esposto restituisce `Tool "..." is not enabled in the gitcraft settings.`,
+    non un'esecuzione.
+-   **L'app scrive il file in modo atomico** (`settings.json.tmp` + `rename`) con permessi `0600`,
+    così un file a metà non può aprire l'API.
 
 ## Configurazione
 
@@ -98,8 +140,10 @@ Esempi di richieste che funzionano bene:
 
 ## Garanzie e limiti
 
--   **Nessuna scrittura.** Non esistono tool che modificano il repository: niente `stage`, `commit`,
-    `reset`. Se servirà, sarà un flag esplicito e un consenso, non il default.
+-   **Nessuna scrittura, e niente è esposto per default.** Non esistono tool che modificano il
+    repository: niente `stage`, `commit`, `reset`. L'elenco dei tool è deciso dalla policy delle
+    impostazioni (vedi sopra), non da una costante nel codice. Se un giorno arriveranno tool che
+    scrivono, saranno dietro un consenso esplicito, mai attivi per default.
 -   **Un solo strato tocca il disco.** Il server importa `CliGitBackend`; non esegue Git per conto
     suo. Lo stesso vale per i parser: sono quelli del core, testati dalla UI.
 -   **Path validati.** I path passano da `assertSafePath`: niente path assoluti, niente `..`, niente
@@ -113,11 +157,14 @@ Esempi di richieste che funzionano bene:
 
 ## Codice
 
-| File                                        | Ruolo                                                 |
-| ------------------------------------------- | ----------------------------------------------------- |
-| `src/mcp/server.ts`                         | protocollo, definizione dei tool, chiamate al backend |
-| `src/mcp/index.ts`                          | trasporto stdio (una riga JSON per messaggio)         |
-| `src/main/backend.ts`                       | il backend condiviso con la UI                        |
-| `src/core/blame.ts`, `search.ts`, `diff.ts` | parser e formattazione, puri e testati                |
+| File                                        | Ruolo                                               |
+| ------------------------------------------- | --------------------------------------------------- |
+| `src/mcp/server.ts`                         | protocollo, definizione dei tool, filtro per policy |
+| `src/mcp/index.ts`                          | trasporto stdio (una riga JSON per messaggio)       |
+| `src/core/settings.ts`                      | modello e validazione della policy API              |
+| `src/main/settings.ts`                      | posizione e scrittura atomica del file impostazioni |
+| `src/main/backend.ts`                       | il backend condiviso con la UI                      |
+| `src/core/blame.ts`, `search.ts`, `diff.ts` | parser e formattazione, puri e testati              |
 
-Test: `tests/mcp.test.mts` (protocollo e tool in-process su un repository temporaneo vero).
+Test: `tests/mcp.test.mts` (protocollo, tool e filtro per policy in-process su un repository
+temporaneo vero), `tests/settings.test.mts` (normalizzazione, limiti, file).

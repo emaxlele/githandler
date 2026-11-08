@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.4.0] — 2026-11-08
+
+### Aggiunto
+
+-   **Permessi dell'API configurabili** (_Impostazioni → API per l'AI_): default **spento**; modi
+    `off`, `read`, `all`, `custom` con scelta dei singoli tool. Il server MCP filtra `tools/list` e
+    rifiuta `tools/call` non consentiti, rileggendo la policy a ogni richiesta: cambiarla non
+    richiede di riconfigurare il client. La policy è in
+    `$XDG_CONFIG_HOME/gitcraft/settings.json` (override `GITCRAFT_CONFIG_DIR`), scritta in modo
+    atomico con permessi `0600` e condivisa da UI e MCP.
+-   **File non tracciati recuperabili**: prima della cancellazione una copia va in
+    `.git/gitcraft/trash/<id>/` e `Annulla` la ripristina. Limite 25 MB / 2.000 file per operazione;
+    oltre il limite lo scarto si ferma invece di cancellare senza rete. Il ripristino non sovrascrive
+    un file ricreato nel frattempo. Attivo di default, disattivabile dalle impostazioni.
+-   **Paginazione della storia**: prima pagina da 2.000 commit, caricamento automatico della
+    successiva quando si arriva in fondo; il refresh riparte dalla prima pagina.
+-   **Blame nella UI**: terza scheda del pannello inferiore, virtualizzata, con commit, autore e
+    testo per riga; le righe non committate sono marcate.
+-   Correzione del passaggio `--skip` in `logArgs` e nuovo `historyPage(skip, limit)` nel backend.
+
+### Test
+
+-   16 nuovi test (87 in totale): normalizzazione e file delle impostazioni, policy MCP a runtime,
+    trash con file, cartelle, limiti e conflitti, paginazione su 25 commit.
+
 ## [0.3.0] — 2026-11-08
 
 ### Aggiunto
