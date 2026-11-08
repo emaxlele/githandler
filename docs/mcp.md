@@ -59,9 +59,19 @@ $XDG_CONFIG_HOME/gitcraft/settings.json
 ```json
 {
 	"api": { "mode": "custom", "tools": ["history", "blame"] },
-	"trashUntracked": true
+	"trash": {
+		"enabled": true,
+		"maxBytes": 26214400,
+		"maxFiles": 2000,
+		"quotaBytes": 5368709120
+	}
 }
 ```
+
+I limiti della copia dei file non tracciati (`trash`) sono in byte: 25 MiB per operazione, 2.000
+file per operazione, 5 GiB in totale. Si modificano dall'app; i valori fuori intervallo vengono
+riportati dentro al caricamento. Il vecchio `trashUntracked` (v0.4) è ancora letto una volta, per
+non perdere la scelta di accensione.
 
 Conseguenze pratiche:
 

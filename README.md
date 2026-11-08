@@ -86,11 +86,24 @@ UI e MCP. Configurazione per OpenCode, Claude e limiti in [`docs/mcp.md`](docs/m
 ## File non tracciati scartati
 
 Git non può annullare la cancellazione di un file che non ha mai tracciato. Prima di cancellarlo
-l'app ne conserva una copia in `.git/gitcraft/trash/<id>/`, così `Annulla` lo ripristina come gli
-altri. La copia è attiva di default e si spegne dalle impostazioni; il limite è 25 MB e 2.000 file
-per operazione. Oltre il limite lo scarto si ferma e lo dice, invece di cancellare senza rete. Se
-nel frattempo è stato ricreato un file con lo stesso nome, il ripristino non sovrascrive: si ferma e
-chiede di spostarlo.
+l'app ne scrive i byte come **oggetti Git**: un blob per file, un albero e un commit raggiungibile da
+`refs/gitcraft/trash/<scope>/<id>`. `Annulla` li ripristina come gli altri, compresi cartelle
+annidate, link simbolici, permesso eseguibile e contenuto binario.
+
+-   La copia è attiva di default e si spegne dalle impostazioni.
+-   Limiti modificabili: **25 MB e 2.000 file per operazione**, **5 GB in totale**. Oltre il limite
+    di una singola operazione lo scarto si ferma e lo dice; quando lo spazio totale è pieno si
+    eliminano per prime le copie più vecchie, mai quella appena creata.
+-   I ref stanno in un namespace separato (`refs/gitcraft/*`): non compaiono nella storia, non
+    entrano in `log --all` e non vengono inviati al remoto.
+-   Un sotto-repository annidato viene conservato per intero, cartella `.git` compresa.
+-   Se nel frattempo è stato ricreato un file con lo stesso nome, il ripristino non sovrascrive: si
+    ferma e chiede di spostarlo.
+-   Gli oggetti non più raggiungibili vengono recuperati dal normale `git gc` del repository: l'app
+    non forza mai una potatura che cancellerebbe anche i commit orfani dell'utente.
+
+Nel dubbio fra perdere spazio e perdere dati, l'app sceglie lo spazio: la quota è una rete di
+sicurezza, non un limite da riempire.
 
 ## Note su Linux
 

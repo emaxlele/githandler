@@ -5,6 +5,29 @@
 
 ## 2026-11-08
 
+### La copia di sicurezza dei file non tracciati ora vive dentro Git
+
+-   **Cosa**: quando si scarta un file che Git non ha mai tracciato, l'app prima ne salva il
+    contenuto negli archivi interni di Git (gli stessi oggetti compressi che usa per i commit), sotto
+    un nome riservato all'app. Il pulsante **Annulla** lo riporta com'era: cartelle, link, file
+    eseguibili e contenuti binari compresi. Le copie non compaiono nella storia del progetto e non
+    vengono mai inviate al server remoto.
+-   **Perché**: la versione precedente copiava le cartelle in una sottocartella del repository. Si
+    poteva fare di meglio: gli oggetti Git sono compressi (due copie identiche costano una volta
+    sola), non si corrompono e si possono ispezionare con i comandi Git normali. Ed era l'unico
+    punto dell'app in cui un clic poteva distruggere lavoro in modo definitivo.
+-   **Come**: ci sono tre limiti regolabili nelle impostazioni — 25 MB e 2.000 file per singola
+    operazione, e **5 GB in totale**. Oltre i limiti per operazione lo scarto si ferma e spiega cosa
+    fare; quando lo spazio totale è pieno si eliminano per prime le copie più vecchie, mai quella
+    appena creata. Nelle impostazioni si vede anche quanto spazio stanno occupando le copie.
+-   **Casi difficili coperti**: un progetto dentro un altro progetto viene salvato per intero,
+    compresa la sua cartella Git; un file che Git non accetterebbe viene riconosciuto e lo scarto si
+    blocca invece di salvare una copia incompleta; se un file con lo stesso nome è stato ricreato nel
+    frattempo, il ripristino non lo sovrascrive; se il repository non ha ancora commit, la copia
+    funziona lo stesso.
+-   **Stato**: completato, 97 test automatici verdi e build riuscita.
+-   **Riferimento**: commit v0.5.0.
+
 ### I file non tracciati scartati si possono recuperare
 
 -   **Cosa**: scartando un file che Git non aveva mai tracciato, l'app ne conserva prima una copia

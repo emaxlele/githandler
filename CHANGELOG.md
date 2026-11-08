@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.5.0] — 2026-11-08
+
+### Cambiato
+
+-   **La copia dei file non tracciati vive in Git**: i byte diventano blob (`hash-object -w`),
+    l'insieme un albero e un commit raggiungibile da `refs/gitcraft/trash/<scope>/<id>`. Niente più
+    cartelle copiate in `.git/gitcraft/trash/`: compressione, deduplica, integrità content-addressed
+    e `git show <ref>:<path>` funzionano senza codice nostro. Gli oggetti non entrano nella storia
+    del progetto e non vengono inviati al remoto.
+-   **Namespace per worktree collegato** (`<nome>-<hash8>`): il journal è per-worktree, i ref sono
+    condivisi, quindi ogni worktree pota solo i propri.
+-   **Sotto-repository annidati conservati per intero**: le componenti `.git` (e le varianti NTFS che
+    Git rifiuta) vengono codificate in modo reversibile nell'albero e riportate al nome originale al
+    ripristino. Dopo `write-tree` l'app confronta l'albero con l'elenco misurato: se Git ha saltato
+    un path, lo scarto si ferma invece di cancellare una copia incompleta.
+-   **Byte grezzi**: `hash-object` senza `--path` non applica filtri né `core.autocrlf`, quindi CRLF,
+    file binari e link simbolici tornano identici; i nomi con `%` e newline sono gestiti.
+-   **`log` e ricerca escludono `refs/gitcraft/*`**: snapshot di undo e copie non compaiono più in
+    `git log --all` (né nella UI, né nel conteggio dei commit).
+-   Copie create dalla v0.4: restano ripristinabili e vengono potate quando la voce esce dal journal.
+
+### Aggiunto
+
+-   **Quota totale modificabile** (default 5 GiB) accanto ai limiti per operazione (25 MB,
+    2.000 file). In _Impostazioni → File non tracciati_ ci sono i tre campi e lo spazio occupato dalle
+    copie ancora annullabili.
+-   Il journal registra `trashBytes`/`trashFiles` per voce. Alla registrazione di una nuova voce le
+    copie più vecchie vengono eliminate finché il totale rientra nella quota; la voce appena creata
+    non viene mai eliminata da sola.
+-   Ordine a prova di crash: prima si scrive il journal, poi si eliminano i ref delle voci uscite;
+    un ref orfano è innocuo e la potatura successiva lo toglie.
+-   Migrazione del file delle impostazioni: `trashUntracked` (v0.4) diventa `trash.enabled`, con i
+    limiti nuovi ai valori di default. `normalizeSettings` limita i valori a intervalli sensati.
+
+### Test
+
+-   10 nuovi test (97 in totale): oggetti e ref, ripristino di cartelle, symlink ed eseguibili,
+    byte CRLF/binari e nomi con `%`/newline, sotto-repo con `.git`, file speciali, limiti per
+    operazione, quota con sfalcio, conflitti, copie v0.4, repository senza HEAD, worktree collegato e
+    assenza dei commit del trash nella storia.
+
 ## [0.4.0] — 2026-11-08
 
 ### Aggiunto

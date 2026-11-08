@@ -1,6 +1,6 @@
 # TODO
 
-Stato al 2026-11-08 (v0.4.0). Le voci spuntate sono in `CHANGELOG.md`.
+Stato al 2026-11-08 (v0.5.0). Le voci spuntate sono in `CHANGELOG.md`.
 
 ## Fatto
 
@@ -19,8 +19,11 @@ Stato al 2026-11-08 (v0.4.0). Le voci spuntate sono in `CHANGELOG.md`.
         policy riletta a ogni richiesta da UI e server MCP
 -   [x] **Blame nella UI**: terza scheda del pannello inferiore, virtualizzata
 -   [x] **Paginazione della storia**: pagine da 2.000 commit, caricamento automatico in fondo
--   [x] **File non tracciati recuperabili**: copia in `.git/gitcraft/trash/` prima dello scarto,
-        limite 25 MB / 2.000 file, ripristino senza sovrascrivere
+-   [x] **File non tracciati recuperabili come oggetti Git**: blob, albero e commit sotto
+        `refs/gitcraft/trash/<scope>/<id>`, con quota totale (5 GiB) e limiti per operazione
+        configurabili, ripristino senza sovrascrivere, copie v0.4 ancora leggibili
+-   [x] **Worktree e sotto-repo**: namespace del trash per worktree collegato; `.git` annidati
+        conservati per intero con codifica reversibile dei path che Git rifiuta
 
 ## Aperto
 
