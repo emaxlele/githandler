@@ -24,14 +24,7 @@ import { describeUndo } from "../core/undo.ts";
 import type { GitApi } from "../shared/api.ts";
 import { BlameView } from "./blame-view.ts";
 import { pickKey, renderDiff, type DiffLayout } from "./diff-view.ts";
-import {
-	avatarColor,
-	byId,
-	clear,
-	el,
-	initials,
-	shortDate,
-} from "./dom.ts";
+import { avatarColor, byId, clear, el, initials, shortDate } from "./dom.ts";
 import { LogView } from "./log-view.ts";
 
 declare global {
@@ -234,7 +227,18 @@ function toast(message: string, kind: "error" | "ok" = "error"): void {
 /** Il messaggio vero, senza il prefisso che Electron aggiunge agli errori IPC. */
 function readableError(error: unknown): string {
 	const message = error instanceof Error ? error.message : String(error);
-	return message.replace(/^Error invoking remote method '[^']+': (Error: )?/, "");
+	return message.replace(
+		/^Error invoking remote method '[^']+': (Error: )?/,
+		""
+	);
+}
+
+/**
+ * Una lettura asincrona vale solo nella sessione che l'ha chiesta: senza questo controllo un diff
+ * arrivato in ritardo finirebbe sul repository aperto nel frattempo.
+ */
+function isActive(root: string): boolean {
+	return state.root === root;
 }
 
 /** Esegue un'operazione Git mostrando l'errore reale invece di fallire in silenzio. */
@@ -607,12 +611,13 @@ async function loadLog(): Promise<void> {
 /** Pagina successiva della storia: il grafo si rilayouta sull'insieme caricato. */
 async function loadMore(): Promise<void> {
 	if (state.loadingMore || !state.hasMore || state.searchQuery) return;
+	const root = state.root;
 	state.loadingMore = true;
 	try {
 		const page = await guard("Storia", () =>
 			api.moreCommits(state.commits.length)
 		);
-		if (!page) return;
+		if (!page || !isActive(root)) return;
 		const known = new Set(state.commits.map((commit) => commit.sha));
 		const added = page.commits.filter((commit) => !known.has(commit.sha));
 		state.commits = state.commits.concat(added);
@@ -621,7 +626,9 @@ async function loadMore(): Promise<void> {
 		if (!state.searchQuery)
 			logView.setData(state.commits, layoutGraph(state.commits));
 	} finally {
-		state.loadingMore = false;
+		// la sessione da sbloccare è quella che ha chiesto la pagina, anche se non è più attiva
+		const session = sessions.get(root);
+		if (session) session.loadingMore = false;
 	}
 }
 
@@ -738,9 +745,7 @@ function fillChangeList(
 		const acts = el("span", "acts");
 		const toggle = el("button", "icon-btn", staged ? "−" : "+");
 		toggle.dataset.act = staged ? "unstage" : "stage";
-		toggle.title = staged
-			? "Togli dallo stage"
-			: "Aggiungi allo stage";
+		toggle.title = staged ? "Togli dallo stage" : "Aggiungi allo stage";
 		acts.appendChild(toggle);
 
 		const discard = el("button", "icon-btn", "×");
@@ -779,7 +784,8 @@ function buildTree(files: Array<{ path: string; status: string }>): TreeNode {
 			const dir = i < parts.length - 1;
 			const path = parts.slice(0, i + 1).join("/");
 			let child = node.children.find(
-				(candidate) => candidate.name === parts[i] && candidate.dir === dir
+				(candidate) =>
+					candidate.name === parts[i] && candidate.dir === dir
 			);
 			if (!child) {
 				child = {
@@ -797,11 +803,7 @@ function buildTree(files: Array<{ path: string; status: string }>): TreeNode {
 
 	const sort = (node: TreeNode): void => {
 		node.children.sort((a, b) =>
-			a.dir === b.dir
-				? a.name.localeCompare(b.name)
-				: a.dir
-				? -1
-				: 1
+			a.dir === b.dir ? a.name.localeCompare(b.name) : a.dir ? -1 : 1
 		);
 		for (const child of node.children) sort(child);
 	};
@@ -810,7 +812,9 @@ function buildTree(files: Array<{ path: string; status: string }>): TreeNode {
 }
 
 /** I file dell'albero: quelli del commit selezionato, altrimenti il working tree. */
-function treeFiles(snapshot: Snapshot): Array<{ path: string; status: string }> {
+function treeFiles(
+	snapshot: Snapshot
+): Array<{ path: string; status: string }> {
 	if (state.selectedCommit) {
 		return state.commitFiles.map((file) => ({
 			path: file.path,
@@ -850,7 +854,11 @@ function renderTree(snapshot: Snapshot): void {
 			row.dataset.path = child.path;
 			row.dataset.dir = String(child.dir);
 
-			const twisty = el("span", "twisty", child.dir ? (collapsed ? "▸" : "▾") : "");
+			const twisty = el(
+				"span",
+				"twisty",
+				child.dir ? (collapsed ? "▸" : "▾") : ""
+			);
 			if (!child.dir) twisty.classList.add("is-leaf");
 			row.appendChild(twisty);
 
@@ -950,8 +958,9 @@ function renderCommitMeta(): void {
 	ids.appendChild(
 		idLine(
 			"Parents",
-			(details?.parents ?? commit.parents).map((p) => p.slice(0, 8)).join(" ") ||
-				"—"
+			(details?.parents ?? commit.parents)
+				.map((p) => p.slice(0, 8))
+				.join(" ") || "—"
 		)
 	);
 	ui.commitMeta.appendChild(ids);
@@ -960,8 +969,7 @@ function renderCommitMeta(): void {
 	message.appendChild(
 		el("div", "subject", details?.subject ?? commit.subject)
 	);
-	if (details?.body)
-		message.appendChild(el("div", "body", details.body));
+	if (details?.body) message.appendChild(el("div", "body", details.body));
 	ui.commitMeta.appendChild(message);
 }
 
@@ -982,9 +990,7 @@ function renderCommitFiles(): void {
 		item.appendChild(
 			el(
 				"span",
-				`st ${
-					code === "?" ? "st-a" : `st-${code.toLowerCase()}`
-				}`,
+				`st ${code === "?" ? "st-a" : `st-${code.toLowerCase()}`}`,
 				code
 			)
 		);
@@ -1006,6 +1012,7 @@ async function refresh(): Promise<void> {
 }
 
 async function selectCommit(sha: string): Promise<void> {
+	const root = state.root;
 	state.selectedCommit = sha;
 	state.commitPath = null;
 	state.commitDetails = null;
@@ -1017,7 +1024,7 @@ async function selectCommit(sha: string): Promise<void> {
 		guard("Dettaglio commit", () => api.commitDetails(sha)),
 		guard("Commit", () => api.commitFiles(sha)),
 	]);
-	if (!files) return;
+	if (!files || !isActive(root)) return;
 	state.commitDetails = details;
 	state.commitFiles = files;
 	renderCommitFiles();
@@ -1030,13 +1037,14 @@ async function selectCommit(sha: string): Promise<void> {
 
 async function selectCommitFile(path: string): Promise<void> {
 	const sha = state.selectedCommit;
+	const root = state.root;
 	if (!sha) return;
 	state.commitPath = path;
 	state.treePath = path;
 	renderCommitFiles();
 	if (state.snapshot) renderTree(state.snapshot);
 	const file = await guard("Diff", () => api.commitPatch(sha, path));
-	if (file) {
+	if (file && isActive(root)) {
 		renderDiff(ui.commitDiff, file, "Nessuna differenza.", {
 			layout: state.diffLayout,
 		});
@@ -1045,6 +1053,7 @@ async function selectCommitFile(path: string): Promise<void> {
 
 /** Diff della scheda File Tree: stesso backend, riquadro diverso. */
 async function selectTreeFile(path: string): Promise<void> {
+	const root = state.root;
 	state.treePath = path;
 	if (state.snapshot) renderTree(state.snapshot);
 
@@ -1053,7 +1062,7 @@ async function selectTreeFile(path: string): Promise<void> {
 		state.commitPath = path;
 		renderCommitFiles();
 		const file = await guard("Diff", () => api.commitPatch(sha, path));
-		if (file) {
+		if (file && isActive(root)) {
 			renderDiff(ui.treeDiff, file, "Nessuna differenza.", {
 				layout: state.diffLayout,
 			});
@@ -1068,7 +1077,7 @@ async function selectTreeFile(path: string): Promise<void> {
 		? entry.index !== "." && entry.worktree === "."
 		: false;
 	const file = await guard("Diff", () => api.worktreePatch(path, staged));
-	if (file) {
+	if (file && isActive(root)) {
 		renderDiff(ui.treeDiff, file, "Nessuna differenza.", {
 			layout: state.diffLayout,
 			mode: staged ? "unstage" : "stage",
@@ -1107,10 +1116,11 @@ async function loadChangeDiff(): Promise<void> {
 		renderDiff(ui.changesDiff, null, "Seleziona un file.");
 		return;
 	}
+	const root = state.root;
 	const file = await guard("Diff", () =>
 		api.worktreePatch(path, state.changeStaged)
 	);
-	if (!file) return;
+	if (!file || !isActive(root)) return;
 	state.changeDiff = file;
 	renderChangeDiff();
 }
@@ -1236,9 +1246,10 @@ async function loadBlame(): Promise<void> {
 		);
 		return;
 	}
+	const root = state.root;
 	blameView.setData(null, "Lettura del blame…");
 	const file = await guard("Blame", () => api.blame(path));
-	if (!file) return;
+	if (!file || !isActive(root)) return;
 	blameView.setData(file);
 }
 
@@ -1882,8 +1893,7 @@ api.onTerminal((event) => {
 		appendTerminal(event.text);
 		return;
 	}
-	if (event.kind === "error")
-		appendTerminal(`[errore] ${event.message}\n`);
+	if (event.kind === "error") appendTerminal(`[errore] ${event.message}\n`);
 	else appendTerminal(`[uscita ${event.code ?? "?"}]\n`);
 	if (event.id === runningTerminal) {
 		runningTerminal = null;
@@ -1893,7 +1903,8 @@ api.onTerminal((event) => {
 
 ui.repoTabs.addEventListener("click", (event) => {
 	const target = event.target as HTMLElement;
-	const closeRoot = target.closest<HTMLElement>("[data-close]")?.dataset.close;
+	const closeRoot =
+		target.closest<HTMLElement>("[data-close]")?.dataset.close;
 	if (closeRoot) {
 		void closeSession(closeRoot);
 		return;
@@ -2019,9 +2030,7 @@ ui.sideCommits.addEventListener("click", () => setSide("commits"));
 ui.btnSearchFocus.addEventListener("click", () => ui.searchInput.focus());
 ui.btnNewTab.addEventListener("click", () => void openRepository());
 
-for (const section of document.querySelectorAll<HTMLElement>(
-	".side-section"
-)) {
+for (const section of document.querySelectorAll<HTMLElement>(".side-section")) {
 	section.querySelector("h2")?.addEventListener("click", () => {
 		section.classList.toggle("is-collapsed");
 	});
@@ -2065,7 +2074,9 @@ ui.changesListStaged.addEventListener("click", changeListClick);
 ui.changesListUnstaged.addEventListener("click", changeListClick);
 
 ui.treeList.addEventListener("click", (event) => {
-	const target = (event.target as HTMLElement).closest<HTMLElement>(".tree-node");
+	const target = (event.target as HTMLElement).closest<HTMLElement>(
+		".tree-node"
+	);
 	const path = target?.dataset.path;
 	if (!path || !target) return;
 	if (target.dataset.dir === "true") {
