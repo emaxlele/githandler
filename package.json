@@ -1,7 +1,7 @@
 {
 	"name": "gitcraft",
 	"productName": "gitcraft",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Client Git desktop Linux-first: grafo della storia, diff, staging e commit",
 	"main": "dist/main/index.js",
 	"private": true,

@@ -1,6 +1,8 @@
-import type { CommitFile, Snapshot } from "../core/types.ts";
+import type { HunkSelection, PatchMode } from "../core/patch.ts";
+import { buildPatch } from "../core/patch.ts";
+import type { CommitFile, DiffFile, Snapshot } from "../core/types.ts";
 import type { GitApi } from "../shared/api.ts";
-import { renderDiff } from "./diff-view.ts";
+import { pickKey, renderDiff } from "./diff-view.ts";
 import { byId, clear, el, fullDate } from "./dom.ts";
 import { LogView } from "./log-view.ts";
 
@@ -21,6 +23,10 @@ interface State {
 	commitPath: string | null;
 	changePath: string | null;
 	changeStaged: boolean;
+	/** Diff attualmente disegnato per il working tree: serve a ricostruire le patch parziali. */
+	changeDiff: DiffFile | null;
+	/** Righe scelte per lo staging parziale, nella forma `hunk:line`. */
+	picked: Set<string>;
 	tab: Tab;
 }
 
@@ -31,6 +37,8 @@ const state: State = {
 	commitPath: null,
 	changePath: null,
 	changeStaged: false,
+	changeDiff: null,
+	picked: new Set(),
 	tab: "changes",
 };
 
@@ -287,22 +295,72 @@ async function selectChange(path: string): Promise<void> {
 		(item) => item.path === path
 	);
 	if (!entry) return;
+	if (state.changePath !== path) clearPicked();
 	state.changePath = path;
 	state.changeStaged = entry.index !== "." && entry.worktree === ".";
 	if (state.snapshot) renderChanges(state.snapshot);
 	await loadChangeDiff();
 }
 
+/** Il diff del working tree si ridisegna da `state.changeDiff`, senza tornare a Git. */
+function renderChangeDiff(): void {
+	const mode: PatchMode = state.changeStaged ? "unstage" : "stage";
+	renderDiff(ui.changesDiff, state.changeDiff, "Nessuna differenza.", {
+		mode,
+		picked: state.picked,
+	});
+}
+
 async function loadChangeDiff(): Promise<void> {
 	const path = state.changePath;
 	if (!path) {
+		state.changeDiff = null;
 		renderDiff(ui.changesDiff, null, "Seleziona un file.");
 		return;
 	}
 	const file = await guard("Diff", () =>
 		api.worktreePatch(path, state.changeStaged)
 	);
-	if (file) renderDiff(ui.changesDiff, file, "Nessuna differenza.");
+	if (!file) return;
+	state.changeDiff = file;
+	renderChangeDiff();
+}
+
+function clearPicked(): void {
+	if (state.picked.size > 0) state.picked.clear();
+}
+
+function togglePick(hunk: number, line: number): void {
+	const key = pickKey(hunk, line);
+	if (state.picked.has(key)) state.picked.delete(key);
+	else state.picked.add(key);
+	renderChangeDiff();
+}
+
+function selectionForHunk(hunk: number, lines: number[]): HunkSelection[] {
+	return [{ hunk, lines }];
+}
+
+/** Applica una patch parziale: stage se il diff mostrato è unstaged, unstage se è staged. */
+async function applyPartial(selection: HunkSelection[]): Promise<void> {
+	const file = state.changeDiff;
+	const path = state.changePath;
+	if (!file || !path) return;
+
+	const mode: PatchMode = state.changeStaged ? "unstage" : "stage";
+	const patch = buildPatch(file, selection, mode);
+	if (!patch) {
+		toast("Nessuna modifica da applicare alla selezione.");
+		return;
+	}
+
+	const snapshot = await guard(
+		mode === "stage" ? "Stage parziale" : "Unstage parziale",
+		() => api.applyPatch(path, patch, mode)
+	);
+	if (!snapshot) return;
+	clearPicked();
+	applySnapshot(snapshot);
 }
 
 /** Ricarica il diff aperto dopo un'operazione: il contenuto è cambiato sotto. */
@@ -411,6 +469,33 @@ ui.changesList.addEventListener("click", (event) => {
 	else if (action === "unstage") void unstage([path]);
 	else if (action === "discard") void discard([path]);
 	else void selectChange(path);
+});
+
+ui.changesDiff.addEventListener("click", (event) => {
+	const target = event.target as HTMLElement;
+
+	const button = target.closest<HTMLElement>("[data-act]");
+	if (button) {
+		const hunk = Number(button.dataset.hunk);
+		if (!Number.isInteger(hunk)) return;
+		if (button.dataset.act?.endsWith("-hunk")) {
+			void applyPartial([{ hunk }]);
+		} else if (button.dataset.act?.endsWith("-lines")) {
+			const lines: number[] = [];
+			for (const key of state.picked) {
+				const [h, l] = key.split(":").map(Number) as [number, number];
+				if (h === hunk) lines.push(l);
+			}
+			if (lines.length > 0) void applyPartial(selectionForHunk(hunk, lines));
+		}
+		return;
+	}
+
+	const line = target.closest<HTMLElement>(".dline[data-selectable]");
+	if (!line) return;
+	// solo i numeri di riga fanno da casella: il testo del diff resta selezionabile
+	if (!target.closest(".no") && !target.closest(".mk")) return;
+	togglePick(Number(line.dataset.hunk), Number(line.dataset.line));
 });
 
 ui.commitFilesList.addEventListener("click", (event) => {

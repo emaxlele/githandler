@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
 
+import { buildPatch } from "../src/core/patch.ts";
 import { CliGitBackend } from "../src/main/backend.ts";
 
 /**
@@ -148,4 +149,73 @@ test("un ramo con file in una sottocartella", async () => {
 
 	const files = await backend.commitFiles(snapshot.commits[0]!.sha);
 	assert.ok(files.some((file) => file.path === "src/con spazio.ts"));
+});
+
+test("applyPatch mette in stage solo l'hunk scelto", async () => {
+	const lines = Array.from({ length: 20 }, (_, i) => `riga ${i + 1}`);
+	await writeFile(join(root, "due-hunk.txt"), `${lines.join("\n")}\n`);
+	await backend.stage(["due-hunk.txt"]);
+	await backend.commit("file per patch parziali", false);
+
+	const modified = [...lines];
+	modified[1] = "riga 2 MODIFICATA";
+	modified[17] = "riga 18 MODIFICATA";
+	await writeFile(join(root, "due-hunk.txt"), `${modified.join("\n")}\n`);
+
+	const diff = await backend.worktreePatch("due-hunk.txt", false);
+	assert.equal(diff.hunks.length, 2);
+
+	const patch = buildPatch(diff, [{ hunk: 0 }], "stage");
+	assert.ok(patch);
+
+	const snapshot = await backend.applyPatch("due-hunk.txt", patch!, "stage");
+	const entry = snapshot.status.entries.find((item) => item.path === "due-hunk.txt");
+	assert.ok(entry);
+	assert.equal(entry!.index, "M");
+	assert.equal(entry!.worktree, "M");
+
+	const staged = git("show", ":due-hunk.txt").split("\n");
+	assert.equal(staged[1], "riga 2 MODIFICATA");
+	assert.equal(staged[17], "riga 18");
+
+	// il resto resta nel working tree: si vede ancora come modifica non in stage
+	const unstaged = await backend.worktreePatch("due-hunk.txt", false);
+	assert.equal(unstaged.hunks.length, 1);
+	assert.equal(unstaged.hunks[0]!.newStart, 15);
+});
+
+test("applyPatch toglie dallo stage una sola riga", async () => {
+	await writeFile(join(root, "righe.ts"), "uno\ndue\ntre\n");
+	await backend.stage(["righe.ts"]);
+	await backend.commit("file per staging per riga", false);
+
+	await writeFile(join(root, "righe.ts"), "uno\nDUE\nTRE\n");
+	const diff = await backend.worktreePatch("righe.ts", false);
+	assert.equal(diff.hunks.length, 1);
+
+	// righe dell'hunk: 0 -due, 1 -tre, 2 +DUE, 3 +TRE (più il contesto iniziale)
+	const hunk = diff.hunks[0]!;
+	const addUno = hunk.lines.findIndex((line) => line.text === "DUE");
+	const patch = buildPatch(diff, [{ hunk: 0, lines: [addUno] }], "stage");
+	assert.ok(patch);
+	await backend.applyPatch("righe.ts", patch!, "stage");
+
+	// le rimozioni non scelte restano nell'indice, quindi `DUE` si aggiunge in coda
+	assert.equal(git("show", ":righe.ts"), "uno\ndue\ntre\nDUE\n");
+
+	// unstage della stessa riga: l'indice torna a HEAD, il working tree non cambia
+	const stagedDiff = await backend.worktreePatch("righe.ts", true);
+	const stagedHunk = stagedDiff.hunks[0]!;
+	const index = stagedHunk.lines.findIndex((line) => line.text === "DUE");
+	const revert = buildPatch(
+		stagedDiff,
+		[{ hunk: 0, lines: [index] }],
+		"unstage",
+	);
+	assert.ok(revert);
+	const snapshot = await backend.applyPatch("righe.ts", revert!, "unstage");
+	const entry = snapshot.status.entries.find((item) => item.path === "righe.ts");
+	assert.ok(entry);
+	assert.equal(entry!.index, ".");
+	assert.equal(git("show", ":righe.ts"), "uno\ndue\ntre\n");
 });

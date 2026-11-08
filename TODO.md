@@ -2,12 +2,16 @@
 
 Stato al 2026-11-08. Le voci spuntate sono in `CHANGELOG.md`.
 
+## Fatto dopo la v0.1
+
+-   [x] Staging parziale: per hunk e per singola riga (`git apply --cached`, anche `--reverse` per
+        togliere dallo stage)
+
 ## In corso
 
 -   [ ] Milestone 2 — il diff che conta
     -   [ ] Diff side-by-side oltre a quello unified
     -   [ ] Evidenziazione della sintassi (CodeMirror 6, licenza MIT)
-    -   [ ] Staging per hunk e per riga
     -   [ ] Undo generale (snapshot in `refs/gitcraft/snapshots/*`): il differenziatore che i client concorrenti non
             ha e un client a pagamento riserva al piano a pagamento
     -   [ ] Blame con timeline

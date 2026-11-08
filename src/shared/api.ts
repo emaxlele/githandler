@@ -1,3 +1,4 @@
+import type { PatchMode } from "../core/patch.ts";
 import type { CommitFile, DiffFile, Snapshot } from "../core/types.ts";
 
 /**
@@ -16,6 +17,8 @@ export interface GitApi {
 	/** Patch di un file nel working tree (staged o unstaged). */
 	worktreePatch(path: string, staged: boolean): Promise<DiffFile>;
 	stage(paths: string[]): Promise<Snapshot>;
+	/** Stage o unstage di un hunk o di singole righe, tramite patch parziale. */
+	applyPatch(path: string, patch: string, mode: PatchMode): Promise<Snapshot>;
 	unstage(paths: string[]): Promise<Snapshot>;
 	discard(paths: string[]): Promise<Snapshot>;
 	commit(message: string, all: boolean): Promise<Snapshot>;
@@ -31,6 +34,7 @@ export type IpcChannel =
 	| "git:commitPatch"
 	| "git:worktreePatch"
 	| "git:stage"
+	| "git:applyPatch"
 	| "git:unstage"
 	| "git:discard"
 	| "git:commit"

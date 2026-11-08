@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.0] — 2026-11-08
+
+### Aggiunto
+
+-   **Staging parziale**: ogni hunk del diff di lavoro ha i pulsanti per mettere in stage (o togliere
+    dallo stage) il singolo hunk; cliccando i numeri di riga si sceglie una o più righe e si applica
+    solo quella selezione. Le patch parziali sono costruite nel core e applicate con
+    `git apply --cached` (o `--reverse` per l'unstage), quindi hooks e filtri di Git restano attivi.
+-   Test: 7 nuovi casi sul costruttore di patch e 2 di integrazione su repository reale, che
+    verificano il contenuto esatto dell'indice dopo uno stage parziale e il suo ripristino.
+
+### Note
+
+-   Nuovi file, file eliminati, binari e rinominati restano a staging intero: la patch parziale non
+    li copre (nel diff compaiono senza i pulsanti per hunk).
+
 ## [0.1.0] — 2026-11-08
 
 Prima versione funzionante.

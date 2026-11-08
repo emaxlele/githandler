@@ -5,6 +5,22 @@
 
 ## 2026-11-08
 
+### Staging parziale: si sceglie cosa mettere nel commit
+
+-   **Cosa**: aggiunta la possibilità di mettere in stage solo una parte delle modifiche a un file:
+    un singolo blocco (hunk) con un pulsante, oppure righe precise cliccando i numeri di riga. Il
+    comando inverso toglie dallo stage solo la parte scelta.
+-   **Perché**: è la funzione che distingue un client usabile da uno elementare. Serve a separare in
+    due commit modifiche mescolate nello stesso file, senza tornare al terminale.
+-   **Come**: la patch parziale viene costruita da un modulo puro e testato, poi applicata con
+    `git apply --cached` (o `--reverse`), quindi passano comunque dagli stessi hook e filtri di Git.
+    Una patch che provasse a toccare un file diverso da quello selezionato viene rifiutata.
+-   **Verifica**: 37 test automatici superati (7 nuovi sul costruttore di patch, 2 di integrazione
+    sul contenuto esatto dell'indice). Provato anche dall'interfaccia su un repository di prova:
+    scelta una riga, lo stage contiene solo quella, il resto resta fra le modifiche.
+-   **Stato**: funzionante in locale, non distribuito.
+-   **Riferimento**: commit successivo a `da3b20b`.
+
 ### Primo nucleo funzionante del client Git (v0.1)
 
 -   **Cosa**: creato il progetto `gitcraft` e scritta la prima versione che funziona davvero: si apre

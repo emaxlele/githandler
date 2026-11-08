@@ -11,6 +11,8 @@ const api: GitApi = {
 	worktreePatch: (path, staged) =>
 		ipcRenderer.invoke("git:worktreePatch", path, staged),
 	stage: (paths) => ipcRenderer.invoke("git:stage", paths),
+	applyPatch: (path, patch, mode) =>
+		ipcRenderer.invoke("git:applyPatch", path, patch, mode),
 	unstage: (paths) => ipcRenderer.invoke("git:unstage", paths),
 	discard: (paths) => ipcRenderer.invoke("git:discard", paths),
 	commit: (message, all) => ipcRenderer.invoke("git:commit", message, all),

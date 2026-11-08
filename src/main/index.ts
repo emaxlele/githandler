@@ -73,6 +73,9 @@ function registerIpc(): void {
 		backend.worktreePatch(path, staged)
 	);
 	handle("git:stage", (paths: string[]) => backend.stage(paths));
+	handle("git:applyPatch", (path: string, patch: string, mode: "stage" | "unstage") =>
+		backend.applyPatch(path, patch, mode),
+	);
 	handle("git:unstage", (paths: string[]) => backend.unstage(paths));
 	handle("git:discard", (paths: string[]) => backend.discard(paths));
 	handle("git:commit", (message: string, all: boolean) =>

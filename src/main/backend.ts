@@ -17,6 +17,7 @@ import {
 	refsArgs,
 } from "../core/log.ts";
 import { parseStatus, statusArgs } from "../core/status.ts";
+import { patchTargetsOnly, type PatchMode } from "../core/patch.ts";
 import type {
 	CommitFile,
 	DiffFile,
@@ -40,6 +41,8 @@ export interface GitBackend {
 	commitPatch(sha: string, path: string): Promise<DiffFile>;
 	worktreePatch(path: string, staged: boolean): Promise<DiffFile>;
 	stage(paths: string[]): Promise<Snapshot>;
+	/** Applica all'indice una patch parziale (hunk o righe) costruita dal core. */
+	applyPatch(path: string, patch: string, mode: PatchMode): Promise<Snapshot>;
 	unstage(paths: string[]): Promise<Snapshot>;
 	discard(paths: string[]): Promise<Snapshot>;
 	commit(message: string, all: boolean): Promise<Snapshot>;
@@ -163,6 +166,29 @@ export class CliGitBackend implements GitBackend {
 		const info = this.#requireInfo();
 		paths.forEach(assertSafePath);
 		await runGit(info.root, ["add", "--", ...paths]);
+		return this.refresh();
+	}
+
+	async applyPatch(
+		path: string,
+		patch: string,
+		mode: PatchMode
+	): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		assertSafePath(path);
+
+		if (!patch.trim()) throw new Error("Patch vuota.");
+		if (!patchTargetsOnly(patch, path)) {
+			throw new Error(`La patch non riguarda solo ${path}.`);
+		}
+
+		// `--cached` applica all'indice; in unstage si applica al contrario per togliere
+		// dall'indice solo le righe scelte, lasciando il resto invariato.
+		const args = ["apply", "--cached", "--whitespace=nowarn"];
+		if (mode === "unstage") args.push("--reverse");
+		args.push("-");
+
+		await runGit(info.root, args, { input: patch });
 		return this.refresh();
 	}
 

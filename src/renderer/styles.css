@@ -590,12 +590,44 @@ body {
 }
 
 .hunk-header {
+	display: flex;
+	align-items: center;
+	gap: 10px;
 	padding: 3px 10px;
 	background: #131926;
 	color: #6f7d95;
 	border-top: 1px solid var(--border);
 	border-bottom: 1px solid var(--border);
+}
+
+.hunk-info {
 	white-space: pre;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.hunk-actions {
+	margin-left: auto;
+	display: flex;
+	gap: 4px;
+	flex: 0 0 auto;
+}
+
+.dline[data-selectable] .no,
+.dline[data-selectable] .mk {
+	cursor: pointer;
+}
+
+.dline[data-selectable]:hover .mk {
+	color: var(--accent);
+}
+
+.dline.is-picked {
+	background: rgba(106, 169, 255, 0.1);
+}
+
+.dline.is-picked .mk {
+	color: var(--accent);
 }
 
 .dline {
