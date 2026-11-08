@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.9.0] — 2026-11-08
+
+### Arrivare al file, e alla cartella, dal repository
+
+-   Pulsante **Cartella** in toolbar: apre nel gestore file la cartella del repository attivo, e resta
+    spento quando non c'è un repository.
+-   Menu del tasto destro sulla **scheda del repository**: *Apri la cartella*, *Copia percorso*, *Apri il
+    repository nel browser* (dall'URL di `origin`), *Chiudi la scheda*.
+-   Menu del tasto destro su un **file** — nel File Tree e nell'elenco dei file di un commit: *Apri con
+    l'applicazione associata*, *Mostra nella cartella*, *Salva una copia…*, *Copia percorso*. Il doppio
+    clic apre il file con l'app di sistema.
+-   **Salva una copia** legge i byte veri: dal working tree per i file modificati, da
+    `git show <sha>:<path>` per un file di un commit (quindi la versione di allora, anche se il file oggi
+    non c'è più o è un binario). Oltre 64 MiB si ferma con un messaggio invece di troncare.
+-   In un commit il menu si limita a *Salva una copia* e *Copia percorso*: promettere di aprire dal disco
+    un file che in quel commit esisteva e oggi no sarebbe una bugia.
+-   Voce **Apri il commit nel browser** nel menu della storia, con l'URL giusto per GitHub, GitLab e
+    Bitbucket (`/commit/`, `/-/commit/`, `/commits/`). Per Gitea e per i remoti che non sono un sito web
+    il comando lo dice invece di aprire un indirizzo inventato.
+-   I percorsi che arrivano dalla finestra sono **verificati nel main** (`resolveInside`): niente `..`,
+    niente percorsi assoluti, niente nomi che iniziano con `-`, niente NUL. `app:openExternal` accetta
+    solo `http` e `https`.
+
+### Il token si prende dal browser
+
+-   **Accedi con il browser** nel dialogo account: OAuth *device flow* per GitHub e per GitLab (anche
+    self-hosted). Il codice da inserire compare nel dialogo, la pagina di verifica si apre da sola e
+    l'esito arriva quando l'autorizzazione è data — senza copiare token a mano.
+-   Il campo **Client ID OAuth**, con il pulsante *Crea…* che apre la pagina giusta del provider. Il
+    Client ID è **pubblico** (viaggia nell'URL di autorizzazione), non è un segreto, e da v0.9 si salva
+    accanto agli altri dati dell'account.
+-   **Il token del device flow non passa mai dalla finestra**: il main interroga il provider, legge
+    `GET /user` per il nome dell'utente, salva l'account e manda all'interfaccia solo «fatto, questo
+    account». Il ciclo rispetta `interval` e `slow_down`, si ferma alla scadenza e all'annullamento
+    (chiusura del dialogo, nuovo tentativo).
+-   **Crea un token nel browser…** apre la pagina dei token del provider, con gli scope già indicati
+    nell'URL dove il provider li accetta (GitHub, GitLab, Gitea), e porta il fuoco sul campo del token.
+-   Gitea e Bitbucket non hanno il device flow: lì il campo Client ID sparisce, il pulsante «Accedi con il
+    browser» è spento e resta la pagina dei token. Meglio un limite detto che un comando che fallisce.
+
+### Sotto il cofano
+
+-   `src/core/oauth.ts` (endpoint, corpi `form-urlencoded`, parser delle risposte) e `src/main/oauth.ts`
+    (avvio, polling, salvataggio) sono separati come il resto del core: i parser si provano senza rete.
+-   `remoteWeb`, `commitWebUrl` e `fileWebUrl` ricavano l'indirizzo web del repository da un remoto
+    `https`, `ssh://` o `git@host:…`.
+-   `runGitBytes` legge l'output di git come buffer: le copie dei file sono identiche, anche per i
+    binari.
+
 ## [0.8.0] — 2026-11-08
 
 ### Si parte dal benvenuto, non da una finestra di sistema

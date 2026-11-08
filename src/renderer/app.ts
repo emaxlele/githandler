@@ -31,6 +31,7 @@ import {
 	type Account,
 	type RemoteRepo,
 } from "../core/providers.ts";
+import { deviceFlow, tokenPageUrl } from "../core/oauth.ts";
 import type {
 	AccountInput,
 	AccountsInfo,
@@ -151,6 +152,7 @@ const ui = {
 	btnOpen: byId<HTMLButtonElement>("btn-open"),
 	btnNewTab: byId<HTMLButtonElement>("btn-new-tab"),
 	btnClone: byId<HTMLButtonElement>("btn-clone"),
+	btnFolder: byId<HTMLButtonElement>("btn-folder"),
 	welcome: byId("welcome"),
 	welcomeBase: byId("welcome-base"),
 	btnWelcomeOpen: byId<HTMLButtonElement>("btn-welcome-open"),
@@ -185,6 +187,12 @@ const ui = {
 	accountApiBase: byId<HTMLInputElement>("account-api-base"),
 	accountUsername: byId<HTMLInputElement>("account-username"),
 	accountToken: byId<HTMLInputElement>("account-token"),
+	accountOauthClientField: byId("account-oauth-client-field"),
+	accountOauthClient: byId<HTMLInputElement>("account-oauth-client"),
+	accountOauthClientHelp: byId<HTMLButtonElement>("account-oauth-client-help"),
+	accountOauthStart: byId<HTMLButtonElement>("account-oauth-start"),
+	accountTokenPage: byId<HTMLButtonElement>("account-token-page"),
+	accountOauthStatus: byId("account-oauth-status"),
 	accountLabel: byId<HTMLInputElement>("account-label"),
 	accountSave: byId<HTMLButtonElement>("account-save"),
 	accountStatus: byId("account-status"),
@@ -1612,6 +1620,64 @@ async function copyText(text: string): Promise<void> {
 	}
 }
 
+// ── file e cartella dal repository ──────────────────────────────────────────
+
+/** La cartella del repository nel gestore file; `root` esplicito per le schede non attive. */
+function openRepoFolder(root?: string): void {
+	const target = root ?? state.root;
+	if (!target) return;
+	void guard("Cartella", () => api.openRepoFolder(target));
+}
+
+function openFileWithSystem(path: string): void {
+	const root = state.root;
+	if (!root) return;
+	// un file eseguibile viene aperto come farebbe il gestore file: la scelta è dell'utente
+	void guard("Apri file", () => api.openFile(root, path));
+}
+
+function revealFile(path: string): void {
+	const root = state.root;
+	if (!root) return;
+	void guard("Mostra file", () => api.revealFile(root, path));
+}
+
+/** Una copia fuori dal repository: dal working tree, o dal commit selezionato com'era allora. */
+async function saveFileCopy(path: string, sha: string | null): Promise<void> {
+	const root = state.root;
+	if (!root) return;
+	const destination = await guard("Salva copia", () =>
+		api.saveCopy(root, path, sha)
+	);
+	if (destination) toast(`Copia salvata in ${destination}.`, "ok");
+}
+
+/**
+ * Voci del menu di un file. In un commit il file può non esistere più nel working tree: lì si
+ * legge dai byte del commit e non si promette di aprirlo dal disco.
+ */
+function fileMenuEntries(path: string): Array<MenuEntry | "separator"> {
+	const sha = state.selectedCommit;
+	if (sha)
+		return [
+			{
+				label: "Salva una copia del file com'era nel commit…",
+				action: () => void saveFileCopy(path, sha),
+			},
+			{ label: "Copia percorso", action: () => void copyText(path) },
+		];
+	return [
+		{
+			label: "Apri con l'applicazione associata",
+			action: () => openFileWithSystem(path),
+		},
+		{ label: "Mostra nella cartella", action: () => revealFile(path) },
+		"separator",
+		{ label: "Salva una copia…", action: () => void saveFileCopy(path, null) },
+		{ label: "Copia percorso", action: () => void copyText(path) },
+	];
+}
+
 // ── ref: navigazione e operazioni ────────────────────────────────────────────
 
 /**
@@ -2243,6 +2309,31 @@ ui.repoTabs.addEventListener("click", (event) => {
 	if (root) void useSession(root);
 });
 
+ui.repoTabs.addEventListener("contextmenu", (event) => {
+	const root = (event.target as HTMLElement).closest<HTMLElement>(".repo-tab")
+		?.dataset.root;
+	if (!root) return;
+	event.preventDefault();
+	openMenu(event.clientX, event.clientY, [
+		{ label: "Apri la cartella", action: () => openRepoFolder(root) },
+		{
+			label: "Copia percorso",
+			action: () => void copyText(root),
+		},
+		"separator",
+		{
+			label: "Apri il repository nel browser",
+			action: () => void guard("Browser", () => api.openInBrowser(root)),
+		},
+		"separator",
+		{
+			label: "Chiudi la scheda",
+			danger: true,
+			action: () => void closeSession(root),
+		},
+	]);
+});
+
 ui.log.addEventListener("contextmenu", (event) => {
 	const row = (event.target as HTMLElement).closest<HTMLElement>(".row");
 	const sha = row?.dataset.sha;
@@ -2294,6 +2385,15 @@ ui.log.addEventListener("contextmenu", (event) => {
 			action: () => void cherryPickCommit(sha),
 		},
 		{ label: "Copia SHA", action: () => void copyText(sha) },
+		"separator",
+		{
+			label: "Apri il commit nel browser",
+			action: () => {
+				const root = state.root;
+				if (!root) return;
+				void guard("Browser", () => api.openCommitInBrowser(root, sha));
+			},
+		},
 	];
 	if (commit) {
 		entries.push({
@@ -2400,6 +2500,7 @@ function updateEmptyState(): void {
 		ui.btnStash,
 		ui.btnSubmodule,
 		ui.btnUndo,
+		ui.btnFolder,
 	]) {
 		button.disabled = empty;
 	}
@@ -2556,7 +2657,138 @@ function applyProviderDefaults(): void {
 	ui.accountHost.readOnly = !info.editable;
 	ui.accountApiBase.readOnly = !info.editable;
 	ui.accountApiField.style.display = info.editable ? "" : "none";
+	updateOauthUi();
 	if (info.editable && !info.host) ui.accountHost.focus();
+}
+
+/**
+ * L'accesso dal browser esiste dove il provider ha il device flow (GitHub, GitLab): altrove resta
+ * la pagina dei token, e il campo Client ID non ha senso.
+ */
+function oauthAvailable(): boolean {
+	const value = ui.accountProvider.value;
+	if (!isProviderId(value)) return false;
+	const info = providerInfo(value);
+	const host = ui.accountHost.value.trim() || info.host;
+	const apiBase = ui.accountApiBase.value.trim() || info.apiBase;
+	try {
+		return deviceFlow(value, host, apiBase) !== null;
+	} catch {
+		// host o API ancora incompleti: niente flusso finché non sono validi
+		return false;
+	}
+}
+
+function updateOauthUi(): void {
+	const available = oauthAvailable();
+	ui.accountOauthClientField.style.display = available ? "" : "none";
+	ui.accountOauthStart.disabled = !available;
+	ui.accountOauthStart.title = available
+		? "Apre la pagina di verifica e attende l'autorizzazione"
+		: "Questo provider non ha l'accesso dal browser: usa il token";
+}
+
+/** Il Client ID è l'unica cosa che il device flow non può indovinare: si crea sul sito. */
+function openOauthClientHelp(): void {
+	const value = ui.accountProvider.value;
+	if (!isProviderId(value)) return;
+	const info = providerInfo(value);
+	const host = ui.accountHost.value.trim() || info.host;
+	const apiBase = ui.accountApiBase.value.trim() || info.apiBase;
+	let flow: ReturnType<typeof deviceFlow>;
+	try {
+		flow = deviceFlow(value, host, apiBase);
+	} catch (error) {
+		toast(readableError(error));
+		return;
+	}
+	if (!flow) {
+		toast("Questo provider non ha l'accesso dal browser: usa il token.");
+		return;
+	}
+	void guard("Browser", () => api.openExternal(flow.clientPageUrl));
+}
+
+/** Pagina del provider dove il token si crea a mano, con gli scope già indicati dove possibile. */
+function openTokenPage(): void {
+	const value = ui.accountProvider.value;
+	if (!isProviderId(value)) return;
+	const info = providerInfo(value);
+	const host = ui.accountHost.value.trim() || info.host;
+	const apiBase = ui.accountApiBase.value.trim() || info.apiBase;
+	let url: string;
+	try {
+		url = tokenPageUrl(value, host, apiBase);
+	} catch (error) {
+		toast(readableError(error));
+		return;
+	}
+	void (async () => {
+		await guard("Browser", () => api.openExternal(url));
+		ui.accountToken.focus();
+	})();
+}
+
+/** I campi del dialogo come `AccountInput`, senza il token: serve sia al salvataggio sia all'OAuth. */
+function accountInputFromForm(): AccountInput | null {
+	const value = ui.accountProvider.value;
+	if (!isProviderId(value)) {
+		toast("Scegli un provider.");
+		return null;
+	}
+	const info = providerInfo(value);
+	return {
+		provider: value,
+		host: ui.accountHost.value.trim() || info.host,
+		apiBase: ui.accountApiBase.value.trim() || info.apiBase,
+		username: ui.accountUsername.value.trim(),
+		label: ui.accountLabel.value.trim(),
+		oauthClientId: ui.accountOauthClient.value.trim(),
+	};
+}
+
+/**
+ * Device flow: il codice si mostra qui, la pagina si apre nel browser e il main interroga il
+ * provider. Il token non passa mai da questa finestra: torna solo l'esito.
+ */
+async function startBrowserOauth(): Promise<void> {
+	const input = accountInputFromForm();
+	if (!input) return;
+	const clientId = input.oauthClientId ?? "";
+	if (!clientId) {
+		toast("Incolla il Client ID dell'applicazione OAuth: «Crea…» apre la pagina.");
+		ui.accountOauthClient.focus();
+		return;
+	}
+	ui.accountOauthStart.disabled = true;
+	ui.accountOauthStatus.classList.remove("is-error");
+	ui.accountOauthStatus.textContent = "Attendo l'autorizzazione nel browser…";
+	try {
+		const start = await api.oauthStart(input, clientId);
+		ui.accountOauthStatus.textContent = `Codice: ${start.userCode} — inseriscilo nella pagina che si apre.`;
+		await api.openExternal(start.verificationUri);
+	} catch (error) {
+		ui.accountOauthStart.disabled = false;
+		ui.accountOauthStatus.classList.add("is-error");
+		ui.accountOauthStatus.textContent = readableError(error);
+	}
+}
+
+/** Dopo l'accesso dal browser l'account esiste già nel main: qui si rilegge l'elenco. */
+async function refreshAccountsAfterOauth(accountIdValue?: string): Promise<void> {
+	const info = await guard("Account", () => api.accounts());
+	if (!info) return;
+	accountsCache = info;
+	selectedAccount =
+		accountIdValue && info.accounts.some((item) => item.id === accountIdValue)
+			? accountIdValue
+			: info.accounts[0]?.id ?? null;
+	renderAccountList(selectedAccount);
+	const account = info.accounts.find((item) => item.id === selectedAccount);
+	if (account) fillAccountFields(account);
+	remoteReposCache = [];
+	renderRemoteRepos();
+	toast("Account collegato dal browser.", "ok");
 }
 
 function accountStatusText(account: Account | null): string {
@@ -2605,12 +2837,16 @@ function fillAccountFields(account: Account): void {
 	ui.accountUsername.value = account.username;
 	ui.accountLabel.value = account.label;
 	ui.accountToken.value = "";
+	ui.accountOauthClient.value = account.oauthClientId;
 	const info = providerInfo(account.provider);
 	ui.accountHost.readOnly = !info.editable;
 	ui.accountApiBase.readOnly = !info.editable;
 	ui.accountApiField.style.display = info.editable ? "" : "none";
 	ui.accountStatus.textContent = accountStatusText(account);
 	ui.accountStatus.classList.remove("is-error");
+	ui.accountOauthStatus.textContent = "";
+	ui.accountOauthStatus.classList.remove("is-error");
+	updateOauthUi();
 }
 
 function startNewAccount(): void {
@@ -2621,7 +2857,11 @@ function startNewAccount(): void {
 	ui.accountUsername.value = "";
 	ui.accountLabel.value = "";
 	ui.accountToken.value = "";
+	ui.accountOauthClient.value = "";
 	ui.accountStatus.textContent = "";
+	ui.accountOauthStatus.textContent = "";
+	ui.accountOauthStatus.classList.remove("is-error");
+	updateOauthUi();
 	remoteReposCache = [];
 	renderRemoteRepos();
 }
@@ -2655,18 +2895,8 @@ async function openAccounts(): Promise<void> {
 }
 
 async function saveAccountFromForm(): Promise<void> {
-	const value = ui.accountProvider.value;
-	if (!isProviderId(value)) {
-		toast("Scegli un provider.");
-		return;
-	}
-	const input: AccountInput = {
-		provider: value,
-		host: ui.accountHost.value.trim(),
-		apiBase: ui.accountApiBase.value.trim() || providerInfo(value).apiBase,
-		username: ui.accountUsername.value.trim(),
-		label: ui.accountLabel.value.trim(),
-	};
+	const input = accountInputFromForm();
+	if (!input) return;
 	const token = ui.accountToken.value.trim();
 	const previous = selectedAccount;
 	let latest = await guard("Account", () =>
@@ -2796,6 +3026,7 @@ async function cloneRemoteRepo(repo: RemoteRepo): Promise<void> {
 // ── eventi ───────────────────────────────────────────────────────────────────
 
 ui.btnOpen.addEventListener("click", () => void openRepository());
+ui.btnFolder.addEventListener("click", () => openRepoFolder());
 ui.btnClone.addEventListener("click", () => void openClone());
 
 ui.btnWelcomeOpen.addEventListener("click", () => void openRepository());
@@ -2841,6 +3072,31 @@ ui.cloneBrowse.addEventListener("click", () => {
 });
 
 ui.accountProvider.addEventListener("change", applyProviderDefaults);
+// host e API si possono scrivere a mano: il flusso dipende da quei valori
+ui.accountHost.addEventListener("input", updateOauthUi);
+ui.accountApiBase.addEventListener("input", updateOauthUi);
+ui.accountOauthStart.addEventListener("click", () => void startBrowserOauth());
+ui.accountOauthClientHelp.addEventListener("click", openOauthClientHelp);
+ui.accountTokenPage.addEventListener("click", openTokenPage);
+// chiudere il dialogo ferma l'attesa: nessun ciclo che continua senza finestra
+ui.accountDialog.addEventListener("close", () => {
+	ui.accountOauthStatus.textContent = "";
+	ui.accountOauthStatus.classList.remove("is-error");
+	ui.accountOauthStart.disabled = !oauthAvailable();
+	void api.oauthCancel();
+});
+api.onOauth((event) => {
+	ui.accountOauthStart.disabled = !oauthAvailable();
+	if (event.state === "error") {
+		ui.accountOauthStatus.classList.add("is-error");
+		ui.accountOauthStatus.textContent =
+			event.message ?? "Accesso non riuscito.";
+		return;
+	}
+	ui.accountOauthStatus.classList.remove("is-error");
+	ui.accountOauthStatus.textContent = "Accesso fatto.";
+	void refreshAccountsAfterOauth(event.accountId);
+});
 ui.accountSave.addEventListener("click", () => void saveAccountFromForm());
 ui.accountNew.addEventListener("click", () => startNewAccount());
 ui.accountRemove.addEventListener("click", () => void removeSelectedAccount());
@@ -3014,6 +3270,27 @@ ui.treeList.addEventListener("click", (event) => {
 	void selectTreeFile(path);
 });
 
+ui.treeList.addEventListener("dblclick", (event) => {
+	const target = (event.target as HTMLElement).closest<HTMLElement>(
+		".tree-node"
+	);
+	const path = target?.dataset.path;
+	if (!path || target?.dataset.dir === "true") return;
+	// in un commit il file può non essere più sul disco: lo mostra già il clic
+	if (state.selectedCommit) return;
+	openFileWithSystem(path);
+});
+
+ui.treeList.addEventListener("contextmenu", (event) => {
+	const target = (event.target as HTMLElement).closest<HTMLElement>(
+		".tree-node"
+	);
+	const path = target?.dataset.path;
+	if (!path || target?.dataset.dir === "true") return;
+	event.preventDefault();
+	openMenu(event.clientX, event.clientY, fileMenuEntries(path));
+});
+
 ui.btnTreeToggle.addEventListener("click", () => {
 	const collapse = ui.btnTreeToggle.textContent?.trim() === "Comprimi";
 	state.treeCollapsed.clear();
@@ -3059,6 +3336,14 @@ ui.changesDiff.addEventListener("click", (event) => {
 	const hunk = line.dataset.hunk;
 	if (hunk === undefined || line.dataset.line === undefined) return;
 	togglePick(Number(hunk), Number(line.dataset.line));
+});
+
+ui.commitFilesList.addEventListener("contextmenu", (event) => {
+	const path = (event.target as HTMLElement).closest<HTMLElement>("li")
+		?.dataset.path;
+	if (!path) return;
+	event.preventDefault();
+	openMenu(event.clientX, event.clientY, fileMenuEntries(path));
 });
 
 ui.commitFilesList.addEventListener("click", (event) => {

@@ -45,6 +45,18 @@ export class GitError extends Error {
  * - `GIT_OPTIONAL_LOCKS=0` nessun lock preso dalle letture (status, log)
  * - `core.quotepath=false` path non ASCII scritti verbatim
  */
+function gitEnv(extra?: Record<string, string>): NodeJS.ProcessEnv {
+	return {
+		...process.env,
+		LC_ALL: "C",
+		GIT_TERMINAL_PROMPT: "0",
+		GIT_OPTIONAL_LOCKS: "0",
+		GIT_PAGER: "cat",
+		PAGER: "cat",
+		...extra,
+	};
+}
+
 export function runGit(
 	cwd: string,
 	args: string[],
@@ -61,15 +73,7 @@ export function runGit(
 				encoding: "utf8",
 				maxBuffer: 64 * 1024 * 1024,
 				timeout: options.timeoutMs ?? 30_000,
-				env: {
-					...process.env,
-					LC_ALL: "C",
-					GIT_TERMINAL_PROMPT: "0",
-					GIT_OPTIONAL_LOCKS: "0",
-					GIT_PAGER: "cat",
-					PAGER: "cat",
-					...options.env,
-				},
+				env: gitEnv(options.env),
 			},
 			(error, stdout, stderr) => {
 				const code = error ? (error as { code?: number }).code ?? 1 : 0;
@@ -89,6 +93,55 @@ export function runGit(
 					return;
 				}
 				resolve({ code, stdout, stderr });
+			}
+		);
+
+		if (options.input !== undefined) child.stdin?.end(options.input);
+	});
+}
+
+/**
+ * Come `runGit`, ma restituisce i byte: serve a leggere un file da un commit senza passare dal testo
+ * (immagini, archivi, qualunque cosa non sia UTF-8). Il limite è lo stesso di `runGit`.
+ */
+export function runGitBytes(
+	cwd: string,
+	args: string[],
+	options: RunOptions = {}
+): Promise<{ code: number; stdout: Buffer; stderr: string }> {
+	const argv = ["-c", "core.quotepath=false", ...args];
+
+	return new Promise((resolve, reject) => {
+		const child = execFile(
+			"git",
+			argv,
+			{
+				cwd,
+				encoding: "buffer",
+				maxBuffer: 64 * 1024 * 1024,
+				timeout: options.timeoutMs ?? 30_000,
+				env: gitEnv(options.env),
+			},
+			(error, stdout, stderr) => {
+				const bytes = Buffer.isBuffer(stdout) ? stdout : Buffer.from(stdout ?? "");
+				const err = Buffer.isBuffer(stderr)
+					? stderr.toString("utf8")
+					: String(stderr ?? "");
+				const code = error ? (error as { code?: number }).code ?? 1 : 0;
+				if (code !== 0 && !options.allowFailure) {
+					reject(
+						new GitError(
+							`git ${args[0] ?? ""}: ${
+								err.trim() || error?.message || "errore sconosciuto"
+							}`,
+							args,
+							code,
+							err
+						)
+					);
+					return;
+				}
+				resolve({ code, stdout: bytes, stderr: err });
 			}
 		);
 

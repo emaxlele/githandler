@@ -2327,3 +2327,15 @@ body.is-empty .workspace {
 .account-status.is-error {
 	color: var(--del-fg);
 }
+
+/* accesso dal browser: comandi uno accanto all'altro, l'esito su una riga sua */
+.account-browser {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.account-browser .account-status {
+	flex: 1 1 100%;
+}

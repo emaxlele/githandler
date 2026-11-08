@@ -3,9 +3,11 @@
 Client Git desktop **Linux-first**, in TypeScript su Electron. Apre, **crea** o **clona** un
 repository (da un URL o da un account GitHub / GitLab / Gitea / Bitbucket), mostra la storia con il
 grafo, i diff, e copre il flusso quotidiano: stage (anche parziale), unstage, scarto, commit, checkout
-di un ramo **o di un commit**, undo, pull, push, stash, merge, rebase, cherry-pick e submodule. Lo
-stesso repository è leggibile da un agente AI tramite un server MCP, spento di default e abilitabile
-comando per comando.
+di un ramo **o di un commit**, undo, pull, push, stash, merge, rebase, cherry-pick e submodule. Dal
+repository si arriva **al file e alla cartella** — apri la posizione, apri il file, salva una copia,
+apri repository e commit nel browser — e il **token si prende dal browser** con il device flow OAuth.
+Lo stesso repository è leggibile da un agente AI tramite un server MCP, spento di default e
+abilitabile comando per comando.
 
 Il nome: **`git`** davanti, perché è così che si cerca un client Git, e **handler** — chi maneggia il
 repository. Il progetto si è chiamato `gitcraft` (già usato da un altro client Git visuale) e, per
@@ -14,7 +16,7 @@ poche ore dell'8 novembre 2026, `lanecraft` e `gitlattice`.
 Non è un fork di altri client: è una reimplementazione indipendente, clean-room. Nessun codice, stringa,
 icona o asset preso da prodotti esistenti.
 
-## Stato (v0.8)
+## Stato (v0.9)
 
 | Funzione                                            | Stato         |
 | --------------------------------------------------- | ------------- |
@@ -22,6 +24,8 @@ icona o asset preso da prodotti esistenti.
 | **Creazione repository** (`git init`, identità locale) | ✅          |
 | **Clone da URL e da account** (4 provider)          | ✅             |
 | **Benvenuto all'avvio** (nessun dialog automatico)  | ✅             |
+| **Azioni su file e cartella dal repository**        | ✅             |
+| **Accesso dal browser (device flow OAuth)**         | ✅             |
 | Storia con grafo a corsie, paginata (2.000/pagina)  | ✅             |
 | Rami, remoti, tag con ahead/behind                  | ✅             |
 | Staging per file, unstage, scarto                   | ✅             |
@@ -49,8 +53,8 @@ icona o asset preso da prodotti esistenti.
 
 La finestra segue la disposizione dei client Git desktop affermati, con un tema scuro proprio:
 
--   **Toolbar** con le azioni etichettate (Apri, Clona, Fetch, Pull, Push, Stash, Submodule, Aggiorna,
-    Annulla) e, al centro, repository e ramo corrente. Sopra la storia ci sono le schede dei repository
+-   **Toolbar** con le azioni etichettate (Apri, Clona, Cartella, Fetch, Pull, Push, Stash, Submodule,
+    Aggiorna, Annulla) e, al centro, repository e ramo corrente. Sopra la storia ci sono le schede dei repository
     aperti, con la × per chiuderle e il `+` che apre la scelta *Apri / Crea / Clona da URL / Clona da un
     account*.
 -   **Benvenuto senza repository**: all'avvio la finestra non apre nessun dialog di sistema, mostra le
@@ -71,6 +75,21 @@ La finestra segue la disposizione dei client Git desktop affermati, con un tema 
     La maniglia sopra il pannello lo ridimensiona, `▾` lo riduce alla sola riga delle schede e `⧉` lo
     apre in una finestra separata: chiusa quella, il pannello torna al suo posto. Diff e albero
     scorrono, con la loro altezza vincolata al riquadro.
+
+### Dal repository al file
+
+-   **Cartella** in toolbar: apre nel gestore file la cartella del repository attivo.
+-   Tasto destro sulla **scheda del repository**: apri la cartella, copia il percorso, apri il repository
+    nel browser (dall'URL di `origin`), chiudi la scheda.
+-   Tasto destro su un **file** (File Tree o elenco dei file di un commit) e doppio clic: apri con
+    l'applicazione associata, mostra nella cartella, **salva una copia** fuori dal repository, copia il
+    percorso. Da un commit la copia è la versione di allora, letta con `git show <sha>:<path>`: byte per
+    byte, anche per i binari, con un tetto di 64 MiB oltre il quale l'app lo dice invece di troncare.
+-   Tasto destro su un **commit**: *Apri il commit nel browser*, con l'URL del servizio (GitHub, GitLab,
+    Bitbucket). Se il remoto non è un sito web il comando lo dice invece di aprire un indirizzo
+    inventato.
+-   I percorsi mandati dalla finestra sono verificati nel main: nessun `..`, nessun percorso assoluto,
+    nessun nome che inizia con `-`.
 
 Ogni funzione che esiste ha un comando, e ogni comando fa quello che dice: il terminale è una shell
 vera nella cartella del repository, con il pulsante per interrompere il comando.
@@ -157,7 +176,7 @@ GitHub, GitLab, Gitea/Forgejo e Bitbucket. L'account serve a **elencare i reposi
 indirizzo dell'API.
 
 -   In `$XDG_CONFIG_HOME/githandler/accounts.json` (permessi `0600`) stanno **solo i metadati**:
-    provider, host, API, utente, etichetta.
+    provider, host, API, utente, etichetta e, se lo usi, il Client ID OAuth (pubblico per definizione).
 -   Il **token non lo scrive l'app**: resta in memoria per la sessione e arriva a `git` tramite
     `GIT_ASKPASS` (script generico in `~/.config/githandler/askpass.sh`, `0700`, che legge utente e
     token dall'ambiente del processo figlio). Se hai un credential helper configurato, il token viene
@@ -167,6 +186,18 @@ indirizzo dell'API.
     che dice di aggiornarlo. Rimuovere l'account lo dimentica, ma non cancella quello che ha salvato Git.
 -   Senza credential helper il token vale per la sessione: alla riapertura va reinserito, e
     l'interfaccia lo dice invece di far scoprire il problema al primo fetch.
+
+### Il token dal browser
+
+-   **Accedi con il browser** usa il *device flow* OAuth di GitHub e GitLab (anche installazioni
+    proprie): l'app mostra un codice, apre la pagina di verifica e attende. Il token lo riceve il main,
+    che legge il nome dell'utente e salva l'account; alla finestra tornano solo l'esito e l'id
+    dell'account.
+-   Serve un **Client ID** di un'applicazione OAuth del provider: è pubblico (viaggia nell'URL), non è
+    un segreto e l'app lo salva accanto agli altri dati dell'account. Il pulsante *Crea…* apre la pagina
+    dove registrarla; per GitHub il device flow va abilitato su quell'applicazione.
+-   Per Gitea e Bitbucket, che non hanno il device flow, resta **Crea un token nel browser…**: apre la
+    pagina dei token del provider, con gli scope già indicati dove il provider li accetta.
 
 La **cartella di base** (Impostazioni) è il punto di partenza di «Apri», «Crea» e «Clona» e la
 destinazione predefinita dei cloni; non è un limite, dalla finestra di scelta si naviga ovunque.

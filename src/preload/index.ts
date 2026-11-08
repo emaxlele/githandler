@@ -3,9 +3,11 @@ import { contextBridge, ipcRenderer } from "electron";
 import type { GitApi } from "../shared/api.ts";
 import {
 	CHANGED_CHANNEL,
+	OAUTH_CHANNEL,
 	PANEL_DETACHED_CHANNEL,
 	PANEL_STATE_CHANNEL,
 	TERMINAL_CHANNEL,
+	type OAuthEvent,
 	type PanelState,
 	type RepoChangeEvent,
 	type TerminalEvent,
@@ -85,6 +87,29 @@ const api: GitApi = {
 		ipcRenderer.invoke("accounts:save", account, token),
 	removeAccount: (id) => ipcRenderer.invoke("accounts:remove", id),
 	accountRepos: (id) => ipcRenderer.invoke("accounts:repos", id),
+	openRepoFolder: (root) => ipcRenderer.invoke("repo:openFolder", root),
+	openFile: (root, path) => ipcRenderer.invoke("repo:openFile", root, path),
+	revealFile: (root, path) =>
+		ipcRenderer.invoke("repo:revealFile", root, path),
+	saveCopy: (root, path, sha) =>
+		ipcRenderer.invoke("repo:saveCopy", root, path, sha),
+	openInBrowser: (root) => ipcRenderer.invoke("repo:openInBrowser", root),
+	openCommitInBrowser: (root, sha) =>
+		ipcRenderer.invoke("repo:openCommitInBrowser", root, sha),
+	openExternal: (url) => ipcRenderer.invoke("app:openExternal", url),
+	oauthStart: (input, clientId) =>
+		ipcRenderer.invoke("accounts:oauthStart", input, clientId),
+	oauthCancel: () => ipcRenderer.invoke("accounts:oauthCancel"),
+	onOauth: (listener) => {
+		const handler = (
+			_event: Electron.IpcRendererEvent,
+			event: OAuthEvent
+		): void => listener(event);
+		ipcRenderer.on(OAUTH_CHANNEL, handler);
+		return () => {
+			ipcRenderer.removeListener(OAUTH_CHANNEL, handler);
+		};
+	},
 	reset: (sha, mode) => invokeRepo("git:reset", sha, mode),
 	renameBranch: (from, to) => invokeRepo("git:renameBranch", from, to),
 	deleteBranch: (name, force) => invokeRepo("git:deleteBranch", name, force),

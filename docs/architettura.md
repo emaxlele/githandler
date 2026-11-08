@@ -183,6 +183,29 @@ Vale la stessa asimmetria del §2.11: chi produce il segreto non lo riceve mai i
 consumatore ne ha bisogno (clone, fetch, pull, push), l'host si ricava da `origin` e l'ambiente si
 costruisce al momento, nel main.
 
+**Anche quando lo produce il browser.** Nel *device flow* OAuth la finestra mostra il codice e apre la
+pagina di verifica, ma il token lo riceve il main: appena arriva legge `GET /user` per il nome
+dell'utente, salva l'account e manda alla finestra solo l'esito (`ok` + id dell'account). Il canale
+`accounts:oauth` trasporta un id, non un segreto, e non c'è nessun punto in cui il token potrebbe
+finire nel DOM, nella clipboard o in un log del renderer. L'unica cosa che l'utente copia a mano è il
+**Client ID**, che è pubblico per definizione: viaggia nell'URL di autorizzazione.
+
+### 2.13 Un percorso che arriva dalla finestra non è un percorso fidato
+
+La finestra non ha accesso al filesystem, ma può chiedere «apri questo file», «mostralo nella sua
+cartella», «salvane una copia»: richieste che finiscono in `shell.openPath`, `readFile` e
+`dialog.showSaveDialog`. Un `../../.ssh/id_rsa` sarebbe una lettura arbitraria con i permessi
+dell'utente, e un percorso che inizia con `-` diventerebbe un'opzione di git.
+
+Quindi ogni percorso relativo passa da `resolveInside` nel main: assoluto, con `..` che esce dal
+repository, con byte NUL, o che inizia con `-` viene **rifiutato** — non corretto, rifiutato, con il
+nome nel messaggio. Per un file di un commit il percorso viaggia dentro `git show <sha>:<path>` come
+**un solo argomento**, e lo SHA è validato prima. Lo stesso principio vale per `openExternal`: solo
+`http` e `https`, mai `file://` o schemi che lanciano programmi.
+
+Il caso che rende la regola necessaria non è l'attacco: è l'errore. Un percorso costruito con un
+`join` sbagliato, che sembra innocuo, aprirebbe la cartella sbagliata invece di fermarsi.
+
 ## 3. I contratti, in concreto
 
 ```ts

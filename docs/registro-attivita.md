@@ -5,6 +5,45 @@
 
 ## 2026-11-08
 
+### Dal repository al file, e il token preso dal browser
+
+-   **Cosa**: dal repository ora si arriva al **file** e alla **cartella**. C'è un pulsante *Cartella*
+    che apre la posizione del progetto; il tasto destro sulla scheda del repository apre la cartella,
+    copia il percorso o apre il repository nel browser; il tasto destro su un file (e il doppio clic) lo
+    apre con il programma associato, lo mostra nella cartella, ne **salva una copia** fuori dal
+    repository o ne copia il percorso; il tasto destro su un commit aggiunge *Apri il commit nel
+    browser*. Inoltre il **token si può prendere dal browser**: si sceglie *Accedi con il browser*, si
+    inserisce il codice mostrato nella pagina che si apre da sola e l'account risulta collegato, senza
+    copiare token a mano.
+-   **Perché**: era la richiesta dell'utente — «aprire la posizione del repo, aprire un file, scaricare
+    un file dal repo… e il token preso facendo la login nel browser». Prima, per vedere un file o
+    portarlo fuori bisognava passare dal terminale o dal gestore file, e il token andava creato a mano
+    sul sito del provider e incollato.
+-   **Come**: le richieste sui file arrivano alla parte che ha accesso al sistema solo con percorsi
+    relativi al repository, e lì vengono **verificate** (niente `..`, niente percorsi assoluti, niente
+    nomi che iniziano con `-`). La copia di un file di un commit è la versione di allora, letta dai dati
+    di Git e non dal disco, quindi funziona anche per file cancellati o rinominati e per i binari, fino
+    a 64 MiB (oltre, l'app lo dice invece di troncare). Gli indirizzi web sono ricavati dal remoto del
+    repository: per GitHub, GitLab e Bitbucket il link al commit e al repository; dove la forma non è
+    certa (Gitea, remoti che non sono siti web) il comando lo dichiara invece di aprire un indirizzo
+    sbagliato.
+-   **Il token dal browser**: l'accesso usa il flusso OAuth «device» di GitHub e GitLab, che esiste per i
+    programmi che non possono ricevere una risposta dal browser. Il token lo riceve solo la parte
+    interna dell'app, che lo tiene in memoria come prima; alla finestra torna soltanto «fatto». Serve un
+    Client ID di un'applicazione OAuth del provider: è un dato pubblico (viaggia nell'URL), non un
+    segreto, e l'app lo conserva insieme agli altri dati dell'account. Per Gitea e Bitbucket, che non
+    offrono questo flusso, resta il pulsante che apre la pagina dei token con le autorizzazioni già
+    indicate.
+-   **Verifica**: 130 test automatici verdi (10 nuovi, fra cui copie byte per byte di file di testo e
+    binari da working tree e da commit), tipi e build puliti. Prova reale: copia di un file modificato e
+    di un file di un commit precedente, con confronto byte per byte; file binario da un commit identico
+    all'originale; tentativo di aprire `../../etc/passwd` rifiutato; indirizzo `file://` rifiutato;
+    apertura del repository e del commit nel browser (URL corretti); accesso dal browser contro un
+    server GitLab finto — codice mostrato, pagina aperta, attesa poi account salvato con il token **non**
+    scritto su disco — e messaggio chiaro quando il provider non risponde.
+-   **Stato**: completato.
+-   **Riferimento**: commit del repository `~/Projects/githandler` (v0.9.0).
+
 ### Si può partire da zero: creare un repository, clonarlo, collegare un account
 
 -   **Cosa**: l'app ora sa **creare** un repository nuovo (chiedendo, se si vuole, nome ed email da usare

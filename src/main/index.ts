@@ -6,23 +6,39 @@ import {
 	ipcMain,
 	Menu,
 	screen,
+	shell,
 } from "electron";
 import { writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 
 import {
 	CHANGED_CHANNEL,
+	OAUTH_CHANNEL,
 	PANEL_DETACHED_CHANNEL,
 	PANEL_STATE_CHANNEL,
 	TERMINAL_CHANNEL,
+	type AccountInput,
 	type IpcChannel,
 	type PanelState,
 	type TerminalEvent,
 } from "../shared/api.ts";
-import { hostFromUrl } from "../core/providers.ts";
+import {
+	commitWebUrl,
+	hostFromUrl,
+	remoteWeb,
+} from "../core/providers.ts";
 import { normalizeSettings } from "../core/settings.ts";
-import { accountRepos, accountsInfo, credentialEnvFor, removeAccount, saveAccount } from "./accounts.ts";
+import {
+	accountRepos,
+	accountsInfo,
+	credentialEnvFor,
+	removeAccount,
+	saveAccount,
+} from "./accounts.ts";
 import { CliGitBackend } from "./backend.ts";
+import { readCommitFile, readWorkingFile, resolveInside } from "./files.ts";
+import { runGit } from "./git.ts";
+import { cancelOAuth, startOAuth } from "./oauth.ts";
 import { cloneRepository, initRepository, type Identity } from "./repos.ts";
 import { loadSettings, saveSettings } from "./settings.ts";
 import { startWatcher } from "./watcher.ts";
@@ -98,6 +114,16 @@ function broadcast(channel: string, payload: unknown): void {
 
 function sendTerminal(event: TerminalEvent): void {
 	broadcast(TERMINAL_CHANNEL, event);
+}
+
+/** URL del remoto `origin`: serve ai link nel browser, non esiste in un repository senza remoto. */
+async function originRemote(root: string): Promise<string | null> {
+	const result = await runGit(root, ["remote", "get-url", "origin"], {
+		allowFailure: true,
+	});
+	if (result.code !== 0) return null;
+	const remote = result.stdout.trim();
+	return remote || null;
 }
 
 function cleanError(error: unknown): string {
@@ -321,6 +347,83 @@ function registerIpc(): void {
 	);
 	handle("accounts:remove", (id: string) => removeAccount(id));
 	handle("accounts:repos", (id: string) => accountRepos(id));
+
+	// Accesso dal browser: il token resta nel main, la finestra riceve solo l'esito.
+	handle("accounts:oauthStart", (input: AccountInput, clientId: string) =>
+		startOAuth(input, clientId, (event) => broadcast(OAUTH_CHANNEL, event))
+	);
+	handle("accounts:oauthCancel", async () => cancelOAuth());
+
+	// File e cartella: il renderer manda percorsi relativi, il main li verifica e tocca il sistema.
+	handle("repo:openFolder", async (root: string) => {
+		const failure = await shell.openPath(root);
+		if (failure) throw new Error(failure);
+	});
+
+	handle("repo:openFile", async (root: string, path: string) => {
+		const failure = await shell.openPath(resolveInside(root, path));
+		if (failure) throw new Error(failure);
+	});
+
+	handle("repo:revealFile", async (root: string, path: string) => {
+		shell.showItemInFolder(resolveInside(root, path));
+	});
+
+	handle(
+		"repo:saveCopy",
+		async (root: string, path: string, sha: string | null) => {
+			const bytes = sha
+				? await readCommitFile(root, sha, path)
+				: await readWorkingFile(root, path);
+			const settings = await loadSettings();
+			const options: Electron.SaveDialogOptions = {
+				title: "Salva una copia del file",
+				defaultPath: join(
+					settings.defaultRoot ?? app.getPath("downloads"),
+					basename(path)
+				),
+				properties: ["showOverwriteConfirmation", "createDirectory"],
+			};
+			const result = window
+				? await dialog.showSaveDialog(window, options)
+				: await dialog.showSaveDialog(options);
+			const destination = result.filePath;
+			if (result.canceled || !destination) return null;
+			await writeFile(destination, bytes);
+			return destination;
+		}
+	);
+
+	handle("repo:openInBrowser", async (root: string) => {
+		const web = remoteWeb((await originRemote(root)) ?? "");
+		if (!web)
+			throw new Error(
+				"Il remoto «origin» non è un indirizzo web: non c'è niente da aprire nel browser."
+			);
+		await shell.openExternal(web.base);
+	});
+
+	handle("repo:openCommitInBrowser", async (root: string, sha: string) => {
+		const url = commitWebUrl((await originRemote(root)) ?? "", sha);
+		if (!url)
+			throw new Error(
+				"Questo remoto non ha un indirizzo web per i commit: serve un `origin` GitHub, GitLab, Bitbucket o Gitea."
+			);
+		await shell.openExternal(url);
+	});
+
+	handle("app:openExternal", async (url: string) => {
+		// solo http/https, niente `file://` o schemi che lanciano programmi
+		let parsed: URL;
+		try {
+			parsed = new URL(url);
+		} catch {
+			throw new Error(`Indirizzo non valido: ${url}`);
+		}
+		if (parsed.protocol !== "https:" && parsed.protocol !== "http:")
+			throw new Error(`Si possono aprire solo indirizzi http o https: ${url}`);
+		await shell.openExternal(parsed.toString());
+	});
 
 	// Il terminale esegue quello che l'utente scrive: è una shell, non un comando Git strutturato.
 	const terminals = new Map<string, ChildProcess>();

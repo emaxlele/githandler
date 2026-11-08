@@ -80,6 +80,26 @@ export interface GitApi {
 	removeAccount(id: string): Promise<AccountsInfo>;
 	/** Elenco dei repository dell'account, letto dall'API del provider. */
 	accountRepos(id: string): Promise<RemoteRepo[]>;
+	/** Apre la cartella del repository nel gestore file di sistema. */
+	openRepoFolder(root: string): Promise<void>;
+	/** Apre un file del repository con l'applicazione associata. */
+	openFile(root: string, path: string): Promise<void>;
+	/** Mostra un file nella sua cartella. */
+	revealFile(root: string, path: string): Promise<void>;
+	/** Salva fuori dal repository una copia del file (dal working tree o da un commit). */
+	saveCopy(root: string, path: string, sha: string | null): Promise<string | null>;
+	/** Apre nel browser il repository del remoto `origin`. */
+	openInBrowser(root: string): Promise<void>;
+	/** Apre nel browser il commit indicato. */
+	openCommitInBrowser(root: string, sha: string): Promise<void>;
+	/** Apre un indirizzo http/https nel browser di sistema. */
+	openExternal(url: string): Promise<void>;
+	/** Avvia l'accesso dal browser (device flow): restituisce il codice da mostrare. */
+	oauthStart(input: AccountInput, clientId: string): Promise<OAuthStart>;
+	/** Ferma un accesso dal browser in corso. */
+	oauthCancel(): Promise<void>;
+	/** Esito dell'accesso dal browser, uno per flusso. */
+	onOauth(listener: (event: OAuthEvent) => void): () => void;
 	/** Reset del ramo attuale a un commit (soft, mixed, hard). */
 	reset(sha: string, mode: ResetMode): Promise<Snapshot>;
 	renameBranch(from: string, to: string): Promise<Snapshot>;
@@ -137,7 +157,23 @@ export interface AccountsInfo {
 export type AccountInput = Pick<
 	Account,
 	"provider" | "host" | "apiBase" | "username" | "label"
->;
+> & {
+	/** Client ID dell'applicazione OAuth: pubblico, facoltativo (serve all'accesso dal browser). */
+	oauthClientId?: string;
+};
+
+/** Codice da mostrare all'utente per l'accesso dal browser. */
+export interface OAuthStart {
+	userCode: string;
+	verificationUri: string;
+	expiresIn: number;
+}
+
+export interface OAuthEvent {
+	state: "ok" | "error";
+	message?: string;
+	accountId?: string;
+}
 
 export type PanelTab = "changes" | "commit" | "tree" | "blame" | "term";
 export type PanelSide = "changes" | "commits";
@@ -199,12 +235,21 @@ export type IpcChannel =
 	| "app:watching"
 	| "app:settings"
 	| "app:chooseFolder"
+	| "app:openExternal"
 	| "repo:init"
 	| "repo:clone"
 	| "accounts:list"
 	| "accounts:save"
 	| "accounts:remove"
 	| "accounts:repos"
+	| "accounts:oauthStart"
+	| "accounts:oauthCancel"
+	| "repo:openFolder"
+	| "repo:openFile"
+	| "repo:revealFile"
+	| "repo:saveCopy"
+	| "repo:openInBrowser"
+	| "repo:openCommitInBrowser"
 	| "app:settings:save"
 	| "app:trashUsage"
 	| "term:run"
@@ -217,6 +262,8 @@ export const CHANGED_CHANNEL = "repo:changed";
 
 /** Canale di solo invio: output e fine dei comandi del terminale integrato. */
 export const TERMINAL_CHANNEL = "term:event";
+/** Esito dell'accesso dal browser: `ok` porta solo l'id dell'account, mai il token. */
+export const OAUTH_CHANNEL = "accounts:oauth";
 
 /** Canale di solo invio: selezione del pannello, per la finestra staccata. */
 export const PANEL_STATE_CHANNEL = "panel:state";

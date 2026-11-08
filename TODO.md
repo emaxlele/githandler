@@ -1,6 +1,6 @@
 # TODO
 
-Stato al 2026-11-08 (v0.8.0). Le voci spuntate sono in `CHANGELOG.md`.
+Stato al 2026-11-08 (v0.9.0). Le voci spuntate sono in `CHANGELOG.md`.
 
 ## Fatto
 
@@ -38,6 +38,13 @@ Stato al 2026-11-08 (v0.8.0). Le voci spuntate sono in `CHANGELOG.md`.
         pulsante *Interrompi* (nessuna dipendenza nuova, niente `node-pty`)
 -   [x] **Più repository aperti insieme**: backend per root e sessione per scheda, root come primo
         argomento di ogni canale IPC, watcher sulla scheda attiva
+-   [x] **File e cartella dal repository**: pulsante *Cartella*, menu della scheda (cartella, percorso,
+    repository nel browser), menu del file (apri con l'app, mostra nella cartella, salva una copia, copia
+    percorso, doppio clic che apre), menu del commit con l'URL web; copie lette byte per byte dal working
+    tree o da `git show <sha>:<path>`, percorsi verificati nel main
+-   [x] **Token dal browser**: device flow OAuth per GitHub e GitLab (anche self-hosted) con Client ID
+    pubblico salvato nell'account, codice mostrato e pagina aperta, token che resta nel main; pagina dei
+    token per Gitea e Bitbucket
 -   [x] **Changes a tutta area**: la voce della barra laterale porta il pannello delle modifiche
         nell'area principale, senza storia né pannello inferiore
 -   [x] **Clic sul ref = cursore sul commit** e **menu contestuale** su rami e commit (checkout, merge,
@@ -89,6 +96,15 @@ Stato al 2026-11-08 (v0.8.0). Le voci spuntate sono in `CHANGELOG.md`.
         Avalonia: è la misura che ha motivato la scelta di Electron
 -   [ ] Decidere se e come pubblicare il repository
 
+-   [ ] Azioni sui file solo dove i file si vedono: il File Tree elenca i file **modificati** e il
+        commit selezionato, non tutto il repository. Serve un albero completo pigro (un livello alla
+        volta, `git ls-tree`) per aprire o salvare un file qualunque senza passare da un commit
+-   [ ] Salvare una **cartella** intera (o uno zip) dal repository, e trascinare un file fuori dalla
+        finestra: oggi la copia è di un file alla volta
+-   [ ] Link web ai file anche per Gitea (`/src/branch/<ref>/<path>`): la forma è nota, manca il canale
+        che serve al menu del file
+-   [ ] Device flow: un Client ID predefinito per GitHub nell'app, così l'accesso dal browser funziona
+        senza che l'utente registri una sua applicazione OAuth
 -   [ ] Account: l'elenco dei repository legge la prima pagina dell'API (100 su GitHub e GitLab, 50 su
         Gitea, 100 su Bitbucket). Serve la paginazione o una ricerca lato server per gli account con
         molti repository

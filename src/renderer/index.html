@@ -34,6 +34,20 @@
 				</button>
 				<button
 					class="tool"
+					id="btn-folder"
+					title="Apri la cartella del repository nel gestore file"
+				>
+					<svg viewBox="0 0 20 20" aria-hidden="true">
+						<path
+							d="M2.5 6.5a2 2 0 0 1 2-2h2.4l1.4 1.7h7.2a2 2 0 0 1 2 2v6.3a2 2 0 0 1-2 2H4.5a2 2 0 0 1-2-2z"
+						/>
+						<path d="M7.6 12.4 10 10l2.4 2.4" />
+						<path d="M10 10v4.6" />
+					</svg>
+					<span>Cartella</span>
+				</button>
+				<button
+					class="tool"
 					id="btn-fetch"
 					title="git fetch --all --prune"
 				>
@@ -835,6 +849,24 @@
 							<span>Indirizzo API</span>
 							<input id="account-api-base" autocomplete="off" spellcheck="false" />
 						</label>
+						<label class="field" id="account-oauth-client-field">
+							<span>Client ID OAuth (per l'accesso dal browser)</span>
+							<div class="field-row">
+								<input
+									id="account-oauth-client"
+									autocomplete="off"
+									spellcheck="false"
+									placeholder="facoltativo"
+								/>
+								<button
+									type="button"
+									class="btn"
+									id="account-oauth-client-help"
+								>
+									Crea…
+								</button>
+							</div>
+						</label>
 						<label class="field">
 							<span>Token</span>
 							<input
@@ -844,6 +876,23 @@
 								placeholder="incollalo qui"
 							/>
 						</label>
+						<div class="account-browser">
+							<button
+								type="button"
+								class="btn btn-small"
+								id="account-oauth-start"
+							>
+								Accedi con il browser
+							</button>
+							<button
+								type="button"
+								class="btn btn-small"
+								id="account-token-page"
+							>
+								Crea un token nel browser…
+							</button>
+							<span class="account-status" id="account-oauth-status"></span>
+						</div>
 						<label class="field">
 							<span>Etichetta (facoltativa)</span>
 							<input id="account-label" autocomplete="off" />

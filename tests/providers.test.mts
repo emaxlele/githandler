@@ -7,12 +7,15 @@ import {
 	askpassEnv,
 	assertToken,
 	cloneArgs,
+	commitWebUrl,
 	credentialInput,
+	fileWebUrl,
 	hostFromUrl,
 	initArgs,
 	normalizeAccount,
 	parseAccounts,
 	parseRemoteRepos,
+	remoteWeb,
 	repoNameFromUrl,
 	reposUrl,
 	serializeAccounts,
@@ -27,6 +30,7 @@ const github: Account = {
 	apiBase: "https://api.github.com",
 	username: "emaxlele",
 	addedAt: 1,
+	oauthClientId: "",
 };
 
 test("normalizeAccount rifiuta provider, host e token impossibili", () => {
@@ -46,6 +50,7 @@ test("normalizeAccount rifiuta provider, host e token impossibili", () => {
 		apiBase: "https://gitlab.example.org/api/v4",
 		username: "mario",
 		addedAt: 5,
+		oauthClientId: "",
 	});
 
 	for (const bad of [
@@ -71,6 +76,26 @@ test("l'elenco salvato ignora voci rotte e doppioni", () => {
 	const accounts = parseAccounts(raw);
 	assert.equal(accounts.length, 1);
 	assert.equal(accounts[0]!.id, accountId("github", "github.com", "a"));
+
+	// il Client ID è pubblico e facoltativo: una riga sola, altrimenti si scarta
+	assert.equal(
+		normalizeAccount({
+			provider: "github",
+			host: "github.com",
+			username: "u",
+			oauthClientId: " Iv1.abc123 ",
+		})?.oauthClientId,
+		"Iv1.abc123"
+	);
+	assert.equal(
+		normalizeAccount({
+			provider: "github",
+			host: "github.com",
+			username: "u",
+			oauthClientId: "a\nb",
+		})?.oauthClientId,
+		""
+	);
 
 	// file corrotto o assente = nessun account, non un errore
 	assert.deepEqual(parseAccounts("{"), []);
@@ -213,6 +238,65 @@ test("nome della cartella e host dagli URL git", () => {
 	assert.equal(hostFromUrl("ssh://git@server.example.org:2222/a/b.git"), "server.example.org:2222");
 	assert.equal(hostFromUrl("file:///tmp/repo.git"), null);
 	assert.equal(hostFromUrl("/tmp/repo.git"), null);
+});
+
+test("dal remoto all'indirizzo web, per ogni servizio", () => {
+	assert.deepEqual(remoteWeb("https://github.com/emaxlele/githandler.git"), {
+		host: "github.com",
+		base: "https://github.com/emaxlele/githandler",
+		kind: "github",
+	});
+	assert.equal(
+		remoteWeb("git@github.com:emaxlele/githandler.git")?.base,
+		"https://github.com/emaxlele/githandler"
+	);
+	assert.equal(
+		remoteWeb("ssh://git@gitlab.example.org:2222/gruppo/sotto/progetto.git")?.base,
+		"https://gitlab.example.org:2222/gruppo/sotto/progetto"
+	);
+	assert.equal(
+		remoteWeb("https://host/gruppo/repo/")?.base,
+		"https://host/gruppo/repo"
+	);
+	// niente sito da aprire
+	assert.equal(remoteWeb("/tmp/repo.git"), null);
+	assert.equal(remoteWeb("file:///tmp/repo.git"), null);
+	assert.equal(remoteWeb("https://github.com/solo"), null);
+	assert.equal(remoteWeb(""), null);
+
+	assert.equal(
+		commitWebUrl("git@github.com:emaxlele/githandler.git", "ed010999af"),
+		"https://github.com/emaxlele/githandler/commit/ed010999af"
+	);
+	assert.equal(
+		commitWebUrl("https://gitlab.com/gruppo/progetto.git", "ed010999af"),
+		"https://gitlab.com/gruppo/progetto/-/commit/ed010999af"
+	);
+	assert.equal(
+		commitWebUrl("https://bitbucket.org/team/repo.git", "ed010999af"),
+		"https://bitbucket.org/team/repo/commits/ed010999af"
+	);
+	assert.equal(
+		commitWebUrl("git@github.com:emaxlele/githandler.git", "non-uno-sha"),
+		null
+	);
+	assert.equal(commitWebUrl("/tmp/repo.git", "ed010999af"), null);
+
+	assert.equal(
+		fileWebUrl("https://github.com/o/r.git", "feature/x", "src/app main.ts"),
+		"https://github.com/o/r/blob/feature/x/src/app%20main.ts"
+	);
+	assert.equal(
+		fileWebUrl("https://gitlab.com/o/r.git", "main", "a/b.txt"),
+		"https://gitlab.com/o/r/-/blob/main/a/b.txt"
+	);
+	assert.equal(
+		fileWebUrl("https://bitbucket.org/o/r.git", "main", "a/b.txt"),
+		"https://bitbucket.org/o/r/src/main/a/b.txt"
+	);
+	// Gitea ha una forma sua (`/src/branch/…`): meglio nessun link
+	assert.equal(fileWebUrl("https://git.example.org/o/r.git", "main", "a.txt"), null);
+	assert.equal(fileWebUrl("https://github.com/o/r.git", "", "a.txt"), null);
 });
 
 test("clone e init non trasformano l'URL o il path in opzioni", () => {

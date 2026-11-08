@@ -71,6 +71,11 @@ export interface Account {
 	apiBase: string;
 	username: string;
 	addedAt: number;
+	/**
+	 * Client ID dell'applicazione OAuth, per l'accesso dal browser. È **pubblico** (viaggia nell'URL
+	 * di autorizzazione), non è un segreto: può stare qui accanto agli altri metadati.
+	 */
+	oauthClientId: string;
 }
 
 export function accountId(
@@ -151,6 +156,10 @@ export function normalizeAccount(value: unknown): Account | null {
 			? record.addedAt
 			: Date.now();
 	const label = typeof record.label === "string" ? record.label.trim() : "";
+	// il Client ID è pubblico ma finisce in un corpo HTTP: una sola riga stampabile, o niente
+	const oauthRaw =
+		typeof record.oauthClientId === "string" ? record.oauthClientId.trim() : "";
+	const oauthClientId = oauthRaw && LINE_SAFE.test(oauthRaw) ? oauthRaw : "";
 	return {
 		id: accountId(provider, host, username),
 		provider,
@@ -159,6 +168,7 @@ export function normalizeAccount(value: unknown): Account | null {
 		apiBase,
 		username,
 		addedAt,
+		oauthClientId,
 	};
 }
 
@@ -351,6 +361,102 @@ export function hostFromUrl(url: string): string | null {
 		return host || null;
 	} catch {
 		return null;
+	}
+}
+
+export type RemoteKind = "github" | "gitlab" | "bitbucket" | "gitea" | "other";
+
+export interface RemoteWeb {
+	host: string;
+	/** `https://host/proprietario/repository`, senza slash finale */
+	base: string;
+	kind: RemoteKind;
+}
+
+/**
+ * Da un remoto git all'indirizzo web del repository: serve per «Apri nel browser» e per i link ai
+ * commit. Riconosce https, `ssh://` e la forma `git@host:proprietario/repository.git`; per i percorsi
+ * locali restituisce `null` (non c'è nessun sito da aprire).
+ */
+export function remoteWeb(remote: string): RemoteWeb | null {
+	const value = remote.trim();
+	if (!value) return null;
+	let host = "";
+	let path = "";
+	const scp = /^[^/@\s]+@([^:/\s]+):(.+)$/.exec(value);
+	if (scp) {
+		host = scp[1]!;
+		path = scp[2]!;
+	} else {
+		let url: URL;
+		try {
+			url = new URL(value);
+		} catch {
+			return null;
+		}
+		if (url.protocol === "file:") return null;
+		host = url.host;
+		path = url.pathname;
+	}
+	path = path
+		.replace(/^\/+/, "")
+		.replace(/\/+$/, "")
+		.replace(/\.git$/i, "");
+	if (!host || path.split("/").filter(Boolean).length < 2) return null;
+	const lower = host.toLowerCase();
+	const kind: RemoteKind = lower === "github.com"
+		? "github"
+		: lower === "bitbucket.org"
+			? "bitbucket"
+			: lower.includes("gitlab")
+				? "gitlab"
+				: "other";
+	return { host: lower, base: `https://${lower}/${path}`, kind };
+}
+
+function encodePath(path: string): string {
+	return path
+		.split("/")
+		.filter((segment) => segment !== "")
+		.map((segment) => encodeURIComponent(segment))
+		.join("/");
+}
+
+/** Link web a un commit; `null` se il remoto non è un servizio web o lo SHA non è valido. */
+export function commitWebUrl(remote: string, sha: string): string | null {
+	const web = remoteWeb(remote);
+	if (!web) return null;
+	if (!/^[0-9a-f]{7,64}$/.test(sha)) return null;
+	switch (web.kind) {
+		case "gitlab":
+			return `${web.base}/-/commit/${sha}`;
+		case "bitbucket":
+			return `${web.base}/commits/${sha}`;
+		default:
+			return `${web.base}/commit/${sha}`;
+	}
+}
+
+/**
+ * Link web a un file in un ramo o in un commit. Gitea e i server non riconosciuti hanno forme
+ * diverse (`/src/branch/…`): lì si preferisce nessun link a un link sbagliato.
+ */
+export function fileWebUrl(remote: string, ref: string, path: string): string | null {
+	const web = remoteWeb(remote);
+	if (!web) return null;
+	if (!ref.trim() || !path.trim()) return null;
+	const encodedRef = encodePath(ref);
+	const encodedPath = encodePath(path);
+	if (!encodedRef || !encodedPath) return null;
+	switch (web.kind) {
+		case "github":
+			return `${web.base}/blob/${encodedRef}/${encodedPath}`;
+		case "gitlab":
+			return `${web.base}/-/blob/${encodedRef}/${encodedPath}`;
+		case "bitbucket":
+			return `${web.base}/src/${encodedRef}/${encodedPath}`;
+		default:
+			return null;
 	}
 }
 
