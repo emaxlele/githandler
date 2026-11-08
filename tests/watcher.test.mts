@@ -70,7 +70,7 @@ test("una scrittura nel repository produce un evento", async () => {
 		),
 	]);
 
-	stop();
+	stop?.();
 });
 
 test("i file ignorati non generano eventi", async () => {
@@ -89,6 +89,6 @@ test("i file ignorati non generano eventi", async () => {
 	await writeFile(join(dir, "file.lock"), "x");
 	await writeFile(join(dir, "file.swp"), "x");
 	await new Promise((resolve) => setTimeout(resolve, 200));
-	stop();
+	stop?.();
 	assert.equal(calls, 0);
 });

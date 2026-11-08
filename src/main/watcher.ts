@@ -56,8 +56,10 @@ export class Debouncer {
 	}
 }
 
-/** Avvia la sorveglianza e restituisce la funzione che la ferma. */
-export function startWatcher(options: WatcherOptions): () => void {
+/** Avvia la sorveglianza e restituisce la funzione che la ferma; `null` se non è possibile. */
+export function startWatcher(
+	options: WatcherOptions
+): (() => void) | null {
 	const debounceMs = options.debounceMs ?? 400;
 	const ignore = options.ignore ?? ((path) => !isInterestingPath(path));
 	const debouncer = new Debouncer(debounceMs, options.onChange);
@@ -75,7 +77,7 @@ export function startWatcher(options: WatcherOptions): () => void {
 		);
 	} catch {
 		// radice rimossa o permessi negati: l'app resta usabile con l'aggiornamento manuale
-		return () => undefined;
+		return null;
 	}
 
 	watcher.on("error", () => {
