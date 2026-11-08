@@ -714,8 +714,8 @@ body {
 .split {
 	display: grid;
 	grid-template-columns:
-		max-content max-content max-content
-		max-content max-content max-content;
+		max-content max-content var(--split-cols, 60ch)
+		max-content max-content var(--split-cols, 60ch);
 	font-family: var(--mono);
 	font-size: 12px;
 	line-height: 18px;

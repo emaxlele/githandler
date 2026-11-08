@@ -171,7 +171,16 @@ function renderSplitBody(
 	mode: PatchMode | undefined,
 	picked: ReadonlySet<string>
 ): string {
-	const out: string[] = ['<div class="split">'];
+	// Le due colonne hanno la stessa larghezza: si prende la riga più lunga del file, così le due
+	// metà restano simmetriche invece di allargarsi una a scapito dell'altra.
+	let widest = 0;
+	for (const hunk of file.hunks) {
+		for (const line of hunk.lines) widest = Math.max(widest, line.text.length);
+	}
+	const columns = Math.max(48, widest + 6);
+	const out: string[] = [
+		`<div class="split" style="--split-cols: ${columns}ch">`,
+	];
 
 	file.hunks.forEach((hunk, hunkIndex) => {
 		out.push(renderHunkHeader(hunk, hunkIndex, mode, picked));
