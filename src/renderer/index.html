@@ -22,6 +22,18 @@
 				</button>
 				<button
 					class="tool"
+					id="btn-clone"
+					title="Clona un repository da un URL o da un account"
+				>
+					<svg viewBox="0 0 20 20" aria-hidden="true">
+						<path d="M7 3.5v6a3 3 0 0 0 3 3h3" />
+						<path d="M10.5 9.5 13.5 12.5 10.5 15.5" />
+						<path d="M3.5 3.5h3.8v3.8H3.5z" />
+					</svg>
+					<span>Clona</span>
+				</button>
+				<button
+					class="tool"
 					id="btn-fetch"
 					title="git fetch --all --prune"
 				>
@@ -463,11 +475,57 @@
 					</div>
 				</div>
 			</main>
+
+			<section class="welcome" id="welcome" hidden>
+				<div class="welcome-inner">
+					<h1>GitHandler</h1>
+					<p class="welcome-lead">Nessun repository aperto.</p>
+					<div class="welcome-actions">
+						<button class="btn btn-primary" id="btn-welcome-open">
+							Apri un repository…
+						</button>
+						<button class="btn" id="btn-welcome-create">
+							Crea un repository…
+						</button>
+						<button class="btn" id="btn-welcome-clone">
+							Clona da URL…
+						</button>
+						<button class="btn" id="btn-welcome-account">
+							Clona da un account…
+						</button>
+					</div>
+					<p class="hint">
+						La cartella di base è <code id="welcome-base">—</code>: da
+						lì partono i dialog e i cloni, poi si naviga dove
+						serve. Si cambia nelle impostazioni.
+					</p>
+				</div>
+			</section>
 		</div>
 
 		<dialog class="settings" id="settings-dialog">
 			<form id="settings-form">
 				<h2>Impostazioni</h2>
+
+				<section class="settings-section">
+					<h3>Cartella di base</h3>
+					<p class="hint">
+						Da qui partono «Apri», «Crea» e «Clona». Non è un
+						limite: nella finestra di scelta si può navigare
+						ovunque.
+					</p>
+					<div class="base-folder">
+						<input
+							id="setting-base"
+							placeholder="~ (home dell'utente)"
+							autocomplete="off"
+							spellcheck="false"
+						/>
+						<button type="button" class="btn" id="btn-choose-base">
+							Scegli…
+						</button>
+					</div>
+				</section>
 
 				<section class="settings-section">
 					<h3>API per l'AI (server MCP)</h3>
@@ -655,6 +713,177 @@
 						Aggiorna
 					</button>
 					<button type="button" class="btn" id="submodule-close">
+						Chiudi
+					</button>
+				</div>
+			</form>
+		</dialog>
+
+		<dialog class="dialog" id="create-dialog">
+			<form id="create-form">
+				<h2>Crea un repository</h2>
+				<p class="hint">
+					<code>git init</code> nella cartella scelta. Se compili nome
+					e email diventano l'identità <em>locale</em> del repository;
+					vuoti, restano quelli globali di Git.
+				</p>
+				<label class="field">
+					<span>Cartella genitore</span>
+					<div class="field-row">
+						<input id="create-parent" autocomplete="off" spellcheck="false" />
+						<button type="button" class="btn" id="create-browse">
+							Sfoglia…
+						</button>
+					</div>
+				</label>
+				<label class="field">
+					<span>Nome del repository</span>
+					<input id="create-name" placeholder="nuovo-progetto" autocomplete="off" />
+				</label>
+				<div class="field-grid">
+					<label class="field">
+						<span>Nome (facoltativo)</span>
+						<input id="create-user-name" autocomplete="off" />
+					</label>
+					<label class="field">
+						<span>Email (facoltativa)</span>
+						<input id="create-user-email" autocomplete="off" />
+					</label>
+				</div>
+				<div class="dialog-actions">
+					<button type="button" class="btn" id="create-cancel">
+						Annulla
+					</button>
+					<button type="submit" class="btn btn-primary">Crea</button>
+				</div>
+			</form>
+		</dialog>
+
+		<dialog class="dialog" id="clone-dialog">
+			<form id="clone-form">
+				<h2>Clona un repository</h2>
+				<p class="hint">
+					Un URL HTTPS, SSH o un percorso locale. Il repository prende
+					il nome dalla sua ultima parte e finisce nella cartella
+					scelta.
+				</p>
+				<label class="field">
+					<span>URL del repository</span>
+					<input
+						id="clone-url"
+						placeholder="https://host/proprietario/repository.git"
+						autocomplete="off"
+						spellcheck="false"
+					/>
+				</label>
+				<label class="field">
+					<span>Cartella genitore</span>
+					<div class="field-row">
+						<input id="clone-parent" autocomplete="off" spellcheck="false" />
+						<button type="button" class="btn" id="clone-browse">
+							Sfoglia…
+						</button>
+					</div>
+				</label>
+				<p class="hint" id="clone-target"></p>
+				<div class="dialog-actions">
+					<button type="button" class="btn" id="clone-cancel">
+						Annulla
+					</button>
+					<button type="submit" class="btn btn-primary">Clona</button>
+				</div>
+			</form>
+		</dialog>
+
+		<dialog class="dialog dialog-wide" id="account-dialog">
+			<form id="account-form">
+				<h2>Account collegati</h2>
+				<p class="hint">
+					Il token serve per elencare i repository e per clonare quelli
+					privati. Non viene scritto da GitHandler: resta in memoria
+					finché l'app è aperta e, se hai un credential helper, viene
+					consegnato a Git per riusarlo.
+				</p>
+				<div class="account-layout">
+					<div class="account-side">
+						<ul class="account-list" id="account-list"></ul>
+						<div class="account-side-actions">
+							<button type="button" class="btn btn-small" id="account-new">
+								Nuovo
+							</button>
+							<button type="button" class="btn btn-small" id="account-remove">
+								Rimuovi
+							</button>
+						</div>
+					</div>
+					<div class="account-fields">
+						<label class="field">
+							<span>Provider</span>
+							<select id="account-provider"></select>
+						</label>
+						<div class="field-grid">
+							<label class="field">
+								<span>Host</span>
+								<input id="account-host" autocomplete="off" spellcheck="false" />
+							</label>
+							<label class="field">
+								<span>Utente</span>
+								<input id="account-username" autocomplete="off" spellcheck="false" />
+							</label>
+						</div>
+						<label class="field" id="account-api-field">
+							<span>Indirizzo API</span>
+							<input id="account-api-base" autocomplete="off" spellcheck="false" />
+						</label>
+						<label class="field">
+							<span>Token</span>
+							<input
+								id="account-token"
+								type="password"
+								autocomplete="off"
+								placeholder="incollalo qui"
+							/>
+						</label>
+						<label class="field">
+							<span>Etichetta (facoltativa)</span>
+							<input id="account-label" autocomplete="off" />
+						</label>
+						<div class="account-actions">
+							<button type="button" class="btn btn-primary" id="account-save">
+								Salva account
+							</button>
+							<span class="account-status" id="account-status"></span>
+						</div>
+					</div>
+				</div>
+
+				<div class="account-repos">
+					<div class="account-repos-head">
+						<strong>Repository dell'account</strong>
+						<button type="button" class="btn btn-small" id="btn-load-repos">
+							Carica elenco
+						</button>
+					</div>
+					<div class="field-row">
+						<input
+							id="account-filter"
+							type="search"
+							placeholder="Filtra per nome…"
+							autocomplete="off"
+						/>
+					</div>
+					<ul class="repo-list" id="remote-repos"></ul>
+					<div class="field-row">
+						<span class="muted">Clona in</span>
+						<input id="account-dest" autocomplete="off" spellcheck="false" />
+						<button type="button" class="btn btn-small" id="account-dest-browse">
+							Sfoglia…
+						</button>
+					</div>
+				</div>
+
+				<div class="dialog-actions">
+					<button type="button" class="btn" id="account-close">
 						Chiudi
 					</button>
 				</div>

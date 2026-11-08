@@ -27,6 +27,7 @@ import {
 	parseRefs,
 	refsArgs,
 } from "../core/log.ts";
+import { hostFromUrl } from "../core/providers.ts";
 import { parseStatus, statusArgs } from "../core/status.ts";
 import { patchTargetsOnly, type PatchMode } from "../core/patch.ts";
 import { historyArgs, parseHistoryQuery } from "../core/search.ts";
@@ -44,6 +45,7 @@ import {
 	renameBranchArgs,
 	resetArgs,
 	stashApplyArgs,
+	assertSha,
 	stashDropArgs,
 	stashListArgs,
 	stashSaveArgs,
@@ -89,6 +91,13 @@ export const HISTORY_PAGE_SIZE = 2000;
 export interface BackendOptions {
 	/** Impostazioni correnti, rilette quando servono: UI e MCP vedono la stessa policy. */
 	settings?: () => Promise<Settings>;
+	/**
+	 * Credenziali per un host, quando l'utente ha collegato un account: finiscono nell'ambiente del
+	 * processo git (`GIT_ASKPASS`), mai negli argomenti o su disco.
+	 */
+	credentials?: (
+		host: string | null
+	) => Promise<Record<string, string> | null>;
 }
 
 /**
@@ -130,6 +139,8 @@ export interface GitBackend {
 	cherryPick(sha: string): Promise<Snapshot>;
 	/** Ramo nuovo che punta a un commit, senza spostare HEAD. */
 	createBranchAt(name: string, sha: string): Promise<Snapshot>;
+	/** Porta HEAD su un commit, staccato da ogni ramo. */
+	checkoutCommit(sha: string): Promise<Snapshot>;
 	/** Reset del ramo attuale a un commit, con voce di undo sul puntatore. */
 	reset(sha: string, mode: ResetMode): Promise<Snapshot>;
 	renameBranch(from: string, to: string): Promise<Snapshot>;
@@ -164,9 +175,22 @@ function assertSafePath(path: string): void {
 export class CliGitBackend implements GitBackend {
 	#info: RepoInfo | null = null;
 	readonly #settings: () => Promise<Settings>;
+	readonly #credentials: BackendOptions["credentials"];
 
 	constructor(options: BackendOptions = {}) {
 		this.#settings = options.settings ?? (async () => defaultSettings());
+		this.#credentials = options.credentials;
+	}
+
+	/** Ambiente con le credenziali dell'account che corrisponde all'host di `origin`. */
+	async #networkEnv(info: RepoInfo): Promise<Record<string, string>> {
+		if (!this.#credentials) return {};
+		const remote = await runGit(info.root, ["remote", "get-url", "origin"], {
+			allowFailure: true,
+		});
+		if (remote.code !== 0) return {};
+		const env = await this.#credentials(hostFromUrl(remote.stdout.trim()));
+		return env ?? {};
 	}
 
 	async open(dir: string): Promise<Snapshot> {
@@ -198,23 +222,28 @@ export class CliGitBackend implements GitBackend {
 	async refresh(): Promise<Snapshot> {
 		const info = this.#requireInfo();
 
-		const [log, refs, status, undoLog] = await Promise.all([
+		const [log, refs, status, undoLog, headRef] = await Promise.all([
 			runGit(info.root, logArgs({ limit: HISTORY_PAGE_SIZE }), {
 				allowFailure: true,
 			}),
 			runGit(info.root, refsArgs(), { allowFailure: true }),
 			runGit(info.root, statusArgs(), { allowFailure: true }),
 			this.#readUndo(),
+			// HEAD può essere stato staccato dopo l'apertura: `info` da solo sarebbe vecchio
+			runGit(info.root, ["symbolic-ref", "--short", "-q", "HEAD"], {
+				allowFailure: true,
+			}),
 		]);
 
 		const commits = parseLog(log.stdout);
 		const refList = parseRefs(refs.stdout);
 		attachRefs(commits, refList);
 
-		const head = refList.find((ref) => ref.kind === "local" && ref.current);
+		const branch = headRef.code === 0 ? headRef.stdout.trim() || null : null;
 		this.#info = {
 			...info,
-			branch: head?.short ?? (info.detached ? null : info.branch),
+			branch,
+			detached: branch === null,
 			operation: await this.#operation(info.gitDir),
 		};
 
@@ -469,13 +498,17 @@ export class CliGitBackend implements GitBackend {
 		const info = this.#requireInfo();
 		await runGit(info.root, ["fetch", "--all", "--prune"], {
 			timeoutMs: 120_000,
+			env: await this.#networkEnv(info),
 		});
 		return this.refresh();
 	}
 
 	async pull(): Promise<Snapshot> {
 		const info = this.#requireInfo();
-		await runGit(info.root, pullArgs(), { timeoutMs: 180_000 });
+		await runGit(info.root, pullArgs(), {
+			timeoutMs: 180_000,
+			env: await this.#networkEnv(info),
+		});
 		return this.refresh();
 	}
 
@@ -491,6 +524,7 @@ export class CliGitBackend implements GitBackend {
 			upstream.code === 0 && upstream.stdout.trim() !== "";
 		await runGit(info.root, pushArgs(info.branch, hasUpstream), {
 			timeoutMs: 180_000,
+			env: await this.#networkEnv(info),
 		});
 		return this.refresh();
 	}
@@ -592,6 +626,22 @@ export class CliGitBackend implements GitBackend {
 	async createBranchAt(name: string, sha: string): Promise<Snapshot> {
 		const info = this.#requireInfo();
 		await runGit(info.root, createBranchAtArgs(name, sha));
+		return this.refresh();
+	}
+
+	async checkoutCommit(sha: string): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		assertSha(sha);
+		const entry = await this.#record(
+			"checkout",
+			`Checkout di ${sha.slice(0, 8)} (HEAD staccato)`
+		);
+		try {
+			await runGit(info.root, ["switch", "--detach", sha]);
+		} catch (error) {
+			if (entry) await this.#dropUndo(entry.id);
+			throw error;
+		}
 		return this.refresh();
 	}
 

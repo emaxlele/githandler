@@ -19,8 +19,11 @@ import {
 	type PanelState,
 	type TerminalEvent,
 } from "../shared/api.ts";
+import { hostFromUrl } from "../core/providers.ts";
 import { normalizeSettings } from "../core/settings.ts";
+import { accountRepos, accountsInfo, credentialEnvFor, removeAccount, saveAccount } from "./accounts.ts";
 import { CliGitBackend } from "./backend.ts";
+import { cloneRepository, initRepository, type Identity } from "./repos.ts";
 import { loadSettings, saveSettings } from "./settings.ts";
 import { startWatcher } from "./watcher.ts";
 
@@ -65,6 +68,21 @@ let refreshing = false;
 let refreshPending = false;
 
 /** Il backend di un repository già aperto; un root sconosciuto è un errore, non un'apertura implicita. */
+/** Un backend che conosce anche le credenziali degli account collegati (per fetch/pull/push). */
+function newBackend(): CliGitBackend {
+	return new CliGitBackend({ settings: loadSettings, credentials: credentialEnvFor });
+}
+
+/** Apre un repository già sul disco: backend, mappa per root, watcher sulla scheda attiva. */
+async function openBackend(target: string): Promise<Awaited<ReturnType<CliGitBackend["open"]>>> {
+	const backend = newBackend();
+	const snapshot = await backend.open(target);
+	backends.set(snapshot.info.root, backend);
+	activeRoot = snapshot.info.root;
+	watchRepository(snapshot.info.root);
+	return snapshot;
+}
+
 function backendFor(root: string): CliGitBackend {
 	const backend = backends.get(root);
 	if (!backend) throw new Error(`Repository non aperto: ${root}`);
@@ -136,26 +154,43 @@ function handle<T>(
 }
 
 function registerIpc(): void {
-	handle("git:open", async (path?: string) => {
+	handle("git:open", async (path?: string, interactive = true) => {
 		let target = path ?? pendingRepo ?? undefined;
 		pendingRepo = null;
 
 		if (!target) {
-			if (shotsMode || !window) return null;
+			if (shotsMode || !window || !interactive) return null;
+			const settings = await loadSettings();
 			const result = await dialog.showOpenDialog(window, {
 				title: "Apri un repository Git",
 				properties: ["openDirectory"],
+				defaultPath: settings.defaultRoot ?? undefined,
 			});
 			target = result.filePaths[0];
 			if (result.canceled || !target) return null;
 		}
 
-		const backend = new CliGitBackend({ settings: loadSettings });
-		const snapshot = await backend.open(target);
-		backends.set(snapshot.info.root, backend);
-		activeRoot = snapshot.info.root;
-		watchRepository(snapshot.info.root);
-		return snapshot;
+		return openBackend(target);
+	});
+
+	handle("git:close", async (root: string) => {
+		// con i dettagli in una finestra separata il backend serve ancora a quella finestra
+		if (!panelWindow) backends.delete(root);
+		if (activeRoot === root) {
+			activeRoot = null;
+			stopWatching?.();
+			stopWatching = null;
+		}
+	});
+
+	handle("repo:init", async (path: string, identity: Identity | null) => {
+		await initRepository(path, identity);
+		return openBackend(path);
+	});
+
+	handle("repo:clone", async (url: string, dest: string) => {
+		await cloneRepository(url, dest, await credentialEnvFor(hostFromUrl(url)));
+		return openBackend(dest);
 	});
 
 	handle("git:use", async (root: string) => {
@@ -229,6 +264,9 @@ function registerIpc(): void {
 	handle("git:createBranchAt", (root: string, name: string, sha: string) =>
 		backendFor(root).createBranchAt(name, sha)
 	);
+	handle("git:checkoutCommit", (root: string, sha: string) =>
+		backendFor(root).checkoutCommit(sha)
+	);
 	handle("git:reset", (root: string, sha: string, mode: "soft" | "mixed" | "hard") =>
 		backendFor(root).reset(sha, mode)
 	);
@@ -263,6 +301,26 @@ function registerIpc(): void {
 		return settings;
 	});
 	handle("app:trashUsage", (root: string) => backendFor(root).trashUsage());
+
+	// Cartella scelta per i campi «Sfoglia…»: il renderer non vede il filesystem, chiede qui.
+	handle("app:chooseFolder", async (title?: string, start?: string) => {
+		if (!window) return null;
+		const settings = await loadSettings();
+		const result = await dialog.showOpenDialog(window, {
+			title: title ?? "Scegli una cartella",
+			properties: ["openDirectory", "createDirectory"],
+			defaultPath: start || settings.defaultRoot || undefined,
+		});
+		return result.canceled ? null : result.filePaths[0] ?? null;
+	});
+
+	// Account: i metadati stanno su disco, i token solo in memoria (vedi accounts.ts).
+	handle("accounts:list", () => accountsInfo());
+	handle("accounts:save", (account: unknown, token?: string) =>
+		saveAccount(account, token)
+	);
+	handle("accounts:remove", (id: string) => removeAccount(id));
+	handle("accounts:repos", (id: string) => accountRepos(id));
 
 	// Il terminale esegue quello che l'utente scrive: è una shell, non un comando Git strutturato.
 	const terminals = new Map<string, ChildProcess>();
@@ -441,6 +499,42 @@ const wait = (ms: number): Promise<void> =>
 async function runShots(): Promise<void> {
 	if (!window) return;
 	const target = shotsPath ?? join(app.getPath("temp"), "githandler.png");
+
+	// La schermata di benvenuto e i dialoghi si vedono senza repository aperto: vengono prima.
+	const startSteps: Array<[string, string | null]> = [
+		["undefined", target.replace(/\.png$/, "-welcome.png")],
+		[
+			`(() => {
+				document.getElementById("btn-welcome-create")?.click();
+				document.getElementById("create-name").value = "nuovo-progetto";
+				document.getElementById("create-user-name").value = "Mario Prova";
+				document.getElementById("create-user-email").value = "mario@example.org";
+			})()`,
+			target.replace(/\.png$/, "-create.png"),
+		],
+		[
+			`(() => {
+				document.getElementById("create-dialog")?.close();
+				document.getElementById("btn-welcome-clone")?.click();
+				const url = document.getElementById("clone-url");
+				url.value = "https://github.com/emaxlele/githandler.git";
+				url.dispatchEvent(new Event("input", { bubbles: true }));
+			})()`,
+			target.replace(/\.png$/, "-clone.png"),
+		],
+		[
+			`(() => {
+				document.getElementById("clone-dialog")?.close();
+				document.getElementById("btn-welcome-account")?.click();
+			})()`,
+			target.replace(/\.png$/, "-account.png"),
+		],
+		[
+			`document.getElementById("account-dialog")?.close()`,
+			null,
+		],
+	];
+
 	const steps: Array<[string, string]> = [
 		[
 			`document.querySelectorAll(".row")[2]?.click()`,
@@ -515,15 +609,26 @@ async function runShots(): Promise<void> {
 
 	try {
 		await wait(1500);
-		for (const [script, file] of steps) {
-			await window.webContents
-				.executeJavaScript(script)
-				.catch(() => undefined);
+		const shoot = async (script: string, file: string | null): Promise<void> => {
+			if (script !== "undefined")
+				await window!.webContents
+					.executeJavaScript(script)
+					.catch(() => undefined);
 			await wait(900);
-			const image = await window.webContents.capturePage();
+			if (!file) return;
+			const image = await window!.webContents.capturePage();
 			await writeFile(file, image.toPNG());
 			process.stdout.write(`screenshot: ${file}\n`);
-		}
+		};
+
+		for (const [script, file] of startSteps) await shoot(script, file);
+
+		// Senza `--repo` la finestra resta sul benvenuto: gli screenshot del repository non hanno senso.
+		const empty = await window.webContents
+			.executeJavaScript(`document.body.classList.contains("is-empty")`)
+			.catch(() => true);
+		if (empty) return;
+		for (const [script, file] of steps) await shoot(script, file);
 	} catch (error) {
 		process.stderr.write(`screenshot fallito: ${cleanError(error)}\n`);
 	} finally {

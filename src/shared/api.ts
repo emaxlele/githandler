@@ -1,4 +1,5 @@
 import type { BlameFile } from "../core/blame.ts";
+import type { Account, RemoteRepo } from "../core/providers.ts";
 import type { PatchMode } from "../core/patch.ts";
 import type { ResetMode } from "../core/ops.ts";
 import type { Settings, TrashUsage } from "../core/settings.ts";
@@ -21,8 +22,11 @@ import type {
  * tenere aperti più repository senza passare il path a ogni richiesta.
  */
 export interface GitApi {
-	/** Apre un repository; senza path mostra il dialog di sistema. */
-	open(path?: string): Promise<Snapshot | null>;
+	/**
+	 * Apre un repository; senza path mostra il dialog di sistema, a meno che `interactive` sia
+	 * falso: all'avvio l'app non deve aprire nulla da sola.
+	 */
+	open(path?: string, interactive?: boolean): Promise<Snapshot | null>;
 	/** Rende attivo un repository già aperto (schede della UI). */
 	use(root: string): Promise<void>;
 	/** Rilegge storia, ref e stato del repository corrente. */
@@ -59,6 +63,23 @@ export interface GitApi {
 	cherryPick(sha: string): Promise<Snapshot>;
 	/** Crea un ramo che punta a un commit, senza spostare HEAD. */
 	createBranchAt(name: string, sha: string): Promise<Snapshot>;
+	/** Porta HEAD su un commit, staccato da ogni ramo. */
+	checkoutCommit(sha: string): Promise<Snapshot>;
+	/** Chiude un repository: il main dimentica il backend e ferma il watcher. */
+	closeRepo(root: string): Promise<void>;
+	/** Crea un repository vuoto e lo apre. */
+	initRepo(path: string, identity: Identity | null): Promise<Snapshot>;
+	/** Clona un repository in una cartella e lo apre. */
+	cloneRepo(url: string, dest: string): Promise<Snapshot>;
+	/** Cartella scelta con il dialog di sistema (per i campi «Sfoglia…»). */
+	chooseFolder(title?: string, start?: string): Promise<string | null>;
+	/** Account collegati: metadati, token in memoria, presenza di un credential helper. */
+	accounts(): Promise<AccountsInfo>;
+	/** Salva o aggiorna un account; il token è facoltativo e non viene scritto su disco. */
+	saveAccount(account: AccountInput, token?: string): Promise<AccountsInfo>;
+	removeAccount(id: string): Promise<AccountsInfo>;
+	/** Elenco dei repository dell'account, letto dall'API del provider. */
+	accountRepos(id: string): Promise<RemoteRepo[]>;
 	/** Reset del ramo attuale a un commit (soft, mixed, hard). */
 	reset(sha: string, mode: ResetMode): Promise<Snapshot>;
 	renameBranch(from: string, to: string): Promise<Snapshot>;
@@ -99,6 +120,24 @@ export interface GitApi {
 	/** Si iscrive all'apertura e alla chiusura della finestra del pannello. */
 	onPanelDetached(listener: (detached: boolean) => void): () => void;
 }
+
+export interface Identity {
+	name: string;
+	email: string;
+}
+
+export interface AccountsInfo {
+	accounts: Account[];
+	/** id degli account con un token disponibile in questa sessione */
+	tokens: string[];
+	credentialHelper: boolean;
+}
+
+/** I campi che la finestra compila; id e data li calcola il main. */
+export type AccountInput = Pick<
+	Account,
+	"provider" | "host" | "apiBase" | "username" | "label"
+>;
 
 export type PanelTab = "changes" | "commit" | "tree" | "blame" | "term";
 export type PanelSide = "changes" | "commits";
@@ -146,6 +185,8 @@ export type IpcChannel =
 	| "git:rebase"
 	| "git:cherryPick"
 	| "git:createBranchAt"
+	| "git:checkoutCommit"
+	| "git:close"
 	| "git:reset"
 	| "git:renameBranch"
 	| "git:deleteBranch"
@@ -157,6 +198,13 @@ export type IpcChannel =
 	| "git:undo"
 	| "app:watching"
 	| "app:settings"
+	| "app:chooseFolder"
+	| "repo:init"
+	| "repo:clone"
+	| "accounts:list"
+	| "accounts:save"
+	| "accounts:remove"
+	| "accounts:repos"
 	| "app:settings:save"
 	| "app:trashUsage"
 	| "term:run"

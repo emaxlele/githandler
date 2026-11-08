@@ -1,5 +1,74 @@
 # Changelog
 
+## [0.8.0] — 2026-11-08
+
+### Si parte dal benvenuto, non da una finestra di sistema
+
+-   All'avvio, se non c'è `--repo`, la finestra mostra il **benvenuto** con quattro scelte — *Apri un
+    repository*, *Crea un repository*, *Clona da URL*, *Clona da un account* — e non apre più da sola il
+    dialog di sistema. Il dialog si apre solo da un pulsante, e annullarlo lascia il benvenuto dov'è.
+-   Il **`+` delle schede** apre lo stesso menu invece di saltare al dialog, e ora è **centrato**
+    sull'altezza delle schede (prima stava in basso a sinistra).
+-   Senza repository la striscia delle schede sparisce, il benvenuto occupa l'area e i comandi che
+    avrebbero bisogno di un repository (fetch, pull, push, stash, submodule, aggiorna, annulla) sono
+    spenti invece di rispondere con un errore.
+-   **L'ultima scheda si può chiudere**: il main dimentica il backend e ferma il watcher, e la finestra
+    torna al benvenuto.
+
+### Checkout di un commit, oltre che di un ramo
+
+-   Menu del commit → **«Checkout di questo commit (HEAD staccato)»**, con conferma. Il ramo non si
+    sposta: si guarda o si prova quel punto della storia, e *Annulla* riporta al ramo di prima.
+-   L'intestazione non mente più dopo un checkout staccato: il ramo (e lo stato staccato) vengono
+    riletti a ogni aggiornamento da `symbolic-ref`, non ricordati dall'apertura.
+
+### Creare un repository
+
+-   Dialogo **Crea**: cartella genitore (con «Sfoglia…»), nome, e **identità locale facoltativa**
+    (`user.name` / `user.email` nel solo repository, mai nella configurazione globale). Nome ed email
+    vanno insieme o restano tutti e due vuoti.
+-   La cartella non deve esistere: se c'è già, l'operazione si ferma e lo dice. Dopo `git init` il
+    repository si apre nella scheda nuova, sul ramo `main`.
+
+### Clonare, da un URL o da un account
+
+-   Dialogo **Clona**: URL HTTPS, SSH o percorso locale; il nome della cartella è l'ultima parte
+    dell'URL e la destinazione si vede prima di confermare. Cartella genitore scelta a mano, dal
+    dialogo o dalla cartella di base.
+-   **Clona da un account**: elenco dei repository dell'utente con filtro e badge *privato*, e clone
+    nella cartella indicata. Un clic, una cartella, una scheda.
+-   Timeout di 10 minuti sul clone, pulsanti disabilitati mentre l'operazione è in corso, e nessun
+    output parziale spacciato per successo: o finisce, o l'errore arriva.
+
+### Account collegati: GitHub, GitLab, Gitea/Forgejo, Bitbucket
+
+-   **Non solo GitHub**: provider, host e indirizzo dell'API sono modificabili per le installazioni
+    proprie (Gitea/Forgejo, GitLab self-hosted); GitHub e Bitbucket hanno host fisso.
+-   **Le credenziali si cambiano**: il token si reinserisce dall'account e vale subito; un 401/403
+    diventa «Token non valido o scaduto: aggiornalo nell'account».
+-   **Il token non viene scritto dall'app.** In `accounts.json` (0600) stanno solo i metadati — provider,
+    host, API, utente, etichetta. Il token resta in memoria per la sessione e arriva a `git` tramite
+    `GIT_ASKPASS` (script generico in `~/.config/githandler/askpass.sh`, 0700, che legge
+    `GITHANDLER_USER`/`GITHANDLER_TOKEN` dall'ambiente): niente segreti in argv, nei log o nei file
+    dell'app. Se l'utente ha un credential helper configurato il token viene anche consegnato con
+    `git credential approve`, così lo ritrova Git nel proprio archivio.
+-   Le credenziali valgono anche per **fetch, pull e push**: l'host si ricava da `origin`, l'ambiente
+    si costruisce al momento.
+-   Rimuovere un account toglie il token dalla memoria dell'app; quel che Git ha salvato resta di Git e
+    non viene cancellato di nascosto.
+
+### Cartella di base
+
+-   Nelle impostazioni si sceglie la **cartella di base**: è il punto di partenza di «Apri», «Crea» e
+    «Clona» e la destinazione predefinita dei cloni. Non è un limite: dalla finestra di scelta si
+    naviga ovunque. Vuota = home dell'utente.
+
+### Numeri
+
+-   120 test automatici (erano 110): parsing delle risposte delle quattro API, URL→nome della cartella,
+    host di un remoto (compresi SSH e `file://`), argomenti di clone e init, iniezione nelle credenziali
+    rifiutata, normalizzazione di token, account e cartella di base.
+
 ## [0.7.0] — 2026-11-08
 
 ### Il pannello dei dettagli si adatta a chi lo usa

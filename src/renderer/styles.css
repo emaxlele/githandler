@@ -227,10 +227,18 @@ body {
 	appearance: none;
 	background: transparent;
 	border: none;
+	border-radius: 6px;
 	color: var(--text-faint);
-	font-size: 15px;
+	font-size: 16px;
 	line-height: 1;
-	padding: 0 12px;
+	padding: 0;
+	/* la striscia allinea le schede in basso: il «+» va centrato sulla loro altezza */
+	align-self: center;
+	display: grid;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	margin: 0 8px;
 	cursor: pointer;
 }
 
@@ -2064,4 +2072,258 @@ body {
 
 .panel-only .changes-main {
 	display: none;
+}
+
+
+/* ── benvenuto, creazione, clone, account ───────────────────────────────── */
+
+.welcome {
+	grid-column: 1 / -1;
+	display: grid;
+	place-items: center;
+	padding: 32px;
+	background: var(--bg);
+}
+
+/* `display: grid` vincerebbe sulla regola dell'attributo hidden */
+.welcome[hidden] {
+	display: none;
+}
+
+body.is-empty {
+	/* senza striscia delle schede la riga da 48px sparisce: il benvenuto prende il suo spazio */
+	grid-template-rows: 56px minmax(0, 1fr);
+}
+
+body.is-empty .sidebar,
+body.is-empty .main,
+body.is-empty .repo-tabs {
+	display: none;
+}
+
+body.is-empty .workspace {
+	grid-template-rows: minmax(0, 1fr);
+}
+
+.tool:disabled {
+	color: var(--text-faint);
+	cursor: default;
+}
+
+.tool:disabled:hover {
+	background: transparent;
+}
+
+.welcome-inner {
+	width: min(520px, 100%);
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+.welcome-inner h1 {
+	margin: 0;
+	font-size: 22px;
+	font-weight: 600;
+	letter-spacing: -0.01em;
+}
+
+.welcome-lead {
+	margin: 0;
+	color: var(--text-dim);
+	font-size: 13px;
+}
+
+.welcome-actions {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}
+
+.welcome-actions .btn {
+	padding: 9px 12px;
+	text-align: left;
+}
+
+.base-folder,
+.field-row {
+	display: flex;
+	gap: 8px;
+}
+
+.base-folder input,
+.field-row input {
+	flex: 1;
+	min-width: 0;
+	font: inherit;
+	font-size: 12.5px;
+	padding: 6px 8px;
+	border-radius: 6px;
+	border: 1px solid var(--border-strong);
+	background: #0e121a;
+	color: var(--text);
+}
+
+.base-folder input:focus,
+.field-row input:focus {
+	outline: none;
+	border-color: var(--accent);
+}
+
+.field-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 10px;
+}
+
+.dialog-wide {
+	width: min(780px, calc(100vw - 40px));
+}
+
+.dialog select {
+	font: inherit;
+	font-size: 12.5px;
+	padding: 6px 8px;
+	border-radius: 6px;
+	border: 1px solid var(--border-strong);
+	background: #0e121a;
+	color: var(--text);
+}
+
+.account-layout {
+	display: grid;
+	grid-template-columns: 200px minmax(0, 1fr);
+	gap: 14px;
+}
+
+.account-side {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-height: 0;
+}
+
+.account-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	max-height: 240px;
+	overflow-y: auto;
+}
+
+.account-list li {
+	padding: 6px 8px;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	cursor: pointer;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.account-list li:hover {
+	background: #1a2130;
+}
+
+.account-list li.is-active {
+	background: #1c2534;
+	border-color: var(--accent);
+}
+
+.account-list .account-name {
+	font-size: 12.5px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.account-list .account-sub {
+	font-family: var(--mono);
+	font-size: 10.5px;
+	color: var(--text-faint);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.account-side-actions,
+.account-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.account-fields {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.account-status {
+	font-size: 11.5px;
+	color: var(--text-faint);
+}
+
+.account-repos {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding-top: 10px;
+	border-top: 1px solid var(--border);
+}
+
+.account-repos-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font-size: 12px;
+	color: var(--text-dim);
+}
+
+.repo-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	max-height: 30vh;
+	overflow-y: auto;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+}
+
+.repo-list li {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 5px 8px;
+	border-bottom: 1px solid var(--border);
+	font-size: 12.5px;
+}
+
+.repo-list li:last-child {
+	border-bottom: none;
+}
+
+.repo-list .repo-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.repo-list .repo-badge {
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--tag);
+	border: 1px solid rgba(255, 166, 87, 0.4);
+	border-radius: 4px;
+	padding: 0 4px;
+}
+
+.account-status.is-error {
+	color: var(--del-fg);
 }

@@ -158,6 +158,31 @@ anello di messaggi che cresce a ogni clic. La regola è asimmetrica, e va scritt
 -   Gli eventi del repository (refresh, output del terminale) sono in **broadcast**: ogni finestra
     riceve gli stessi dati, e le mutazioni passano comunque dallo stesso backend per root.
 
+### 2.12 I segreti non entrano nei file dell'app
+
+Un token di accesso è la cosa più facile da far uscire per sbaglio: finisce in un file di
+configurazione, in un log, in `ps` perché è un argomento, in uno screenshot. La regola che regge è una
+sola: **l'app non scrive segreti**. Il resto è conseguenza.
+
+-   Su disco stanno solo i **metadati** dell'account (provider, host, API, utente, etichetta) in un file
+    `0600` scritto in modo atomico (temporaneo + `rename`).
+-   Il segreto vive **in memoria**, in una mappa del main, e non attraversa il contratto: il renderer lo
+    manda una volta, il main non lo restituisce mai indietro.
+-   Per `git` il token arriva dall'**ambiente** con `GIT_ASKPASS` che punta a uno script **generico**
+    (`askpass.sh`, `0700`) che stampa `$GITHANDLER_USER` o `$GITHANDLER_TOKEN`. Il file non contiene il
+    segreto, quindi può essere ispezionato; l'ambiente del processo figlio non compare in `ps`.
+-   Se l'utente ha un **credential helper**, il token viene anche consegnato con `git credential
+    approve`: a quel punto lo conserva Git, nel suo archivio, con la protezione che l'utente ha scelto.
+    È un'aggiunta, non un requisito: senza helper l'app funziona e lo dice.
+-   Rimuovere un account **dimentica** il token, non cancella quello di Git: l'app non tocca archivi che
+    non sono suoi.
+-   Ogni valore che finisce in un protocollo (header HTTP, riga di `git credential`, ambiente) viene
+    validato come **una sola riga stampabile**: un a capo sarebbe un'iniezione di campi.
+
+Vale la stessa asimmetria del §2.11: chi produce il segreto non lo riceve mai indietro. Quando un
+consumatore ne ha bisogno (clone, fetch, pull, push), l'host si ricava da `origin` e l'ambiente si
+costruisce al momento, nel main.
+
 ## 3. I contratti, in concreto
 
 ```ts
@@ -174,6 +199,7 @@ export interface GitBackend {
 	discard(paths: string[]): Promise<Snapshot>;
 	commit(message: string, all: boolean): Promise<Snapshot>;
 	checkout(branch: string): Promise<Snapshot>;
+	checkoutCommit(sha: string): Promise<Snapshot>;
 	createBranch(name: string): Promise<Snapshot>;
 	fetch(): Promise<Snapshot>;
 }
@@ -193,6 +219,7 @@ export interface GitApi {
 	discard(paths: string[]): Promise<Snapshot>;
 	commit(message: string, all: boolean): Promise<Snapshot>;
 	checkout(branch: string): Promise<Snapshot>;
+	checkoutCommit(sha: string): Promise<Snapshot>;
 	createBranch(name: string): Promise<Snapshot>;
 	fetch(): Promise<Snapshot>;
 }

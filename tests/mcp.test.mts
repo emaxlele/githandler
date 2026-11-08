@@ -34,6 +34,7 @@ await backend.open(root);
 const defaultTrash = defaultSettings().trash;
 let settings: Settings = {
 	api: { mode: "all", tools: [] },
+	defaultRoot: null,
 	trash: defaultTrash,
 };
 const context = {
@@ -201,17 +202,18 @@ test("la policy delle impostazioni filtra tools/list e tools/call", async () => 
 		return result.tools;
 	};
 
-	settings = { api: { mode: "off", tools: [] }, trash: defaultTrash };
+	settings = { api: { mode: "off", tools: [] }, defaultRoot: null, trash: defaultTrash };
 	assert.deepEqual(await list(), []);
 	const denied = await callTool("repo_status");
 	assert.equal(denied.isError, true);
 	assert.match(denied.content[0]!.text, /not enabled/);
 
-	settings = { api: { mode: "read", tools: [] }, trash: defaultTrash };
+	settings = { api: { mode: "read", tools: [] }, defaultRoot: null, trash: defaultTrash };
 	assert.equal((await list()).length, 5);
 
 	settings = {
 		api: { mode: "custom", tools: ["history", "blame"] },
+		defaultRoot: null,
 		trash: defaultTrash,
 	};
 	assert.deepEqual(
@@ -223,8 +225,8 @@ test("la policy delle impostazioni filtra tools/list e tools/call", async () => 
 	assert.equal((await callTool("blame", { path: "a.txt" })).isError, undefined);
 
 	// una policy con tool che non esistono non li inventa
-	settings = { api: { mode: "custom", tools: [] }, trash: defaultTrash };
+	settings = { api: { mode: "custom", tools: [] }, defaultRoot: null, trash: defaultTrash };
 	assert.deepEqual(await list(), []);
 
-	settings = { api: { mode: "all", tools: [] }, trash: defaultTrash };
+	settings = { api: { mode: "all", tools: [] }, defaultRoot: null, trash: defaultTrash };
 });

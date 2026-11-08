@@ -1,9 +1,11 @@
 # GitHandler
 
-Client Git desktop **Linux-first**, in TypeScript su Electron. Apre un repository vero, mostra la
-storia con il grafo, mostra i diff e copre il flusso quotidiano: stage (anche parziale), unstage,
-scarto, commit, checkout, undo, pull, push, stash, merge, rebase, cherry-pick e submodule. Lo stesso repository è leggibile da un agente AI tramite un server
-MCP, spento di default e abilitabile comando per comando.
+Client Git desktop **Linux-first**, in TypeScript su Electron. Apre, **crea** o **clona** un
+repository (da un URL o da un account GitHub / GitLab / Gitea / Bitbucket), mostra la storia con il
+grafo, i diff, e copre il flusso quotidiano: stage (anche parziale), unstage, scarto, commit, checkout
+di un ramo **o di un commit**, undo, pull, push, stash, merge, rebase, cherry-pick e submodule. Lo
+stesso repository è leggibile da un agente AI tramite un server MCP, spento di default e abilitabile
+comando per comando.
 
 Il nome: **`git`** davanti, perché è così che si cerca un client Git, e **handler** — chi maneggia il
 repository. Il progetto si è chiamato `gitcraft` (già usato da un altro client Git visuale) e, per
@@ -12,17 +14,20 @@ poche ore dell'8 novembre 2026, `lanecraft` e `gitlattice`.
 Non è un fork di altri client: è una reimplementazione indipendente, clean-room. Nessun codice, stringa,
 icona o asset preso da prodotti esistenti.
 
-## Stato (v0.7)
+## Stato (v0.8)
 
 | Funzione                                            | Stato         |
 | --------------------------------------------------- | ------------- |
 | Apertura repository                                 | ✅             |
+| **Creazione repository** (`git init`, identità locale) | ✅          |
+| **Clone da URL e da account** (4 provider)          | ✅             |
+| **Benvenuto all'avvio** (nessun dialog automatico)  | ✅             |
 | Storia con grafo a corsie, paginata (2.000/pagina)  | ✅             |
 | Rami, remoti, tag con ahead/behind                  | ✅             |
 | Staging per file, unstage, scarto                   | ✅             |
 | **Staging parziale per hunk e per riga**            | ✅             |
 | Diff unified e **affiancato** con intra-riga        | ✅             |
-| Commit (anche `-a`), checkout, nuovo ramo           | ✅             |
+| Commit (anche `-a`), checkout di ramo e commit, nuovo ramo | ✅         |
 | Fetch                                               | ✅             |
 | **Pull** (`--ff-only`) e **push** (mai con forza)   | ✅             |
 | **Stash** (salva, applica, pop, elimina)            | ✅             |
@@ -44,9 +49,13 @@ icona o asset preso da prodotti esistenti.
 
 La finestra segue la disposizione dei client Git desktop affermati, con un tema scuro proprio:
 
--   **Toolbar** con le azioni etichettate (Apri, Fetch, Pull, Push, Stash, Submodule, Aggiorna,
+-   **Toolbar** con le azioni etichettate (Apri, Clona, Fetch, Pull, Push, Stash, Submodule, Aggiorna,
     Annulla) e, al centro, repository e ramo corrente. Sopra la storia ci sono le schede dei repository
-    aperti, con la × per chiuderle e il `+` per aprirne un altro.
+    aperti, con la × per chiuderle e il `+` che apre la scelta *Apri / Crea / Clona da URL / Clona da un
+    account*.
+-   **Benvenuto senza repository**: all'avvio la finestra non apre nessun dialog di sistema, mostra le
+    quattro scelte e la cartella di base da cui partono i dialog e i cloni. Chiudendo l'ultima scheda si
+    torna lì.
 -   **Barra laterale**: nome del repository, *Changes* con il conteggio, *All Commits*, filtro di
     ricerca e i ref divisi in Branches / Remotes / Tags.
 -   **Due viste per le modifiche**: la scheda *Changes* del pannello le mostra dentro il riquadro
@@ -140,6 +149,27 @@ comandi. Il server rilegge la policy a ogni richiesta, quindi un client già col
 vedere i tool appena li si toglie. La policy vive in
 `$XDG_CONFIG_HOME/githandler/settings.json` (override con `GITHANDLER_CONFIG_DIR`) ed è la stessa per
 UI e MCP. Configurazione per OpenCode, Claude e limiti in [`docs/mcp.md`](docs/mcp.md).
+
+## Account collegati e credenziali
+
+GitHub, GitLab, Gitea/Forgejo e Bitbucket. L'account serve a **elencare i repository** dell'utente e a
+**clonare** anche quelli privati; per Gitea/Forgejo e per le installazioni proprie si cambiano host e
+indirizzo dell'API.
+
+-   In `$XDG_CONFIG_HOME/githandler/accounts.json` (permessi `0600`) stanno **solo i metadati**:
+    provider, host, API, utente, etichetta.
+-   Il **token non lo scrive l'app**: resta in memoria per la sessione e arriva a `git` tramite
+    `GIT_ASKPASS` (script generico in `~/.config/githandler/askpass.sh`, `0700`, che legge utente e
+    token dall'ambiente del processo figlio). Se hai un credential helper configurato, il token viene
+    anche consegnato con `git credential approve`: lo conserva Git, nel suo archivio, non GitHandler.
+-   Le credenziali valgono per clone, fetch, pull e push: l'host si ricava da `origin`.
+-   Il token si **cambia** dall'account in qualsiasi momento; un rifiuto dell'API diventa un messaggio
+    che dice di aggiornarlo. Rimuovere l'account lo dimentica, ma non cancella quello che ha salvato Git.
+-   Senza credential helper il token vale per la sessione: alla riapertura va reinserito, e
+    l'interfaccia lo dice invece di far scoprire il problema al primo fetch.
+
+La **cartella di base** (Impostazioni) è il punto di partenza di «Apri», «Crea» e «Clona» e la
+destinazione predefinita dei cloni; non è un limite, dalla finestra di scelta si naviga ovunque.
 
 ## File non tracciati scartati
 

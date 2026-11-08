@@ -25,8 +25,8 @@ function invokeRepo<T>(channel: string, ...args: unknown[]): Promise<T> {
 }
 
 const api: GitApi = {
-	open: async (path) => {
-		const snapshot = await ipcRenderer.invoke("git:open", path);
+	open: async (path, interactive = true) => {
+		const snapshot = await ipcRenderer.invoke("git:open", path, interactive);
 		if (snapshot) currentRoot = snapshot.info.root;
 		return snapshot;
 	},
@@ -61,6 +61,30 @@ const api: GitApi = {
 	rebase: (onto) => invokeRepo("git:rebase", onto),
 	cherryPick: (sha) => invokeRepo("git:cherryPick", sha),
 	createBranchAt: (name, sha) => invokeRepo("git:createBranchAt", name, sha),
+	checkoutCommit: (sha) => invokeRepo("git:checkoutCommit", sha),
+	closeRepo: async (root) => {
+		await ipcRenderer.invoke("git:close", root);
+		if (currentRoot === root) currentRoot = null;
+	},
+	initRepo: async (path, identity) => {
+		const snapshot: Awaited<ReturnType<GitApi["initRepo"]>> =
+			await ipcRenderer.invoke("repo:init", path, identity);
+		currentRoot = snapshot.info.root;
+		return snapshot;
+	},
+	cloneRepo: async (url, dest) => {
+		const snapshot: Awaited<ReturnType<GitApi["cloneRepo"]>> =
+			await ipcRenderer.invoke("repo:clone", url, dest);
+		currentRoot = snapshot.info.root;
+		return snapshot;
+	},
+	chooseFolder: (title, start) =>
+		ipcRenderer.invoke("app:chooseFolder", title, start),
+	accounts: () => ipcRenderer.invoke("accounts:list"),
+	saveAccount: (account, token) =>
+		ipcRenderer.invoke("accounts:save", account, token),
+	removeAccount: (id) => ipcRenderer.invoke("accounts:remove", id),
+	accountRepos: (id) => ipcRenderer.invoke("accounts:repos", id),
 	reset: (sha, mode) => invokeRepo("git:reset", sha, mode),
 	renameBranch: (from, to) => invokeRepo("git:renameBranch", from, to),
 	deleteBranch: (name, force) => invokeRepo("git:deleteBranch", name, force),

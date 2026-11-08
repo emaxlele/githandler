@@ -1,6 +1,6 @@
 # TODO
 
-Stato al 2026-11-08 (v0.7.0). Le voci spuntate sono in `CHANGELOG.md`.
+Stato al 2026-11-08 (v0.8.0). Le voci spuntate sono in `CHANGELOG.md`.
 
 ## Fatto
 
@@ -55,6 +55,20 @@ Stato al 2026-11-08 (v0.7.0). Le voci spuntate sono in `CHANGELOG.md`.
 -   [x] **Scheda *Changes* del pannello distinta dalla voce della barra laterale**
 -   [x] **Menu del commit completo**: ramo dal commit, merge, rebase, reset soft/mixed/hard (con
         conferma), cherry-pick, copia; `assertSha` sugli SHA e undo del reset tramite `target`
+-   [x] **Benvenuto all'avvio** (`body.is-empty`): senza `--repo` nessun dialog di sistema, quattro
+        scelte (Apri / Crea / Clona da URL / Clona da account), comandi del repository spenti e
+        striscia delle schede nascosta
+-   [x] **Checkout di un commit** (HEAD staccato) dal menu del commit, annullabile; ramo e stato
+        staccato riletti con `symbolic-ref` a ogni refresh
+-   [x] **Creazione di un repository**: `git init` con identità locale facoltativa e controllo che la
+        cartella non esista
+-   [x] **Clone da URL e dagli account**: URL HTTPS/SSH/locali, nome della cartella dall'URL, elenco dei
+        repository per GitHub, GitLab, Gitea/Forgejo e Bitbucket, filtro e clonazione nella cartella scelta
+-   [x] **Account con token modificabile**: `accounts.json` 0600 con soli metadati, token in memoria,
+        `GIT_ASKPASS` per clone/fetch/pull/push, `git credential approve` se c'è un helper
+-   [x] **Cartella di base** (`Settings.defaultRoot`): punto di partenza dei dialog e destinazione
+        predefinita dei cloni
+-   [x] **Ultima scheda chiudibile**: `git:close` ferma watcher e backend, la finestra torna al benvenuto
 
 ## Aperto
 
@@ -75,6 +89,11 @@ Stato al 2026-11-08 (v0.7.0). Le voci spuntate sono in `CHANGELOG.md`.
         Avalonia: è la misura che ha motivato la scelta di Electron
 -   [ ] Decidere se e come pubblicare il repository
 
+-   [ ] Account: l'elenco dei repository legge la prima pagina dell'API (100 su GitHub e GitLab, 50 su
+        Gitea, 100 su Bitbucket). Serve la paginazione o una ricerca lato server per gli account con
+        molti repository
+-   [ ] Clone e operazioni di rete senza avanzamento: oggi si vede solo l'esito. Un `--progress` letto
+        da `stderr` (pipe, non `execFile` buffer) darebbe una barra
 -   [ ] Pannello staccato: quando la finestra principale cambia repository, la finestra dei dettagli
         dovrebbe riaprire l'ultimo commit guardato in quel repository invece del primo della storia
         (oggi segue il repository e aspetta la pubblicazione successiva)

@@ -69,6 +69,26 @@ test("normalizeSettings scarta campi ignoti e duplicati", () => {
 	assert.equal(normalizeSettings({ trash: "sì" }).trash.enabled, true);
 });
 
+test("la cartella di base deve essere un path assoluto", () => {
+	assert.equal(normalizeSettings(null).defaultRoot, null);
+	assert.equal(
+		normalizeSettings({ defaultRoot: "/home/mario/Progetti" }).defaultRoot,
+		"/home/mario/Progetti"
+	);
+	// lo slash finale non conta; un path relativo dipenderebbe dalla cartella di lavoro
+	assert.equal(
+		normalizeSettings({ defaultRoot: "/srv/repo/" }).defaultRoot,
+		"/srv/repo"
+	);
+	for (const bad of ["", "  ", "progetti", "./progetti", "~/progetti", "/a\nb"]) {
+		assert.equal(
+			normalizeSettings({ defaultRoot: bad }).defaultRoot,
+			null,
+			JSON.stringify(bad)
+		);
+	}
+});
+
 test("i limiti fuori intervallo vengono riportati dentro, mai a zero", () => {
 	const settings = normalizeSettings({
 		trash: {
@@ -121,6 +141,7 @@ test("il formato v0.4 migra senza perdere la scelta di accensione", () => {
 test("la serializzazione si rilegge uguale", () => {
 	const settings = {
 		api: { mode: "custom" as const, tools: ["blame" as const] },
+		defaultRoot: null,
 		trash: {
 			enabled: false,
 			maxBytes: 50 * MEBIBYTE,
@@ -159,6 +180,7 @@ test("senza file valgono i default; salvare e rileggere conserva i valori", asyn
 
 	const custom = {
 		api: { mode: "custom" as const, tools: ["repo_status" as const] },
+		defaultRoot: "/tmp/progetti",
 		trash: {
 			enabled: false,
 			maxBytes: 10 * MEBIBYTE,

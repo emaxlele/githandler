@@ -21,7 +21,23 @@ import type {
 	StatusEntry,
 } from "../core/types.ts";
 import { describeUndo } from "../core/undo.ts";
-import type { GitApi, PanelState, PanelStateInput } from "../shared/api.ts";
+import {
+	PROVIDERS,
+	isProviderId,
+	providerInfo,
+	accountId,
+	accountLabel,
+	repoNameFromUrl,
+	type Account,
+	type RemoteRepo,
+} from "../core/providers.ts";
+import type {
+	AccountInput,
+	AccountsInfo,
+	GitApi,
+	PanelState,
+	PanelStateInput,
+} from "../shared/api.ts";
 import { BlameView } from "./blame-view.ts";
 import { pickKey, renderDiff, type DiffLayout } from "./diff-view.ts";
 import { avatarColor, byId, clear, el, initials, shortDate } from "./dom.ts";
@@ -134,6 +150,50 @@ const ui = {
 	repoSync: byId("repo-sync"),
 	btnOpen: byId<HTMLButtonElement>("btn-open"),
 	btnNewTab: byId<HTMLButtonElement>("btn-new-tab"),
+	btnClone: byId<HTMLButtonElement>("btn-clone"),
+	welcome: byId("welcome"),
+	welcomeBase: byId("welcome-base"),
+	btnWelcomeOpen: byId<HTMLButtonElement>("btn-welcome-open"),
+	btnWelcomeCreate: byId<HTMLButtonElement>("btn-welcome-create"),
+	btnWelcomeClone: byId<HTMLButtonElement>("btn-welcome-clone"),
+	btnWelcomeAccount: byId<HTMLButtonElement>("btn-welcome-account"),
+	settingBase: byId<HTMLInputElement>("setting-base"),
+	btnChooseBase: byId<HTMLButtonElement>("btn-choose-base"),
+	createDialog: byId<HTMLDialogElement>("create-dialog"),
+	createForm: byId<HTMLFormElement>("create-form"),
+	createParent: byId<HTMLInputElement>("create-parent"),
+	createBrowse: byId<HTMLButtonElement>("create-browse"),
+	createName: byId<HTMLInputElement>("create-name"),
+	createUserName: byId<HTMLInputElement>("create-user-name"),
+	createUserEmail: byId<HTMLInputElement>("create-user-email"),
+	createCancel: byId<HTMLButtonElement>("create-cancel"),
+	cloneDialog: byId<HTMLDialogElement>("clone-dialog"),
+	cloneForm: byId<HTMLFormElement>("clone-form"),
+	cloneUrl: byId<HTMLInputElement>("clone-url"),
+	cloneParent: byId<HTMLInputElement>("clone-parent"),
+	cloneBrowse: byId<HTMLButtonElement>("clone-browse"),
+	cloneCancel: byId<HTMLButtonElement>("clone-cancel"),
+	cloneTarget: byId("clone-target"),
+	accountDialog: byId<HTMLDialogElement>("account-dialog"),
+	accountForm: byId<HTMLFormElement>("account-form"),
+	accountList: byId("account-list"),
+	accountNew: byId<HTMLButtonElement>("account-new"),
+	accountRemove: byId<HTMLButtonElement>("account-remove"),
+	accountProvider: byId<HTMLSelectElement>("account-provider"),
+	accountHost: byId<HTMLInputElement>("account-host"),
+	accountApiField: byId("account-api-field"),
+	accountApiBase: byId<HTMLInputElement>("account-api-base"),
+	accountUsername: byId<HTMLInputElement>("account-username"),
+	accountToken: byId<HTMLInputElement>("account-token"),
+	accountLabel: byId<HTMLInputElement>("account-label"),
+	accountSave: byId<HTMLButtonElement>("account-save"),
+	accountStatus: byId("account-status"),
+	btnLoadRepos: byId<HTMLButtonElement>("btn-load-repos"),
+	accountFilter: byId<HTMLInputElement>("account-filter"),
+	remoteRepos: byId("remote-repos"),
+	accountDest: byId<HTMLInputElement>("account-dest"),
+	accountDestBrowse: byId<HTMLButtonElement>("account-dest-browse"),
+	accountClose: byId<HTMLButtonElement>("account-close"),
 	btnUndo: byId<HTMLButtonElement>("btn-undo"),
 	btnRefresh: byId<HTMLButtonElement>("btn-refresh"),
 	btnFetch: byId<HTMLButtonElement>("btn-fetch"),
@@ -353,7 +413,7 @@ function panelSnapshot(): PanelStateInput {
 
 /** Manda alla finestra staccata cosa si sta guardando: la pubblicazione è debounced. */
 function publishPanel(): void {
-	if (panelMode || !panelDetached) return;
+	if (panelMode || !panelDetached || !state.root) return;
 	window.clearTimeout(panelPublishTimer);
 	panelPublishTimer = window.setTimeout(() => {
 		void api.syncPanel(panelSnapshot()).catch((error: Error) => {
@@ -531,6 +591,7 @@ function renderRepoTabs(): void {
 /** Ridisegna la sessione attiva senza tornare a Git (cambio scheda). */
 function renderSession(): void {
 	const snapshot = state.snapshot;
+	updateEmptyState();
 	renderHeader(snapshot);
 	renderRepoTabs();
 	renderUndo();
@@ -652,6 +713,8 @@ function fillSettings(settings: Settings): void {
 	)) {
 		box.checked = settings.api.tools.includes(box.value as ApiTool);
 	}
+	ui.settingBase.value = settings.defaultRoot ?? "";
+	setBaseFolder(settings.defaultRoot);
 	ui.settingTrash.checked = settings.trash.enabled;
 	ui.settingTrashBytes.value = String(toMebibytes(settings.trash.maxBytes));
 	ui.settingTrashFiles.value = String(settings.trash.maxFiles);
@@ -676,6 +739,7 @@ function collectSettings(): Settings {
 	}
 	return {
 		api: { mode, tools },
+		defaultRoot: ui.settingBase.value.trim() || null,
 		trash: {
 			enabled: ui.settingTrash.checked,
 			maxBytes: readMebibytes(
@@ -1159,8 +1223,10 @@ async function boot(): Promise<void> {
 		if (pending) void applyPanelState(pending);
 		return;
 	}
-	await openRepository();
+	// all'avvio non si apre nessun dialog: senza `--repo` si parte dal benvenuto
+	await openRepository(undefined, false);
 	renderSession();
+	void loadBaseFolder();
 }
 
 async function refresh(): Promise<void> {
@@ -1704,6 +1770,22 @@ async function startTracking(remoteRef: string, local: string): Promise<void> {
 	if (snapshot) applySnapshot(snapshot);
 }
 
+async function checkoutCommit(sha: string): Promise<void> {
+	const short = sha.slice(0, 8);
+	if (
+		!window.confirm(
+			`Portare HEAD sul commit ${short}? Il ramo non si sposta: si lavora con HEAD staccato (l'operazione è annullabile).`
+		)
+	)
+		return;
+	const snapshot = await guard(`Checkout di ${short}`, () =>
+		api.checkoutCommit(sha)
+	);
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast(`HEAD su ${short}, staccato dal ramo.`, "ok");
+}
+
 async function cherryPickCommit(sha: string): Promise<void> {
 	if (!window.confirm(`Applicare ${sha.slice(0, 8)} sul ramo attuale?`))
 		return;
@@ -1984,9 +2066,8 @@ function renderTerminal(): void {
 // ── schede dei repository ────────────────────────────────────────────────────
 
 /** Apre un repository (dialog di sistema se `path` manca) e lo rende attivo. */
-async function openRepository(path?: string): Promise<void> {
-	const snapshot = await guard("Apertura", () => api.open(path));
-	if (!snapshot) return;
+/** Prende in carico uno snapshot appena aperto: sessione, stato attivo, benvenuto spento. */
+function adoptSnapshot(snapshot: Snapshot): void {
 	const root = snapshot.info.root;
 	let session = sessions.get(root);
 	if (!session) {
@@ -1995,6 +2076,20 @@ async function openRepository(path?: string): Promise<void> {
 	}
 	state = session;
 	applySnapshot(snapshot);
+	updateEmptyState();
+}
+
+/**
+ * `interactive` distingue l'apertura chiesta dall'utente (dialog di sistema se non c'è un
+ * repository) dall'avvio dell'app, che senza `--repo` deve mostrare il benvenuto e basta.
+ */
+async function openRepository(
+	path?: string,
+	interactive = true
+): Promise<void> {
+	const snapshot = await guard("Apertura", () => api.open(path, interactive));
+	if (!snapshot) return;
+	adoptSnapshot(snapshot);
 }
 
 /** Passa a un repository già aperto: la sessione ricorda selezione e scheda. */
@@ -2012,16 +2107,24 @@ async function useSession(root: string): Promise<void> {
 }
 
 async function closeSession(root: string): Promise<void> {
-	if (sessions.size <= 1) {
-		toast("L'ultimo repository aperto non si chiude.");
-		return;
-	}
 	sessions.delete(root);
+	try {
+		// il main dimentica il backend e ferma il watcher: niente eventi per una scheda che non c'è
+		await api.closeRepo(root);
+	} catch (error) {
+		console.warn("chiusura del repository:", error);
+	}
 	if (state.root !== root) {
 		renderRepoTabs();
 		return;
 	}
-	const next = sessions.values().next().value as State;
+	const next = sessions.values().next().value as State | undefined;
+	if (!next) {
+		// nessun repository aperto: si torna al benvenuto, non al dialog di sistema
+		state = emptyState();
+		renderSession();
+		return;
+	}
 	state = next;
 	try {
 		await api.use(next.root);
@@ -2154,6 +2257,10 @@ ui.log.addEventListener("contextmenu", (event) => {
 				void selectCommit(sha);
 			},
 		},
+		{
+			label: "Checkout di questo commit (HEAD staccato)",
+			action: () => void checkoutCommit(sha),
+		},
 		"separator",
 		{
 			label: "Crea ramo da qui…",
@@ -2260,9 +2367,505 @@ api.onPanelState((payload) => {
 	void applyPanelState(payload);
 });
 
+// ── benvenuto, creazione, clone, account ────────────────────────────────────
+
+/** Cartella di base dalle impostazioni: "" = home dell'utente (la conosce solo il main). */
+let baseFolder = "";
+
+function setBaseFolder(root: string | null): void {
+	baseFolder = root ?? "";
+	ui.welcomeBase.textContent = baseFolder || "home dell'utente";
+}
+
+async function loadBaseFolder(): Promise<void> {
+	const settings = await guard("Impostazioni", () => api.settings());
+	if (settings) setBaseFolder(settings.defaultRoot);
+}
+
+/**
+ * Lo stato «nessun repository aperto»: si vede il benvenuto al posto di barra laterale e storia.
+ * All'avvio non si apre il dialog di sistema: la scelta è dell'utente.
+ */
+function updateEmptyState(): void {
+	const empty = sessions.size === 0;
+	document.body.classList.toggle("is-empty", empty);
+	ui.welcome.hidden = !empty;
+	ui.welcomeBase.textContent = baseFolder || "home dell'utente";
+	// senza repository questi comandi non hanno un bersaglio: meglio spenti che in errore
+	for (const button of [
+		ui.btnRefresh,
+		ui.btnFetch,
+		ui.btnPull,
+		ui.btnPush,
+		ui.btnStash,
+		ui.btnSubmodule,
+		ui.btnUndo,
+	]) {
+		button.disabled = empty;
+	}
+}
+
+function joinPath(parent: string, name: string): string {
+	return `${parent.replace(/\/+$/, "")}/${name}`;
+}
+
+/** Cartella genitore: quella scritta, o quella scelta con il dialog. `null` = annullato. */
+async function ensureParent(
+	input: HTMLInputElement,
+	title: string
+): Promise<string | null> {
+	const typed = input.value.trim();
+	if (typed) return typed;
+	const chosen = await guard(title, () =>
+		api.chooseFolder(title, baseFolder || undefined)
+	);
+	if (!chosen) return null;
+	input.value = chosen;
+	return chosen;
+}
+
+function validRepoName(name: string): boolean {
+	return (
+		name !== "" &&
+		name !== "." &&
+		name !== ".." &&
+		!/[\\/\x00-\x1f]/.test(name)
+	);
+}
+
+// ── creare un repository ────────────────────────────────────────────────────
+
+async function openCreate(): Promise<void> {
+	ui.createParent.value = baseFolder;
+	ui.createName.value = "";
+	ui.createUserName.value = "";
+	ui.createUserEmail.value = "";
+	ui.createDialog.showModal();
+	ui.createName.focus();
+}
+
+async function createRepository(): Promise<void> {
+	const name = ui.createName.value.trim();
+	if (!validRepoName(name)) {
+		toast("Nome del repository non valido: niente barre o caratteri di controllo.");
+		return;
+	}
+	const parent = await ensureParent(
+		ui.createParent,
+		"Dove creare il repository"
+	);
+	if (!parent) return;
+
+	const userName = ui.createUserName.value.trim();
+	const email = ui.createUserEmail.value.trim();
+	if ((userName && !email) || (!userName && email)) {
+		toast("Nome ed email dell'identità vanno insieme, oppure tutti e due vuoti.");
+		return;
+	}
+
+	ui.createDialog.close();
+	const snapshot = await guard("Creazione", () =>
+		api.initRepo(
+			joinPath(parent, name),
+			userName ? { name: userName, email } : null
+		)
+	);
+	if (!snapshot) return;
+	adoptSnapshot(snapshot);
+	toast("Repository creato.", "ok");
+}
+
+// ── clonare un repository ───────────────────────────────────────────────────
+
+function updateCloneTarget(): void {
+	const url = ui.cloneUrl.value.trim();
+	if (!url) {
+		ui.cloneTarget.textContent = "";
+		return;
+	}
+	let name: string;
+	try {
+		name = repoNameFromUrl(url);
+	} catch {
+		ui.cloneTarget.textContent = "URL non riconosciuto.";
+		return;
+	}
+	const parent = ui.cloneParent.value.trim() || baseFolder;
+	ui.cloneTarget.textContent = parent
+		? `Destinazione: ${joinPath(parent, name)}`
+		: `Destinazione: <cartella scelta>/${name}`;
+}
+
+async function openClone(): Promise<void> {
+	ui.cloneUrl.value = "";
+	ui.cloneParent.value = baseFolder;
+	updateCloneTarget();
+	ui.cloneDialog.showModal();
+	ui.cloneUrl.focus();
+}
+
+async function cloneFromUrl(): Promise<void> {
+	const url = ui.cloneUrl.value.trim();
+	if (!url) {
+		toast("Incolla l'URL del repository.");
+		return;
+	}
+	let name: string;
+	try {
+		name = repoNameFromUrl(url);
+	} catch (error) {
+		toast(readableError(error));
+		return;
+	}
+	const parent = await ensureParent(ui.cloneParent, "Dove clonare il repository");
+	if (!parent) return;
+
+	ui.cloneDialog.close();
+	toast("Clone in corso…", "ok");
+	const snapshot = await guard("Clone", () =>
+		api.cloneRepo(url, joinPath(parent, name))
+	);
+	if (!snapshot) return;
+	adoptSnapshot(snapshot);
+	toast("Repository clonato.", "ok");
+}
+
+// ── account collegati ───────────────────────────────────────────────────────
+
+let accountsCache: AccountsInfo | null = null;
+let selectedAccount: string | null = null;
+let remoteReposCache: RemoteRepo[] = [];
+
+function fillAccountProviders(): void {
+	if (ui.accountProvider.options.length > 0) return;
+	for (const provider of PROVIDERS) {
+		const option = document.createElement("option");
+		option.value = provider.id;
+		option.textContent = provider.label;
+		ui.accountProvider.appendChild(option);
+	}
+}
+
+/** Host e API seguono il provider; per GitHub e Bitbucket restano fissi. */
+function applyProviderDefaults(): void {
+	const value = ui.accountProvider.value;
+	if (!isProviderId(value)) return;
+	const info = providerInfo(value);
+	ui.accountHost.value = info.host;
+	ui.accountApiBase.value = info.apiBase;
+	ui.accountHost.readOnly = !info.editable;
+	ui.accountApiBase.readOnly = !info.editable;
+	ui.accountApiField.style.display = info.editable ? "" : "none";
+	if (info.editable && !info.host) ui.accountHost.focus();
+}
+
+function accountStatusText(account: Account | null): string {
+	const helper = accountsCache?.credentialHelper ?? false;
+	if (!account) return "";
+	const hasToken = accountsCache?.tokens.includes(account.id) ?? false;
+	if (hasToken)
+		return helper
+			? "Token disponibile; Git lo conserva nel suo archivio."
+			: "Token in memoria: Git non ha un credential helper, quindi vale per questa sessione.";
+	return helper
+		? "Nessun token in memoria: se Git lo ha in archivio viene usato quello."
+		: "Nessun token: inseriscilo per elencare e clonare i repository privati.";
+}
+
+function renderAccountList(activeId: string | null): void {
+	clear(ui.accountList);
+	const accounts = accountsCache?.accounts ?? [];
+	if (accounts.length === 0) {
+		ui.accountList.appendChild(el("li", "muted", "Nessun account."));
+		return;
+	}
+	for (const account of accounts) {
+		const item = el("li");
+		item.dataset.id = account.id;
+		if (account.id === activeId) item.classList.add("is-active");
+		item.appendChild(el("span", "account-name", accountLabel(account)));
+		const token =
+			accountsCache?.tokens.includes(account.id) ? " · token" : "";
+		item.appendChild(
+			el(
+				"span",
+				"account-sub",
+				`${providerInfo(account.provider).label} · ${account.host}${token}`
+			)
+		);
+		item.addEventListener("click", () => selectAccount(account.id));
+		ui.accountList.appendChild(item);
+	}
+}
+
+function fillAccountFields(account: Account): void {
+	ui.accountProvider.value = account.provider;
+	ui.accountHost.value = account.host;
+	ui.accountApiBase.value = account.apiBase;
+	ui.accountUsername.value = account.username;
+	ui.accountLabel.value = account.label;
+	ui.accountToken.value = "";
+	const info = providerInfo(account.provider);
+	ui.accountHost.readOnly = !info.editable;
+	ui.accountApiBase.readOnly = !info.editable;
+	ui.accountApiField.style.display = info.editable ? "" : "none";
+	ui.accountStatus.textContent = accountStatusText(account);
+	ui.accountStatus.classList.remove("is-error");
+}
+
+function startNewAccount(): void {
+	selectedAccount = null;
+	renderAccountList(null);
+	ui.accountProvider.value = "github";
+	applyProviderDefaults();
+	ui.accountUsername.value = "";
+	ui.accountLabel.value = "";
+	ui.accountToken.value = "";
+	ui.accountStatus.textContent = "";
+	remoteReposCache = [];
+	renderRemoteRepos();
+}
+
+function selectAccount(id: string): void {
+	selectedAccount = id;
+	renderAccountList(id);
+	const account = accountsCache?.accounts.find((item) => item.id === id);
+	if (account) fillAccountFields(account);
+	remoteReposCache = [];
+	renderRemoteRepos();
+}
+
+async function openAccounts(): Promise<void> {
+	fillAccountProviders();
+	const info = await guard("Account", () => api.accounts());
+	if (!info) return;
+	accountsCache = info;
+	if (!selectedAccount && info.accounts[0]) selectedAccount = info.accounts[0].id;
+	const account = info.accounts.find((item) => item.id === selectedAccount);
+	renderAccountList(selectedAccount);
+	if (account) fillAccountFields(account);
+	else startNewAccount();
+	ui.accountDest.value = ui.accountDest.value || baseFolder;
+	if (!ui.accountDialog.open) {
+		ui.accountDialog.showModal();
+		// il primo elemento del dialogo è la lista: il fuoco va sul campo che si può compilare
+		if (account) ui.accountUsername.focus();
+		else ui.accountProvider.focus();
+	}
+}
+
+async function saveAccountFromForm(): Promise<void> {
+	const value = ui.accountProvider.value;
+	if (!isProviderId(value)) {
+		toast("Scegli un provider.");
+		return;
+	}
+	const input: AccountInput = {
+		provider: value,
+		host: ui.accountHost.value.trim(),
+		apiBase: ui.accountApiBase.value.trim() || providerInfo(value).apiBase,
+		username: ui.accountUsername.value.trim(),
+		label: ui.accountLabel.value.trim(),
+	};
+	const token = ui.accountToken.value.trim();
+	const previous = selectedAccount;
+	let latest = await guard("Account", () =>
+		api.saveAccount(input, token || undefined)
+	);
+	if (!latest) return;
+	const nextId = accountId(input.provider, input.host, input.username);
+	// cambiare utente o host produce un id nuovo: la voce di prima non deve restare orfana
+	if (previous && previous !== nextId) {
+		latest = (await guard("Account", () => api.removeAccount(previous))) ?? latest;
+	}
+	accountsCache = latest;
+	selectedAccount = nextId;
+	const account = latest.accounts.find((item) => item.id === nextId);
+	if (account) selectedAccount = account.id;
+	renderAccountList(selectedAccount);
+	if (account) fillAccountFields(account);
+	toast(
+		account && latest.tokens.includes(account.id)
+			? "Account salvato."
+			: "Account salvato: manca il token, quindi l'elenco dei repository non è disponibile.",
+		"ok"
+	);
+}
+
+async function removeSelectedAccount(): Promise<void> {
+	if (!selectedAccount) {
+		toast("Scegli un account da rimuovere.");
+		return;
+	}
+	const account = accountsCache?.accounts.find(
+		(item) => item.id === selectedAccount
+	);
+	if (!account) return;
+	if (
+		!window.confirm(
+			`Rimuovere l'account ${accountLabel(account)}? Il token resta nel credential helper di Git, se ne hai uno.`
+		)
+	)
+		return;
+	const info = await guard("Account", () => api.removeAccount(account.id));
+	if (!info) return;
+	accountsCache = info;
+	selectedAccount = null;
+	startNewAccount();
+	if (info.accounts[0]) selectAccount(info.accounts[0].id);
+	toast("Account rimosso.", "ok");
+}
+
+async function loadRemoteRepos(): Promise<void> {
+	if (!selectedAccount) {
+		toast("Scegli un account: serve il suo token per leggere l'elenco.");
+		return;
+	}
+	ui.btnLoadRepos.disabled = true;
+	try {
+		const repos = await guard("Repository", () =>
+			api.accountRepos(selectedAccount as string)
+		);
+		if (!repos) {
+			ui.accountStatus.textContent = "Elenco non disponibile: leggi il messaggio.";
+			ui.accountStatus.classList.add("is-error");
+			return;
+		}
+		remoteReposCache = repos;
+		renderRemoteRepos();
+		ui.accountStatus.textContent = `${repos.length} repository.`;
+		ui.accountStatus.classList.remove("is-error");
+	} finally {
+		ui.btnLoadRepos.disabled = false;
+	}
+}
+
+function renderRemoteRepos(): void {
+	clear(ui.remoteRepos);
+	const query = ui.accountFilter.value.trim().toLowerCase();
+	const repos = query
+		? remoteReposCache.filter((repo) =>
+				repo.fullName.toLowerCase().includes(query)
+			)
+		: remoteReposCache;
+	if (repos.length === 0) {
+		ui.remoteRepos.appendChild(
+			el(
+				"li",
+				"muted",
+				remoteReposCache.length === 0
+					? "Nessun elenco caricato."
+					: "Nessun repository corrisponde al filtro."
+			)
+		);
+		return;
+	}
+	for (const repo of repos) {
+		const item = el("li");
+		item.dataset.name = repo.fullName;
+		item.appendChild(el("span", "repo-name", repo.fullName));
+		if (repo.private) item.appendChild(el("span", "repo-badge", "privato"));
+		const button = el("button", "btn btn-small", "Clona") as HTMLButtonElement;
+		button.type = "button";
+		button.addEventListener("click", () => void cloneRemoteRepo(repo));
+		item.appendChild(button);
+		ui.remoteRepos.appendChild(item);
+	}
+}
+
+async function cloneRemoteRepo(repo: RemoteRepo): Promise<void> {
+	let parent = ui.accountDest.value.trim() || baseFolder;
+	if (!parent) {
+		const chosen = await guard("Destinazione", () =>
+			api.chooseFolder("Dove clonare il repository", baseFolder || undefined)
+		);
+		if (!chosen) return;
+		ui.accountDest.value = chosen;
+		parent = chosen;
+	}
+	const dest = joinPath(parent, repo.name);
+	if (!window.confirm(`Clonare ${repo.fullName} in ${dest}?`)) return;
+	ui.accountDialog.close();
+	toast("Clone in corso…", "ok");
+	const snapshot = await guard("Clone", () => api.cloneRepo(repo.cloneUrl, dest));
+	if (!snapshot) return;
+	adoptSnapshot(snapshot);
+	toast("Repository clonato.", "ok");
+}
+
 // ── eventi ───────────────────────────────────────────────────────────────────
 
 ui.btnOpen.addEventListener("click", () => void openRepository());
+ui.btnClone.addEventListener("click", () => void openClone());
+
+ui.btnWelcomeOpen.addEventListener("click", () => void openRepository());
+ui.btnWelcomeCreate.addEventListener("click", () => void openCreate());
+ui.btnWelcomeClone.addEventListener("click", () => void openClone());
+ui.btnWelcomeAccount.addEventListener("click", () => void openAccounts());
+
+// Crea / Clona: il dialog resta aperto se un campo non va, si chiude quando parte l'operazione.
+ui.createForm.addEventListener("submit", (event) => {
+	event.preventDefault();
+	void createRepository();
+});
+ui.createCancel.addEventListener("click", () => ui.createDialog.close());
+ui.createBrowse.addEventListener("click", () => {
+	void (async () => {
+		const chosen = await guard("Cartella", () =>
+			api.chooseFolder("Dove creare il repository", baseFolder || undefined)
+		);
+		if (chosen) ui.createParent.value = chosen;
+	})();
+});
+ui.createName.addEventListener("input", () => {
+	ui.createName.classList.remove("invalid");
+});
+
+ui.cloneForm.addEventListener("submit", (event) => {
+	event.preventDefault();
+	void cloneFromUrl();
+});
+ui.cloneCancel.addEventListener("click", () => ui.cloneDialog.close());
+ui.cloneUrl.addEventListener("input", updateCloneTarget);
+ui.cloneParent.addEventListener("input", updateCloneTarget);
+ui.cloneBrowse.addEventListener("click", () => {
+	void (async () => {
+		const chosen = await guard("Cartella", () =>
+			api.chooseFolder("Dove clonare il repository", baseFolder || undefined)
+		);
+		if (chosen) {
+			ui.cloneParent.value = chosen;
+			updateCloneTarget();
+		}
+	})();
+});
+
+ui.accountProvider.addEventListener("change", applyProviderDefaults);
+ui.accountSave.addEventListener("click", () => void saveAccountFromForm());
+ui.accountNew.addEventListener("click", () => startNewAccount());
+ui.accountRemove.addEventListener("click", () => void removeSelectedAccount());
+ui.accountClose.addEventListener("click", () => ui.accountDialog.close());
+ui.btnLoadRepos.addEventListener("click", () => void loadRemoteRepos());
+ui.accountFilter.addEventListener("input", () => renderRemoteRepos());
+ui.accountDestBrowse.addEventListener("click", () => {
+	void (async () => {
+		const chosen = await guard("Cartella", () =>
+			api.chooseFolder("Dove clonare il repository", baseFolder || undefined)
+		);
+		if (chosen) ui.accountDest.value = chosen;
+	})();
+});
+// dentro un form che non deve inviare nulla al server
+ui.accountForm.addEventListener("submit", (event) => event.preventDefault());
+
+ui.btnChooseBase.addEventListener("click", () => {
+	void (async () => {
+		const chosen = await guard("Cartella", () =>
+			api.chooseFolder("Cartella di base", ui.settingBase.value.trim() || undefined)
+		);
+		if (chosen) ui.settingBase.value = chosen;
+	})();
+});
 
 ui.btnUndo.addEventListener("click", () => void doUndo());
 ui.btnRefresh.addEventListener("click", () => void refresh());
@@ -2324,6 +2927,7 @@ ui.settingsForm.addEventListener("submit", (event) => {
 		);
 		if (!saved) return;
 		fillSettings(saved);
+		setBaseFolder(saved.defaultRoot);
 		await refreshTrashUsage(saved.trash.quotaBytes);
 		ui.settingsDialog.close();
 		toast("Impostazioni salvate.", "ok");
@@ -2341,7 +2945,16 @@ ui.tabTerm.addEventListener("click", () => setTab("term"));
 ui.sideChanges.addEventListener("click", () => setSide("changes"));
 ui.sideCommits.addEventListener("click", () => setSide("commits"));
 ui.btnSearchFocus.addEventListener("click", () => ui.searchInput.focus());
-ui.btnNewTab.addEventListener("click", () => void openRepository());
+ui.btnNewTab.addEventListener("click", (event) => {
+	event.stopPropagation();
+	const rect = ui.btnNewTab.getBoundingClientRect();
+	openMenu(rect.left, rect.bottom + 4, [
+		{ label: "Apri un repository…", action: () => void openRepository() },
+		{ label: "Crea un repository…", action: () => void openCreate() },
+		{ label: "Clona da URL…", action: () => void openClone() },
+		{ label: "Clona da un account…", action: () => void openAccounts() },
+	]);
+});
 
 for (const section of document.querySelectorAll<HTMLElement>(".side-section")) {
 	section.querySelector("h2")?.addEventListener("click", () => {

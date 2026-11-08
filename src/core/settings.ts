@@ -43,6 +43,11 @@ export interface TrashSettings {
 export interface Settings {
 	api: ApiPolicy;
 	trash: TrashSettings;
+	/**
+	 * Cartella da cui partono i dialog «Apri», «Crea» e «Clona». Non è un limite: da lì si può
+	 * navigare ovunque. `null` = home dell'utente.
+	 */
+	defaultRoot: string | null;
 }
 
 export const MEBIBYTE = 1024 * 1024;
@@ -73,6 +78,7 @@ export function defaultSettings(): Settings {
 	return {
 		api: { mode: "off", tools: [] },
 		trash: { ...TRASH_DEFAULTS },
+		defaultRoot: null,
 	};
 }
 
@@ -137,8 +143,11 @@ export function normalizeSettings(data: unknown): Settings {
 			? trashRaw.enabled
 			: legacyEnabled ?? fallback.trash.enabled;
 
+	const defaultRoot = normalizeDirectory(record.defaultRoot);
+
 	return {
 		api: { mode, tools },
+		defaultRoot,
 		trash: {
 			enabled,
 			maxBytes: clampInt(
@@ -158,6 +167,18 @@ export function normalizeSettings(data: unknown): Settings {
 			),
 		},
 	};
+}
+
+/**
+ * Una cartella di partenza: path assoluto, senza caratteri di controllo. Un valore relativo o vuoto
+ * torna al default (`null` = home), perché un path relativo dipenderebbe dalla cartella di lavoro.
+ */
+function normalizeDirectory(value: unknown): string | null {
+	if (typeof value !== "string") return null;
+	const trimmed = value.trim();
+	if (!trimmed || !trimmed.startsWith("/") || /[\x00\r\n]/.test(trimmed))
+		return null;
+	return trimmed.replace(/\/+$/, "") || "/";
 }
 
 export function parseSettings(raw: string): Settings {
