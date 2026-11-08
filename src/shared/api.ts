@@ -1,5 +1,6 @@
 import type { BlameFile } from "../core/blame.ts";
 import type { PatchMode } from "../core/patch.ts";
+import type { ResetMode } from "../core/ops.ts";
 import type { Settings, TrashUsage } from "../core/settings.ts";
 import type {
 	Commit,
@@ -56,6 +57,10 @@ export interface GitApi {
 	merge(branch: string): Promise<Snapshot>;
 	rebase(onto: string): Promise<Snapshot>;
 	cherryPick(sha: string): Promise<Snapshot>;
+	/** Crea un ramo che punta a un commit, senza spostare HEAD. */
+	createBranchAt(name: string, sha: string): Promise<Snapshot>;
+	/** Reset del ramo attuale a un commit (soft, mixed, hard). */
+	reset(sha: string, mode: ResetMode): Promise<Snapshot>;
 	renameBranch(from: string, to: string): Promise<Snapshot>;
 	deleteBranch(name: string, force: boolean): Promise<Snapshot>;
 	/** Crea un ramo locale con tracking da un ref remoto. */
@@ -85,7 +90,33 @@ export interface GitApi {
 	terminalKill(id: string): Promise<void>;
 	/** Si iscrive all'output del terminale; restituisce la funzione per disiscriversi. */
 	onTerminal(listener: (event: TerminalEvent) => void): () => void;
+	/** Apre il pannello dei dettagli in una finestra separata. */
+	detachPanel(): Promise<boolean>;
+	/** Pubblica la selezione corrente: la finestra del pannello la segue. */
+	syncPanel(state: PanelStateInput): Promise<void>;
+	/** Si iscrive alla selezione pubblicata dalla finestra principale. */
+	onPanelState(listener: (state: PanelState) => void): () => void;
+	/** Si iscrive all'apertura e alla chiusura della finestra del pannello. */
+	onPanelDetached(listener: (detached: boolean) => void): () => void;
 }
+
+export type PanelTab = "changes" | "commit" | "tree" | "blame" | "term";
+export type PanelSide = "changes" | "commits";
+
+/** Quello che il pannello sta mostrando: la finestra staccata lo riceve e si allinea. */
+export interface PanelState {
+	root: string;
+	tab: PanelTab;
+	side: PanelSide;
+	selectedCommit: string | null;
+	commitPath: string | null;
+	changePath: string | null;
+	changeStaged: boolean;
+	treePath: string | null;
+	layout: "unified" | "split";
+}
+
+export type PanelStateInput = Omit<PanelState, "root">;
 
 export type IpcChannel =
 	| "git:open"
@@ -114,6 +145,8 @@ export type IpcChannel =
 	| "git:merge"
 	| "git:rebase"
 	| "git:cherryPick"
+	| "git:createBranchAt"
+	| "git:reset"
 	| "git:renameBranch"
 	| "git:deleteBranch"
 	| "git:checkoutTracking"
@@ -127,13 +160,21 @@ export type IpcChannel =
 	| "app:settings:save"
 	| "app:trashUsage"
 	| "term:run"
-	| "term:kill";
+	| "term:kill"
+	| "panel:detach"
+	| "panel:sync";
 
 /** Canale di solo invio: il main avvisa il renderer che il repository è cambiato. */
 export const CHANGED_CHANNEL = "repo:changed";
 
 /** Canale di solo invio: output e fine dei comandi del terminale integrato. */
 export const TERMINAL_CHANNEL = "term:event";
+
+/** Canale di solo invio: selezione del pannello, per la finestra staccata. */
+export const PANEL_STATE_CHANNEL = "panel:state";
+
+/** Canale di solo invio: apertura e chiusura della finestra del pannello. */
+export const PANEL_DETACHED_CHANNEL = "panel:detached";
 
 export type TerminalEvent =
 	| { kind: "data"; id: string; text: string }

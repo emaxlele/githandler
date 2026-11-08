@@ -143,6 +143,21 @@ del core.
 In `githandler` questo è il server MCP (`src/mcp/`): cinque comandi di sola lettura, zero dipendenze,
 stesso backend della UI.
 
+### 2.11 Più finestre, un solo stato pubblicato
+
+Una funzione che vive in una seconda finestra (in `githandler` il pannello dei dettagli) non deve
+creare una seconda verità sulla selezione: due renderer che si aggiornano a vicenda producono un
+anello di messaggi che cresce a ogni clic. La regola è asimmetrica, e va scritta.
+
+-   La finestra **principale è l'unica che pubblica**: manda `{tab, commit, file, formato}` su un canale
+    di solo invio, con un debounce breve.
+-   Il **main tiene l'ultima pubblicazione** e la ridiffonde a tutte le finestre. Così la finestra
+    appena aperta riceve lo stato alla `did-finish-load`, senza che il renderer debba chiederlo.
+-   La finestra secondaria **applica e basta**: niente pubblicazione, niente anello. Se il repository
+    attivo cambia, segue quello della principale.
+-   Gli eventi del repository (refresh, output del terminale) sono in **broadcast**: ogni finestra
+    riceve gli stessi dati, e le mutazioni passano comunque dallo stesso backend per root.
+
 ## 3. I contratti, in concreto
 
 ```ts

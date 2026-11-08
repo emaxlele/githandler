@@ -1,6 +1,6 @@
 # TODO
 
-Stato al 2026-11-08 (v0.6.0). Le voci spuntate sono in `CHANGELOG.md`.
+Stato al 2026-11-08 (v0.7.0). Le voci spuntate sono in `CHANGELOG.md`.
 
 ## Fatto
 
@@ -44,6 +44,17 @@ Stato al 2026-11-08 (v0.6.0). Le voci spuntate sono in `CHANGELOG.md`.
         rebase, rinomina, elimina, copia; cherry-pick sui commit)
 -   [x] **File dei merge** (`--first-parent` in `commitFilesArgs`): senza, il commit di merge compariva
         senza alcun file
+-   [x] **Pannello dei dettagli ridimensionabile e a icona**: maniglia sopra il pannello (18%–78%,
+        misura ricordata), pulsante `▾`/`▴` per ridurlo alla riga delle schede, stato in
+        `localStorage`
+-   [x] **Pannello in una finestra separata**: `BrowserWindow` con lo stesso renderer in modalità
+        `panel`, selezione pubblicata dalla finestra principale su `panel:sync` e ridiffusa su
+        `panel:state`; alla chiusura il pannello rientra al suo posto
+-   [x] **Scroll del diff e dell'albero**: `.panes` con altezza vincolata (`grid-template-rows:
+        minmax(0, 1fr)`), non più contenuto tagliato
+-   [x] **Scheda *Changes* del pannello distinta dalla voce della barra laterale**
+-   [x] **Menu del commit completo**: ramo dal commit, merge, rebase, reset soft/mixed/hard (con
+        conferma), cherry-pick, copia; `assertSha` sugli SHA e undo del reset tramite `target`
 
 ## Aperto
 
@@ -63,6 +74,12 @@ Stato al 2026-11-08 (v0.6.0). Le voci spuntate sono in `CHANGELOG.md`.
 -   [ ] Verificare la resa del testo su un diff da ~3.000 righe contro WebKitGTK (Tauri/Wails) e
         Avalonia: è la misura che ha motivato la scelta di Electron
 -   [ ] Decidere se e come pubblicare il repository
+
+-   [ ] Pannello staccato: quando la finestra principale cambia repository, la finestra dei dettagli
+        dovrebbe riaprire l'ultimo commit guardato in quel repository invece del primo della storia
+        (oggi segue il repository e aspetta la pubblicazione successiva)
+-   [ ] Indicatore nella finestra principale che i dettagli sono in una finestra separata, oltre al
+        rientro che avviene chiudendola
 
 ## Bloccato
 

@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.7.0] — 2026-11-08
+
+### Il pannello dei dettagli si adatta a chi lo usa
+
+-   **Ridimensionabile**: una maniglia sopra il pannello lo porta da un minimo del 18% a un massimo del
+    78% dell'altezza; la misura scelta resta al riavvio.
+-   **Riducibile a icona**: il pulsante `▾` chiude il pannello lasciando la sola riga delle schede, così
+    la storia si vede tutta; `▴` lo riapre alla misura di prima.
+-   **Apribile in una finestra sua** (`⧉`): il pannello diventa una finestra indipendente, da spostare
+    su un altro schermo, affiancare o ridurre a icona. Quando la finestra si chiude il pannello torna
+    al suo posto, con la stessa selezione. Finché è staccato, la finestra principale mostra la storia a
+    tutta altezza.
+-   **La finestra staccata segue la principale**: cambiare commit, file, scheda o formato del diff
+    nell'una aggiorna l'altra. Se nella principale si apre un altro repository, il pannello lo segue.
+    Il pannello non pubblica niente a sua volta, quindi non ci sono anelli di aggiornamento.
+
+### Due modi di vedere le modifiche, finalmente distinti
+
+-   La scheda **Changes del pannello** mostra le modifiche dentro il riquadro inferiore, con la storia
+    ancora visibile sopra.
+-   La voce **Changes della barra laterale** porta le modifiche a tutta area, senza storia né pannello.
+    Sono due viste diverse perché servono a due momenti diversi: rivedere mentre si guarda la storia, o
+    concentrarsi solo sulle modifiche.
+
+### Corretto
+
+-   **Il diff e l'albero non scorrevano.** Il contenitore dei pannelli cresceva con il contenuto e
+    veniva tagliato dal riquadro: ora ha un'altezza vincolata e le due aree scorrono davvero, anche con
+    un diff da migliaia di righe.
+-   La scheda scelta non viene più sovrascritta quando si torna da *All Commits*.
+
+### Menu del commit completo
+
+-   **Crea ramo da qui…**, **merge di questo commit nel ramo attuale**, **rebase del ramo attuale su
+    questo commit**, **reset soft / mixed / hard** (quest'ultimo in rosso, con conferma che dice cosa si
+    perde), oltre a cherry-pick e copia di SHA e messaggio.
+-   Lo SHA passato a Git è validato come esadecimale (`assertSha`): non può diventare un'opzione della
+    riga di comando.
+-   **L'undo copre anche il reset**: la voce registra il punto di arrivo (`target`) e «Annulla» ci
+    riporta con `reset --soft`, lasciando le modifiche da rivedere. Se dopo il reset la storia è
+    cambiata, l'annullamento si rifiuta invece di perdere altro lavoro.
+
+### Numeri
+
+-   110 test automatici (erano 108): SHA non validi, ramo da un commit, reset che non si trasforma in
+    un'opzione.
+
 ## [0.6.0] — 2026-11-08
 
 ### Le operazioni che mancavano

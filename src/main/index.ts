@@ -1,12 +1,22 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { app, BrowserWindow, dialog, ipcMain, Menu } from "electron";
+import {
+	app,
+	BrowserWindow,
+	dialog,
+	ipcMain,
+	Menu,
+	screen,
+} from "electron";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import {
 	CHANGED_CHANNEL,
+	PANEL_DETACHED_CHANNEL,
+	PANEL_STATE_CHANNEL,
 	TERMINAL_CHANNEL,
 	type IpcChannel,
+	type PanelState,
 	type TerminalEvent,
 } from "../shared/api.ts";
 import { normalizeSettings } from "../core/settings.ts";
@@ -47,6 +57,9 @@ if (process.env.GITHANDLER_GPU !== "1") app.disableHardwareAcceleration();
 const backends = new Map<string, CliGitBackend>();
 let activeRoot: string | null = null;
 let window: BrowserWindow | null = null;
+let panelWindow: BrowserWindow | null = null;
+/** Ultima selezione pubblicata: la finestra staccata la riceve appena è pronta. */
+let lastPanelState: PanelState | null = null;
 let stopWatching: (() => void) | null = null;
 let refreshing = false;
 let refreshPending = false;
@@ -58,8 +71,15 @@ function backendFor(root: string): CliGitBackend {
 	return backend;
 }
 
+/** Ogni finestra aperta riceve gli eventi: la principale e quella dei dettagli. */
+function broadcast(channel: string, payload: unknown): void {
+	for (const win of BrowserWindow.getAllWindows()) {
+		if (!win.isDestroyed()) win.webContents.send(channel, payload);
+	}
+}
+
 function sendTerminal(event: TerminalEvent): void {
-	window?.webContents.send(TERMINAL_CHANNEL, event);
+	broadcast(TERMINAL_CHANNEL, event);
 }
 
 function cleanError(error: unknown): string {
@@ -80,12 +100,9 @@ async function pushRefresh(): Promise<void> {
 	try {
 		if (!activeRoot) return;
 		const snapshot = await backendFor(activeRoot).refresh();
-		window?.webContents.send(CHANGED_CHANNEL, {
-			kind: "snapshot",
-			snapshot,
-		});
+		broadcast(CHANGED_CHANNEL, { kind: "snapshot", snapshot });
 	} catch (error) {
-		window?.webContents.send(CHANGED_CHANNEL, {
+		broadcast(CHANGED_CHANNEL, {
 			kind: "error",
 			message: cleanError(error),
 		});
@@ -209,6 +226,12 @@ function registerIpc(): void {
 	handle("git:cherryPick", (root: string, sha: string) =>
 		backendFor(root).cherryPick(sha)
 	);
+	handle("git:createBranchAt", (root: string, name: string, sha: string) =>
+		backendFor(root).createBranchAt(name, sha)
+	);
+	handle("git:reset", (root: string, sha: string, mode: "soft" | "mixed" | "hard") =>
+		backendFor(root).reset(sha, mode)
+	);
 	handle("git:renameBranch", (root: string, from: string, to: string) =>
 		backendFor(root).renameBranch(from, to)
 	);
@@ -279,6 +302,18 @@ function registerIpc(): void {
 	handle("term:kill", async (id: string) => {
 		terminals.get(id)?.kill();
 	});
+
+	// Il pannello dei dettagli può vivere in una finestra sua: la principale pubblica la
+	// selezione, questa la rimanda a tutte le finestre (e la tiene per la prossima apertura).
+	handle("panel:detach", async (root: string) => {
+		backendFor(root);
+		openPanelWindow(root);
+		return true;
+	});
+	handle("panel:sync", async (root: string, input: unknown) => {
+		lastPanelState = { ...(input as PanelState), root };
+		broadcast(PANEL_STATE_CHANNEL, lastPanelState);
+	});
 }
 
 function buildMenu(): void {
@@ -303,6 +338,63 @@ function buildMenu(): void {
 			},
 		])
 	);
+}
+
+/**
+ * Finestra dei dettagli: stesso renderer, modalità `panel`. Non è figlia della principale, così
+ * si può spostare, ridurre a icona e affiancare; quando si chiude il pannello torna al suo posto.
+ */
+function openPanelWindow(root: string): void {
+	if (panelWindow && !panelWindow.isDestroyed()) {
+		panelWindow.focus();
+		return;
+	}
+	const created = new BrowserWindow({
+		width: 900,
+		height: 620,
+		minWidth: 520,
+		minHeight: 320,
+		backgroundColor: "#0d1017",
+		title: "GitHandler — dettagli",
+		webPreferences: {
+			preload: join(__dirname, "../preload/index.js"),
+			contextIsolation: true,
+			nodeIntegration: false,
+			sandbox: true,
+		},
+	});
+	panelWindow = created;
+
+	if (window) {
+		const bounds = window.getBounds();
+		const area = screen.getDisplayMatching(bounds).workArea;
+		const x = Math.max(
+			area.x,
+			Math.min(bounds.x + bounds.width - 900, area.x + area.width - 900)
+		);
+		const y = Math.max(
+			area.y + 32,
+			Math.min(bounds.y + 48, area.y + area.height - 620)
+		);
+		created.setPosition(Math.round(x), Math.round(y));
+	}
+
+	created.loadFile(join(__dirname, "../renderer/index.html"), {
+		query: { panel: "1", root },
+	});
+
+	// la selezione può essere già stata pubblicata prima che la finestra fosse pronta
+	created.webContents.once("did-finish-load", () => {
+		if (lastPanelState && !created.isDestroyed()) {
+			created.webContents.send(PANEL_STATE_CHANNEL, lastPanelState);
+		}
+	});
+
+	created.on("closed", () => {
+		panelWindow = null;
+		broadcast(PANEL_DETACHED_CHANNEL, { detached: false });
+	});
+	broadcast(PANEL_DETACHED_CHANNEL, { detached: true });
 }
 
 function createWindow(): void {
@@ -334,6 +426,8 @@ function createWindow(): void {
 		stopWatching?.();
 		stopWatching = null;
 		window = null;
+		// la finestra dei dettagli non ha senso senza quella principale
+		panelWindow?.close();
 	});
 }
 
@@ -389,6 +483,14 @@ async function runShots(): Promise<void> {
 				item.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, clientX: 220, clientY: 260 }));
 			})()`,
 			target.replace(/\.png$/, "-ref-menu.png"),
+		],
+		[
+			`(() => {
+				const row = document.querySelectorAll("#log .row")[3];
+				if (!row) return;
+				row.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, clientX: 320, clientY: 300 }));
+			})()`,
+			target.replace(/\.png$/, "-commit-menu.png"),
 		],
 		[
 			`document.getElementById("btn-stash")?.click()`,

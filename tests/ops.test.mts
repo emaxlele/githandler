@@ -3,8 +3,10 @@ import { test } from "node:test";
 
 import {
 	assertRefName,
+	assertSha,
 	checkoutTrackingArgs,
 	cherryPickArgs,
+	createBranchAtArgs,
 	deleteBranchArgs,
 	localNameForRemote,
 	mergeArgs,
@@ -14,6 +16,7 @@ import {
 	pushArgs,
 	rebaseArgs,
 	renameBranchArgs,
+	resetArgs,
 	stashApplyArgs,
 	stashDropArgs,
 	stashListArgs,
@@ -172,4 +175,42 @@ test("parseSubmodules distingue pulito, modificato, non inizializzato e conflitt
 	assert.equal(modules[1]!.state, "modified");
 	assert.equal(modules[2]!.state, "uninitialized");
 	assert.equal(modules[3]!.state, "conflict");
+});
+
+
+test("assertSha accetta solo esadecimali e non opzioni", () => {
+	for (const bad of ["", "HEAD~1", "--hard", "main", "xyz1234", "abc12"])
+		assert.throws(() => assertSha(bad), /SHA non valido/, bad);
+	for (const good of ["abc1234", "a".repeat(40), "f".repeat(64)])
+		assert.doesNotThrow(() => assertSha(good), good);
+});
+
+test("ramo da un commit e reset non si trasformano in opzioni", () => {
+	assert.deepEqual(createBranchAtArgs("nuovo", "abc1234"), [
+		"branch",
+		"nuovo",
+		"abc1234",
+	]);
+	assert.throws(
+		() => createBranchAtArgs("--upload-pack=evil", "abc1234"),
+		/Nome di ref non valido/
+	);
+	assert.throws(() => createBranchAtArgs("nuovo", "HEAD~1"), /SHA non valido/);
+
+	// niente `--` prima dello SHA: con reset separerebbe i path e il commit diventerebbe un file
+	assert.deepEqual(resetArgs("abc1234", "soft"), [
+		"reset",
+		"--soft",
+		"abc1234",
+	]);
+	assert.deepEqual(resetArgs("abc1234", "hard"), [
+		"reset",
+		"--hard",
+		"abc1234",
+	]);
+	assert.throws(
+		() => resetArgs("abc1234", "keep" as never),
+		/Modo di reset non valido/
+	);
+	assert.throws(() => resetArgs("--hard", "hard"), /SHA non valido/);
 });

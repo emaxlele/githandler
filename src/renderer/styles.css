@@ -555,7 +555,8 @@ body {
 
 .main {
 	display: grid;
-	grid-template-rows: minmax(0, 1fr) minmax(0, 44%);
+	/* storia, maniglia di ridimensionamento, pannello: l'altezza del pannello è una variabile */
+	grid-template-rows: minmax(0, 1fr) 4px minmax(0, var(--bottom-h, 44%));
 	min-height: 0;
 	background: var(--bg);
 }
@@ -801,6 +802,13 @@ body {
 	border-radius: 999px;
 	background: #1f2735;
 	color: var(--text-dim);
+}
+
+/* Senza altezza vincolata i pannelli crescono col contenuto e il diff non scorre. */
+.panes {
+	display: grid;
+	grid-template-rows: minmax(0, 1fr);
+	min-height: 0;
 }
 
 .panel {
@@ -1705,7 +1713,8 @@ body {
 }
 
 .main.is-changes .log,
-.main.is-changes .bottom {
+.main.is-changes .bottom,
+.main.is-changes .splitter {
 	display: none;
 }
 
@@ -1965,4 +1974,94 @@ body {
 /* nell'area grande le due liste si dividono lo spazio disponibile */
 .changes-main .files {
 	grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+
+/* ── pannello dei dettagli: maniglia, riduzione, finestra separata ─────────── */
+
+.splitter {
+	cursor: row-resize;
+	background: transparent;
+	border-top: 1px solid var(--border);
+}
+
+.splitter:hover,
+.main.is-resizing .splitter {
+	background: var(--border-strong);
+}
+
+.panel-act {
+	appearance: none;
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 5px;
+	color: var(--text-dim);
+	font: inherit;
+	font-size: 12px;
+	line-height: 1;
+	padding: 4px 6px;
+	cursor: pointer;
+	align-self: center;
+}
+
+.panel-act:hover {
+	background: #1f2735;
+	border-color: var(--border);
+	color: var(--text);
+}
+
+.main.is-collapsed {
+	grid-template-rows: minmax(0, 1fr) 32px;
+}
+
+.main.is-collapsed .splitter {
+	display: none;
+}
+
+.main.is-collapsed .panes {
+	display: none;
+}
+
+.main.is-collapsed .bottom {
+	grid-template-rows: 32px;
+}
+
+.main.is-detached {
+	grid-template-rows: minmax(0, 1fr);
+}
+
+.main.is-detached .splitter,
+.main.is-detached .bottom {
+	display: none;
+}
+
+/* Finestra separata: il renderer è lo stesso, ma si vede solo il pannello. */
+.panel-only {
+	grid-template-rows: minmax(0, 1fr);
+}
+
+.panel-only .toolbar,
+.panel-only .repo-tabs,
+.panel-only .sidebar,
+.panel-only .log,
+.panel-only .splitter,
+.panel-only #btn-bottom-detach,
+.panel-only #btn-bottom-collapse {
+	display: none;
+}
+
+.panel-only .workspace {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.panel-only .main {
+	grid-template-rows: minmax(0, 1fr);
+}
+
+.panel-only .bottom {
+	border-top: none;
+}
+
+.panel-only .changes-main {
+	display: none;
 }

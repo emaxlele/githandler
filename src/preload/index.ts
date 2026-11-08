@@ -3,7 +3,10 @@ import { contextBridge, ipcRenderer } from "electron";
 import type { GitApi } from "../shared/api.ts";
 import {
 	CHANGED_CHANNEL,
+	PANEL_DETACHED_CHANNEL,
+	PANEL_STATE_CHANNEL,
 	TERMINAL_CHANNEL,
+	type PanelState,
 	type RepoChangeEvent,
 	type TerminalEvent,
 } from "../shared/api.ts";
@@ -57,6 +60,8 @@ const api: GitApi = {
 	merge: (branch) => invokeRepo("git:merge", branch),
 	rebase: (onto) => invokeRepo("git:rebase", onto),
 	cherryPick: (sha) => invokeRepo("git:cherryPick", sha),
+	createBranchAt: (name, sha) => invokeRepo("git:createBranchAt", name, sha),
+	reset: (sha, mode) => invokeRepo("git:reset", sha, mode),
 	renameBranch: (from, to) => invokeRepo("git:renameBranch", from, to),
 	deleteBranch: (name, force) => invokeRepo("git:deleteBranch", name, force),
 	checkoutTracking: (remoteRef, local) =>
@@ -91,6 +96,28 @@ const api: GitApi = {
 		ipcRenderer.on(TERMINAL_CHANNEL, handler);
 		return () => {
 			ipcRenderer.removeListener(TERMINAL_CHANNEL, handler);
+		};
+	},
+	detachPanel: () => invokeRepo("panel:detach"),
+	syncPanel: (panel) => invokeRepo("panel:sync", panel),
+	onPanelState: (listener) => {
+		const handler = (
+			_event: Electron.IpcRendererEvent,
+			state: PanelState
+		): void => listener(state);
+		ipcRenderer.on(PANEL_STATE_CHANNEL, handler);
+		return () => {
+			ipcRenderer.removeListener(PANEL_STATE_CHANNEL, handler);
+		};
+	},
+	onPanelDetached: (listener) => {
+		const handler = (
+			_event: Electron.IpcRendererEvent,
+			payload: { detached: boolean }
+		): void => listener(payload.detached);
+		ipcRenderer.on(PANEL_DETACHED_CHANNEL, handler);
+		return () => {
+			ipcRenderer.removeListener(PANEL_DETACHED_CHANNEL, handler);
 		};
 	},
 };

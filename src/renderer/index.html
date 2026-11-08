@@ -253,7 +253,13 @@
 
 				<div class="changes-main" id="changes-main"></div>
 
-				<div class="bottom">
+				<div
+					class="splitter"
+					id="bottom-splitter"
+					title="Trascina per ridimensionare il pannello"
+				></div>
+
+				<div class="bottom" id="bottom">
 					<nav class="tabs">
 						<button
 							class="tab is-active"
@@ -295,6 +301,20 @@
 								Affiancato
 							</button>
 						</div>
+						<button
+							class="panel-act"
+							id="btn-bottom-collapse"
+							title="Riduci il pannello"
+						>
+							▾
+						</button>
+						<button
+							class="panel-act"
+							id="btn-bottom-detach"
+							title="Apri il pannello in una finestra separata"
+						>
+							⧉
+						</button>
 					</nav>
 
 					<div class="panes" id="panes">

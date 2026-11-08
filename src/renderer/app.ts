@@ -21,7 +21,7 @@ import type {
 	StatusEntry,
 } from "../core/types.ts";
 import { describeUndo } from "../core/undo.ts";
-import type { GitApi } from "../shared/api.ts";
+import type { GitApi, PanelState, PanelStateInput } from "../shared/api.ts";
 import { BlameView } from "./blame-view.ts";
 import { pickKey, renderDiff, type DiffLayout } from "./diff-view.ts";
 import { avatarColor, byId, clear, el, initials, shortDate } from "./dom.ts";
@@ -34,6 +34,15 @@ declare global {
 }
 
 const api = window.githandler;
+
+/**
+ * La finestra dei dettagli è lo stesso renderer con `?panel=1`: toolbar, schede dei repository,
+ * barra laterale e storia spariscono e il pannello prende tutta la finestra.
+ */
+const query = new URLSearchParams(window.location.search);
+const panelMode = query.get("panel") === "1";
+const panelBootRoot = query.get("root");
+if (panelMode) document.body.classList.add("panel-only");
 
 type Tab = "changes" | "commit" | "tree" | "blame" | "term";
 
@@ -202,8 +211,58 @@ const ui = {
 	termForm: byId<HTMLFormElement>("term-form"),
 	termInput: byId<HTMLInputElement>("term-input"),
 	termStop: byId<HTMLButtonElement>("term-stop"),
+	splitter: byId("bottom-splitter"),
+	btnBottomCollapse: byId<HTMLButtonElement>("btn-bottom-collapse"),
+	btnBottomDetach: byId<HTMLButtonElement>("btn-bottom-detach"),
 	toast: byId("toast"),
 };
+
+const BOTTOM_KEY = "githandler.bottomPanel";
+
+interface BottomLayout {
+	height: number;
+	collapsed: boolean;
+}
+
+function savedBottom(): BottomLayout {
+	try {
+		const raw = localStorage.getItem(BOTTOM_KEY);
+		if (!raw) return { height: 44, collapsed: false };
+		const parsed = JSON.parse(raw) as Partial<BottomLayout>;
+		const height = Number(parsed.height);
+		return {
+			height: Number.isFinite(height)
+				? Math.min(78, Math.max(18, height))
+				: 44,
+			collapsed: parsed.collapsed === true,
+		};
+	} catch (error) {
+		console.warn("layout del pannello non leggibile:", error);
+		return { height: 44, collapsed: false };
+	}
+}
+
+const bottomLayout = savedBottom();
+let bottomCollapsed = bottomLayout.collapsed;
+
+function applyBottomLayout(): void {
+	ui.main.style.setProperty("--bottom-h", `${bottomLayout.height}%`);
+	ui.main.classList.toggle("is-collapsed", bottomCollapsed);
+	ui.btnBottomCollapse.textContent = bottomCollapsed ? "▴" : "▾";
+	ui.btnBottomCollapse.title = bottomCollapsed
+		? "Espandi il pannello"
+		: "Riduci il pannello";
+}
+
+function saveBottomLayout(): void {
+	try {
+		localStorage.setItem(BOTTOM_KEY, JSON.stringify(bottomLayout));
+	} catch (error) {
+		console.warn("layout del pannello non salvato:", error);
+	}
+}
+
+if (!panelMode) applyBottomLayout();
 
 const logView = new LogView({
 	onSelect: (sha) => void selectCommit(sha),
@@ -272,6 +331,91 @@ async function guardRepo<T>(
 			console.warn("stato non rileggibile dopo l'errore:", refreshError);
 		}
 		return null;
+	}
+}
+
+/** La finestra dei dettagli è aperta: solo allora vale la pena pubblicare la selezione. */
+let panelDetached = false;
+let panelPublishTimer: number | undefined;
+
+function panelSnapshot(): PanelStateInput {
+	return {
+		tab: state.tab,
+		side: state.side,
+		selectedCommit: state.selectedCommit,
+		commitPath: state.commitPath,
+		changePath: state.changePath,
+		changeStaged: state.changeStaged,
+		treePath: state.treePath,
+		layout: state.diffLayout,
+	};
+}
+
+/** Manda alla finestra staccata cosa si sta guardando: la pubblicazione è debounced. */
+function publishPanel(): void {
+	if (panelMode || !panelDetached) return;
+	window.clearTimeout(panelPublishTimer);
+	panelPublishTimer = window.setTimeout(() => {
+		void api.syncPanel(panelSnapshot()).catch((error: Error) => {
+			console.warn("pannello non sincronizzato:", error);
+		});
+	}, 30);
+}
+
+let pendingPanelState: PanelState | null = null;
+let panelApplyToken = 0;
+
+/**
+ * La finestra staccata segue la principale: stessa scheda, stesso commit, stesso file. Il pannello
+ * non pubblica niente, quindi non può innescare un anello di sincronizzazione.
+ */
+async function applyPanelState(payload: PanelState): Promise<void> {
+	if (!panelMode) return;
+	if (payload.root !== state.root) {
+		await followPanelRepo(payload.root);
+		if (payload.root !== state.root) return;
+	}
+
+	const token = ++panelApplyToken;
+	if (payload.selectedCommit && payload.selectedCommit !== state.selectedCommit) {
+		await selectCommit(payload.selectedCommit);
+		if (token !== panelApplyToken) return;
+	}
+	if (payload.commitPath && payload.commitPath !== state.commitPath) {
+		await selectCommitFile(payload.commitPath);
+		if (token !== panelApplyToken) return;
+	}
+	if (payload.changePath && payload.changePath !== state.changePath) {
+		await selectChange(payload.changePath, payload.changeStaged);
+		if (token !== panelApplyToken) return;
+	}
+	if (
+		payload.tab === "tree" &&
+		payload.treePath &&
+		payload.treePath !== state.treePath
+	) {
+		await selectTreeFile(payload.treePath);
+		if (token !== panelApplyToken) return;
+	}
+	if (payload.layout !== state.diffLayout) setDiffLayout(payload.layout);
+	if (payload.tab !== state.tab) setTab(payload.tab);
+}
+
+/** Il pannello segue il repository attivo della finestra principale, senza chiedere niente. */
+async function followPanelRepo(root: string): Promise<void> {
+	try {
+		await api.use(root);
+		const snapshot = await api.refresh();
+		const session = emptyState(root);
+		session.snapshot = snapshot;
+		session.commits = snapshot.commits;
+		session.hasMore = snapshot.hasMore;
+		sessions.clear();
+		sessions.set(root, session);
+		state = session;
+		renderSession();
+	} catch (error) {
+		toast(`Cambio repository: ${readableError(error)}`);
 	}
 }
 
@@ -413,6 +557,7 @@ function renderSession(): void {
 	}
 	void reloadOpenDiff();
 	void updateWatchChip();
+	publishPanel();
 }
 
 function updateCommitCount(): void {
@@ -1002,6 +1147,18 @@ function renderCommitFiles(): void {
 // ── azioni ───────────────────────────────────────────────────────────────────
 
 async function boot(): Promise<void> {
+	if (panelMode) {
+		if (!panelBootRoot) {
+			toast("Nessun repository indicato per il pannello dei dettagli.");
+			return;
+		}
+		await openRepository(panelBootRoot);
+		renderSession();
+		const pending = pendingPanelState;
+		pendingPanelState = null;
+		if (pending) void applyPanelState(pending);
+		return;
+	}
 	await openRepository();
 	renderSession();
 }
@@ -1033,6 +1190,7 @@ async function selectCommit(sha: string): Promise<void> {
 	const first = files[0];
 	if (first) await selectCommitFile(first.path);
 	else renderDiff(ui.commitDiff, null, "Commit senza modifiche ai file.");
+	publishPanel();
 }
 
 async function selectCommitFile(path: string): Promise<void> {
@@ -1049,6 +1207,7 @@ async function selectCommitFile(path: string): Promise<void> {
 			layout: state.diffLayout,
 		});
 	}
+	publishPanel();
 }
 
 /** Diff della scheda File Tree: stesso backend, riquadro diverso. */
@@ -1067,6 +1226,7 @@ async function selectTreeFile(path: string): Promise<void> {
 				layout: state.diffLayout,
 			});
 		}
+		publishPanel();
 		return;
 	}
 
@@ -1083,6 +1243,7 @@ async function selectTreeFile(path: string): Promise<void> {
 			mode: staged ? "unstage" : "stage",
 		});
 	}
+	publishPanel();
 }
 
 async function selectChange(path: string, staged?: boolean): Promise<void> {
@@ -1097,6 +1258,7 @@ async function selectChange(path: string, staged?: boolean): Promise<void> {
 		staged ?? (entry.index !== "." && entry.worktree === ".");
 	if (state.snapshot) renderChanges(state.snapshot);
 	await loadChangeDiff();
+	publishPanel();
 }
 
 /** Il diff del working tree si ridisegna da `state.changeDiff`, senza tornare a Git. */
@@ -1219,6 +1381,7 @@ function setSide(side: Side): void {
 		ui.panelChanges.classList.remove("in-main");
 		syncPanels();
 	}
+	publishPanel();
 }
 
 function setTab(tab: Tab): void {
@@ -1233,6 +1396,7 @@ function setTab(tab: Tab): void {
 	if (tab === "blame") void loadBlame();
 	if (tab === "tree" && state.snapshot) renderTree(state.snapshot);
 	if (tab === "term") renderTerminal();
+	publishPanel();
 }
 
 /** Blame del file aperto: quello delle Modifiche, altrimenti quello del commit selezionato. */
@@ -1489,7 +1653,7 @@ async function rebaseOnto(branch: string): Promise<void> {
 		)
 	)
 		return;
-	const snapshot = await guard(`Rebase su ${branch}`, () =>
+	const snapshot = await guardRepo(`Rebase su ${branch}`, () =>
 		api.rebase(branch)
 	);
 	if (!snapshot) return;
@@ -1547,6 +1711,69 @@ async function cherryPickCommit(sha: string): Promise<void> {
 	if (!snapshot) return;
 	applySnapshot(snapshot);
 	toast("Cherry-pick completato.", "ok");
+}
+
+async function createBranchAt(sha: string): Promise<void> {
+	const name = await askInput({
+		title: "Nuovo ramo",
+		label: `Nome del ramo che punta a ${sha.slice(0, 8)}`,
+	});
+	if (!name) return;
+	const snapshot = await guard(`Ramo ${name}`, () =>
+		api.createBranchAt(name, sha)
+	);
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast(`Ramo ${name} creato.`, "ok");
+}
+
+async function mergeCommit(sha: string): Promise<void> {
+	const short = sha.slice(0, 8);
+	if (!window.confirm(`Unire il commit ${short} nel ramo attuale?`)) return;
+	const snapshot = await guardRepo(`Merge di ${short}`, () => api.merge(sha));
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast("Merge completato.", "ok");
+}
+
+async function rebaseCommit(sha: string): Promise<void> {
+	const short = sha.slice(0, 8);
+	if (
+		!window.confirm(
+			`Riscrivere il ramo attuale sopra il commit ${short}? La storia locale cambia.`
+		)
+	)
+		return;
+	const snapshot = await guardRepo(`Rebase su ${short}`, () =>
+		api.rebase(sha)
+	);
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast("Rebase completato.", "ok");
+}
+
+async function resetTo(
+	sha: string,
+	mode: "soft" | "mixed" | "hard"
+): Promise<void> {
+	const short = sha.slice(0, 8);
+	const branch = state.snapshot?.info.branch ?? "HEAD";
+	const detail =
+		mode === "hard"
+			? "Le modifiche non committate e i commit successivi spariranno dal ramo."
+			: mode === "soft"
+			? "I commit successivi escono dal ramo, le modifiche restano in stage."
+			: "I commit successivi escono dal ramo, le modifiche restano nel working tree.";
+	if (
+		!window.confirm(
+			`Reset ${mode} di ${branch} a ${short}?\n\n${detail}`
+		)
+	)
+		return;
+	const snapshot = await guard(`Reset ${mode}`, () => api.reset(sha, mode));
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast(`Reset ${mode} completato.`, "ok");
 }
 
 // ── remoto, stash, submodule ─────────────────────────────────────────────────
@@ -1929,6 +2156,33 @@ ui.log.addEventListener("contextmenu", (event) => {
 		},
 		"separator",
 		{
+			label: "Crea ramo da qui…",
+			action: () => void createBranchAt(sha),
+		},
+		{
+			label: "Merge di questo commit nel ramo attuale",
+			action: () => void mergeCommit(sha),
+		},
+		{
+			label: "Rebase del ramo attuale su questo commit",
+			action: () => void rebaseCommit(sha),
+		},
+		"separator",
+		{
+			label: "Reset soft a questo commit",
+			action: () => void resetTo(sha, "soft"),
+		},
+		{
+			label: "Reset mixed a questo commit",
+			action: () => void resetTo(sha, "mixed"),
+		},
+		{
+			label: "Reset hard a questo commit",
+			danger: true,
+			action: () => void resetTo(sha, "hard"),
+		},
+		"separator",
+		{
 			label: "Cherry-pick sul ramo attuale",
 			action: () => void cherryPickCommit(sha),
 		},
@@ -1952,6 +2206,60 @@ document.addEventListener("scroll", () => closeMenu(), true);
 window.addEventListener("resize", () => closeMenu());
 updateTerminalState();
 
+// ── pannello dei dettagli: altezza, riduzione, finestra separata ──────────────
+
+ui.btnBottomCollapse.addEventListener("click", () => {
+	bottomCollapsed = !bottomCollapsed;
+	applyBottomLayout();
+	saveBottomLayout();
+});
+
+ui.splitter.addEventListener("pointerdown", (event) => {
+	if (bottomCollapsed) return;
+	event.preventDefault();
+	const rect = ui.main.getBoundingClientRect();
+	ui.main.classList.add("is-resizing");
+	const move = (pointer: PointerEvent): void => {
+		const ratio = (rect.bottom - pointer.clientY) / rect.height;
+		bottomLayout.height = Math.min(78, Math.max(18, ratio * 100));
+		ui.main.style.setProperty("--bottom-h", `${bottomLayout.height}%`);
+	};
+	const finish = (): void => {
+		ui.main.classList.remove("is-resizing");
+		window.removeEventListener("pointermove", move);
+		window.removeEventListener("pointerup", finish);
+		window.removeEventListener("pointercancel", finish);
+		saveBottomLayout();
+	};
+	window.addEventListener("pointermove", move);
+	window.addEventListener("pointerup", finish);
+	window.addEventListener("pointercancel", finish);
+});
+
+ui.btnBottomDetach.addEventListener("click", () => {
+	void api.detachPanel().catch((error: Error) => {
+		toast(`Finestra del pannello: ${readableError(error)}`);
+	});
+});
+
+api.onPanelDetached((detached) => {
+	if (panelMode) return;
+	panelDetached = detached;
+	ui.main.classList.toggle("is-detached", detached);
+	// la finestra appena aperta deve ricevere subito cosa stiamo guardando
+	if (detached) publishPanel();
+});
+
+api.onPanelState((payload) => {
+	if (!panelMode) return;
+	if (!state.root) {
+		// la finestra sta ancora aprendo il repository: si applica appena è pronta
+		pendingPanelState = payload;
+		return;
+	}
+	void applyPanelState(payload);
+});
+
 // ── eventi ───────────────────────────────────────────────────────────────────
 
 ui.btnOpen.addEventListener("click", () => void openRepository());
@@ -1970,27 +2278,30 @@ function updateDiffButtons(): void {
 	}
 }
 
+function setDiffLayout(layout: DiffLayout): void {
+	if (layout === state.diffLayout) return;
+	state.diffLayout = layout;
+	try {
+		localStorage.setItem("githandler.diffLayout", layout);
+	} catch (error) {
+		console.warn("formato del diff non salvato:", error);
+	}
+	updateDiffButtons();
+	if (state.changePath && state.changeDiff) renderChangeDiff();
+	if (state.tab === "commit" && state.commitPath) {
+		void selectCommitFile(state.commitPath);
+	}
+	if (state.tab === "tree" && state.treePath) {
+		void selectTreeFile(state.treePath);
+	}
+	publishPanel();
+}
+
 for (const button of document.querySelectorAll<HTMLButtonElement>(
 	"[data-diff]"
 )) {
 	button.addEventListener("click", () => {
-		const layout: DiffLayout =
-			button.dataset.diff === "split" ? "split" : "unified";
-		if (layout === state.diffLayout) return;
-		state.diffLayout = layout;
-		try {
-			localStorage.setItem("githandler.diffLayout", layout);
-		} catch {
-			// storage negato: la preferenza vale solo per questa sessione
-		}
-		updateDiffButtons();
-		if (state.changePath && state.changeDiff) renderChangeDiff();
-		if (state.tab === "commit" && state.commitPath) {
-			void selectCommitFile(state.commitPath);
-		}
-		if (state.tab === "tree" && state.treePath) {
-			void selectTreeFile(state.treePath);
-		}
+		setDiffLayout(button.dataset.diff === "split" ? "split" : "unified");
 	});
 }
 // la preferenza salvata deve essere visibile già al primo avvio
@@ -2019,7 +2330,9 @@ ui.settingsForm.addEventListener("submit", (event) => {
 	})();
 });
 
-ui.tabChanges.addEventListener("click", () => setSide("changes"));
+// Il tab del pannello mostra le modifiche dentro la finestra; la voce della barra laterale le porta
+// a tutta area: sono due modi diversi, e devono restare diversi.
+ui.tabChanges.addEventListener("click", () => setTab("changes"));
 ui.tabCommit.addEventListener("click", () => setTab("commit"));
 ui.tabTree.addEventListener("click", () => setTab("tree"));
 ui.tabBlame.addEventListener("click", () => setTab("blame"));
@@ -2221,11 +2534,15 @@ document.addEventListener("keydown", (event) => {
 /** Aggiornamento spontaneo: il main ha riletto il repository dopo un cambiamento sul disco. */
 api.onChanged((event) => {
 	if (event.kind === "error") {
-		toast(`Aggiornamento automatico: ${event.message}`);
+		if (!panelMode) toast(`Aggiornamento automatico: ${event.message}`);
 		return;
 	}
 	const session = sessions.get(event.snapshot.info.root);
-	if (!session) return;
+	if (!session) {
+		// il pannello segue la finestra principale quando cambia repository
+		if (panelMode) void followPanelRepo(event.snapshot.info.root);
+		return;
+	}
 	if (session !== state) {
 		// aggiornamento di una scheda non attiva: si conserva per il cambio scheda
 		session.snapshot = event.snapshot;

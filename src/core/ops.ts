@@ -47,6 +47,11 @@ export function pushArgs(
 	return ["push", "--set-upstream", "origin", branch];
 }
 
+/** SHA di commit: solo esadecimale, così non può diventare un'opzione della riga di comando. */
+export function assertSha(sha: string): void {
+	if (!/^[0-9a-f]{7,64}$/.test(sha)) throw new Error(`SHA non valido: ${sha}`);
+}
+
 export function mergeArgs(branch: string): string[] {
 	assertRefName(branch);
 	return ["merge", "--no-edit", "--", branch];
@@ -58,9 +63,28 @@ export function rebaseArgs(onto: string): string[] {
 }
 
 export function cherryPickArgs(sha: string): string[] {
-	if (!/^[0-9a-f]{7,64}$/.test(sha))
-		throw new Error(`SHA non valido: ${sha}`);
+	assertSha(sha);
 	return ["cherry-pick", "--", sha];
+}
+
+/** Ramo nuovo che punta a un commit esistente, senza spostare HEAD. */
+export function createBranchAtArgs(name: string, sha: string): string[] {
+	assertRefName(name);
+	assertSha(sha);
+	return ["branch", name, sha];
+}
+
+export type ResetMode = "soft" | "mixed" | "hard";
+
+/**
+ * Reset del ramo attuale a un commit. `--` non va messo: con reset separa i path e il commit
+ * verrebbe letto come un file.
+ */
+export function resetArgs(sha: string, mode: ResetMode): string[] {
+	assertSha(sha);
+	if (mode !== "soft" && mode !== "mixed" && mode !== "hard")
+		throw new Error(`Modo di reset non valido: ${mode}`);
+	return ["reset", `--${mode}`, sha];
 }
 
 export function renameBranchArgs(from: string, to: string): string[] {

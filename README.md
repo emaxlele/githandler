@@ -12,7 +12,7 @@ poche ore dell'8 novembre 2026, `lanecraft` e `gitlattice`.
 Non è un fork di altri client: è una reimplementazione indipendente, clean-room. Nessun codice, stringa,
 icona o asset preso da prodotti esistenti.
 
-## Stato (v0.6)
+## Stato (v0.7)
 
 | Funzione                                            | Stato         |
 | --------------------------------------------------- | ------------- |
@@ -35,6 +35,7 @@ icona o asset preso da prodotti esistenti.
 | **Ricerca nella storia** (`author:`, `file:`)       | ✅             |
 | **Aggiornamento automatico** (`--watch`)            | ✅             |
 | **Blame nella UI** (pannello virtualizzato)         | ✅             |
+| **Pannello ridimensionabile, a icona, in finestra** | ✅             |
 | **Server MCP con permessi configurabili**           | ✅             |
 | Syntax highlighting (CodeMirror 6)                  | ⏳ milestone 2 |
 | `.deb` con profilo AppArmor                         | ⏳ milestone 4 |
@@ -48,14 +49,19 @@ La finestra segue la disposizione dei client Git desktop affermati, con un tema 
     aperti, con la × per chiuderle e il `+` per aprirne un altro.
 -   **Barra laterale**: nome del repository, *Changes* con il conteggio, *All Commits*, filtro di
     ricerca e i ref divisi in Branches / Remotes / Tags.
--   **Changes a tutta area**: clic su *Changes* e il pannello delle modifiche prende l'area
-    principale, senza storia né pannello inferiore. *All Commits* riporta la storia.
+-   **Due viste per le modifiche**: la scheda *Changes* del pannello le mostra dentro il riquadro
+    inferiore, con la storia ancora sopra; la voce *Changes* della barra laterale le porta a tutta
+    area, senza storia né pannello inferiore. *All Commits* riporta la storia.
 -   **Storia** in cinque colonne: grafo a corsie, messaggio con i badge dei ref, autore con avatar a
     iniziali, SHA breve, data. Clic su un ramo o tag: il cursore va al suo commit. Tasto destro su un
-    ramo: checkout, merge, rebase, rinomina, elimina, copia; su un commit: cherry-pick, copia.
+    ramo: checkout, merge, rebase, rinomina, elimina, copia; su un commit: ramo nuovo da quel punto,
+    merge, rebase, reset soft / mixed / hard, cherry-pick, copia di SHA e messaggio.
 -   **Pannello inferiore** con cinque schede: `Commit` (AUTHOR e COMMITTER separati, SHA, PARENTS,
     messaggio e file toccati), `Changes` (Staged e Unstaged divisi, diff, riquadro del commit),
     `File Tree` (albero dei file del commit o del working tree, diff a destra), `Blame` e `Terminale`.
+    La maniglia sopra il pannello lo ridimensiona, `▾` lo riduce alla sola riga delle schede e `⧉` lo
+    apre in una finestra separata: chiusa quella, il pannello torna al suo posto. Diff e albero
+    scorrono, con la loro altezza vincolata al riquadro.
 
 Ogni funzione che esiste ha un comando, e ogni comando fa quello che dice: il terminale è una shell
 vera nella cartella del repository, con il pulsante per interrompere il comando.

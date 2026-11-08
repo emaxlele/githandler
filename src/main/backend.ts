@@ -33,6 +33,7 @@ import { historyArgs, parseHistoryQuery } from "../core/search.ts";
 import {
 	cherryPickArgs,
 	checkoutTrackingArgs,
+	createBranchAtArgs,
 	deleteBranchArgs,
 	mergeArgs,
 	parseStashList,
@@ -41,10 +42,12 @@ import {
 	pushArgs,
 	rebaseArgs,
 	renameBranchArgs,
+	resetArgs,
 	stashApplyArgs,
 	stashDropArgs,
 	stashListArgs,
 	stashSaveArgs,
+	type ResetMode,
 } from "../core/ops.ts";
 import {
 	defaultSettings,
@@ -125,6 +128,10 @@ export interface GitBackend {
 	merge(branch: string): Promise<Snapshot>;
 	rebase(onto: string): Promise<Snapshot>;
 	cherryPick(sha: string): Promise<Snapshot>;
+	/** Ramo nuovo che punta a un commit, senza spostare HEAD. */
+	createBranchAt(name: string, sha: string): Promise<Snapshot>;
+	/** Reset del ramo attuale a un commit, con voce di undo sul puntatore. */
+	reset(sha: string, mode: ResetMode): Promise<Snapshot>;
 	renameBranch(from: string, to: string): Promise<Snapshot>;
 	deleteBranch(name: string, force: boolean): Promise<Snapshot>;
 	checkoutTracking(remoteRef: string, local: string): Promise<Snapshot>;
@@ -431,6 +438,7 @@ export class CliGitBackend implements GitBackend {
 			if (entry) await this.#dropUndo(entry.id);
 			throw error;
 		}
+		await this.#finalizeUndo(entry);
 		return this.refresh();
 	}
 
@@ -546,6 +554,7 @@ export class CliGitBackend implements GitBackend {
 			if (entry) await this.#dropUndo(entry.id);
 			throw error;
 		}
+		await this.#finalizeUndo(entry);
 		return this.refresh();
 	}
 
@@ -558,6 +567,7 @@ export class CliGitBackend implements GitBackend {
 			if (entry) await this.#dropUndo(entry.id);
 			throw error;
 		}
+		await this.#finalizeUndo(entry);
 		return this.refresh();
 	}
 
@@ -575,6 +585,30 @@ export class CliGitBackend implements GitBackend {
 			if (entry) await this.#dropUndo(entry.id);
 			throw error;
 		}
+		await this.#finalizeUndo(entry);
+		return this.refresh();
+	}
+
+	async createBranchAt(name: string, sha: string): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		await runGit(info.root, createBranchAtArgs(name, sha));
+		return this.refresh();
+	}
+
+	async reset(sha: string, mode: ResetMode): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		// l'undo riporta il puntatore con reset --soft: le modifiche restano da rivedere
+		const entry = await this.#record(
+			"commit",
+			`Reset (${mode}) a ${sha.slice(0, 8)}`
+		);
+		try {
+			await runGit(info.root, resetArgs(sha, mode));
+		} catch (error) {
+			if (entry) await this.#dropUndo(entry.id);
+			throw error;
+		}
+		await this.#finalizeUndo(entry);
 		return this.refresh();
 	}
 
@@ -685,15 +719,24 @@ export class CliGitBackend implements GitBackend {
 			).stdout.trim();
 			if (head === entry.head)
 				throw new Error("Il commit è già stato annullato.");
-			const ancestor = await runGit(
-				info.root,
-				["merge-base", "--is-ancestor", entry.head, head],
-				{ allowFailure: true }
-			);
-			if (ancestor.code !== 0)
-				throw new Error(
-					"La storia è cambiata: annullare perderebbe altri commit."
+			if (entry.target) {
+				// reset e rebase spostano HEAD dove il pre-HEAD non è un progenitore: si controlla
+				// il punto di arrivo, non la discendenza
+				if (head !== entry.target)
+					throw new Error(
+						"La storia è cambiata: annullare perderebbe altri commit."
+					);
+			} else {
+				const ancestor = await runGit(
+					info.root,
+					["merge-base", "--is-ancestor", entry.head, head],
+					{ allowFailure: true }
 				);
+				if (ancestor.code !== 0)
+					throw new Error(
+						"La storia è cambiata: annullare perderebbe altri commit."
+					);
+			}
 			// `--soft` riporta il ramo indietro e lascia il contenuto in stage: niente va perso.
 			await runGit(info.root, ["reset", "--soft", entry.head]);
 		} else if (entry.kind === "checkout") {
@@ -893,6 +936,26 @@ export class CliGitBackend implements GitBackend {
 			)
 		);
 		return entry;
+	}
+
+	/**
+	 * Scrive nell'entry il HEAD prodotto dall'operazione. Senza, l'annullamento di reset e rebase
+	 * non saprebbe riconoscere che HEAD è cambiato proprio per effetto dell'operazione.
+	 */
+	async #finalizeUndo(entry: UndoEntry | null): Promise<void> {
+		if (!entry) return;
+		const info = this.#requireInfo();
+		const head = await runGit(
+			info.root,
+			["rev-parse", "--verify", "-q", "HEAD"],
+			{ allowFailure: true }
+		);
+		if (head.code !== 0) return;
+		const entries = await this.#readUndo();
+		const found = entries.find((item) => item.id === entry.id);
+		if (!found) return;
+		found.target = head.stdout.trim();
+		await this.#writeUndo(entries);
 	}
 
 	/** Cancella ref e snapshot di una voce che non è più annullabile. */

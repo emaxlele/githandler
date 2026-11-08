@@ -23,6 +23,12 @@ export interface UndoEntry {
 	at: number;
 	/** HEAD al momento della registrazione (null su repository senza commit) */
 	head: string | null;
+	/**
+	 * HEAD prodotto dall'operazione, scritto quando l'operazione è riuscita. Serve ad annullare
+	 * reset e rebase, dove il pre-HEAD non è un antenato del nuovo: se HEAD non è più questo, la
+	 * storia è cambiata e annullare perderebbe altro lavoro.
+	 */
+	target?: string | null;
 	/** ramo corrente al momento della registrazione (null = HEAD staccato) */
 	branch: string | null;
 	/** descrizione breve per la UI */
@@ -80,6 +86,7 @@ export function parseUndoLog(raw: string): UndoEntry[] {
 		const label = record.label;
 		const paths = record.paths;
 		const stash = record.stash;
+		const target = record.target;
 
 		if (typeof id !== "string" || !id) continue;
 		if (!isUndoKind(kind)) continue;
@@ -97,6 +104,10 @@ export function parseUndoLog(raw: string): UndoEntry[] {
 			branch: branch ?? null,
 			label,
 		};
+		// un target malformato non rende inutilizzabile la voce: si torna al controllo sui progenitori
+		if (target === null) entry.target = null;
+		else if (typeof target === "string" && SHA.test(target))
+			entry.target = target;
 
 		const safePaths = (value: unknown): string[] | undefined => {
 			if (!Array.isArray(value)) return undefined;
