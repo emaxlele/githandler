@@ -1,6 +1,6 @@
 import type { BlameFile } from "../core/blame.ts";
 import type { PatchMode } from "../core/patch.ts";
-import type { Settings } from "../core/settings.ts";
+import type { Settings, TrashUsage } from "../core/settings.ts";
 import type {
 	Commit,
 	CommitFile,
@@ -45,6 +45,8 @@ export interface GitApi {
 	settings(): Promise<Settings>;
 	/** Salva le impostazioni e restituisce la versione normalizzata. */
 	saveSettings(settings: Settings): Promise<Settings>;
+	/** Byte e file conservati dalle copie di sicurezza ancora annullabili. */
+	trashUsage(): Promise<TrashUsage>;
 	/** La sorveglianza del repository è attiva (`--watch`). */
 	watching(): Promise<boolean>;
 	/** Si iscrive agli aggiornamenti spontanei; restituisce la funzione per disiscriversi. */
@@ -71,7 +73,8 @@ export type IpcChannel =
 	| "git:undo"
 	| "app:watching"
 	| "app:settings"
-	| "app:settings:save";
+	| "app:settings:save"
+	| "app:trashUsage";
 
 /** Canale di solo invio: il main avvisa il renderer che il repository è cambiato. */
 export const CHANGED_CHANNEL = "repo:changed";

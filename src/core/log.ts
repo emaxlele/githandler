@@ -18,7 +18,9 @@ export function logArgs(options: RawLogOptions = {}): string[] {
 	const skip = options.skip ?? 0;
 	const args = ["log", "--date-order", `-n${limit}`];
 	if (skip > 0) args.push(`--skip=${skip}`);
-	if (options.all !== false) args.push("--all");
+	// `--all` prende ogni ref e HEAD; i nostri ref di servizio (snapshot e trash) non sono storia
+	// del progetto e non devono comparire né nella UI né nel conteggio.
+	if (options.all !== false) args.push("--exclude=refs/gitcraft/*", "--all");
 	args.push(`--pretty=format:${LOG_FORMAT}`);
 	return args;
 }

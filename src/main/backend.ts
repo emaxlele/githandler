@@ -21,7 +21,11 @@ import {
 import { parseStatus, statusArgs } from "../core/status.ts";
 import { patchTargetsOnly, type PatchMode } from "../core/patch.ts";
 import { historyArgs, parseHistoryQuery } from "../core/search.ts";
-import { defaultSettings, type Settings } from "../core/settings.ts";
+import {
+	defaultSettings,
+	type Settings,
+	type TrashUsage,
+} from "../core/settings.ts";
 import {
 	parseUndoLog,
 	snapshotRef,
@@ -40,10 +44,10 @@ import type {
 } from "../core/types.ts";
 import { GitError, runGit } from "./git.ts";
 import {
-	copyToTrash,
 	pruneTrash,
 	removeTrash,
 	restoreFromTrash,
+	storeTrash,
 	TrashLimitError,
 } from "./trash.ts";
 
@@ -88,6 +92,8 @@ export interface GitBackend {
 	blame(path: string, start?: number, end?: number): Promise<BlameFile>;
 	/** Annulla l'ultima operazione registrata (commit, checkout, scarto). */
 	undo(): Promise<Snapshot>;
+	/** Spazio occupato dalle copie di sicurezza ancora annullabili. */
+	trashUsage(): Promise<TrashUsage>;
 }
 
 /** Rifiuta path che possano uscire dal repository o diventare opzioni per git. */
@@ -281,9 +287,8 @@ export class CliGitBackend implements GitBackend {
 		const toDelete = paths.filter(isUntracked);
 		const toRestore = paths.filter((path) => !isUntracked(path));
 
-		// Il contenuto tracciato si conserva in uno stash commit; i file non tracciati in una copia
-		// dentro `.git/gitcraft/trash/`. Senza stash (indice in conflitto) l'operazione resta
-		// irreversibile per quei path, come prima.
+		// Il contenuto tracciato si conserva in uno stash commit. I file non tracciati diventano
+		// oggetti Git sotto `refs/gitcraft/trash/...`: se qualcosa va storto non si cancella nulla.
 		let stashSha = "";
 		if (toRestore.length > 0) {
 			const stash = await runGit(info.root, ["stash", "create"], {
@@ -292,12 +297,37 @@ export class CliGitBackend implements GitBackend {
 			stashSha = stash.code === 0 ? stash.stdout.trim() : "";
 		}
 
-		const { trashUntracked } = await this.#settings();
+		const { trash } = await this.#settings();
+		let stored: { bytes: number; files: number } | null = null;
+		let trashId: string | null = null;
+
+		if (toDelete.length > 0 && trash.enabled) {
+			const id = await this.#nextUndoId("discard");
+			try {
+				stored = await storeTrash({
+					root: info.root,
+					gitDir: info.gitDir,
+					id,
+					paths: toDelete,
+					limits: trash,
+				});
+				trashId = stored ? id : null;
+			} catch (error) {
+				// niente cancellazione se la copia non è riuscita: il journal non deve mentire
+				await removeTrash(info.root, info.gitDir, id);
+				if (error instanceof TrashLimitError)
+					throw new Error(
+						`${error.message} I limiti si cambiano in Impostazioni → File non tracciati.`
+					);
+				throw error;
+			}
+		}
+
 		const needsUndo =
-			(toRestore.length > 0 && stashSha !== "") ||
-			(toDelete.length > 0 && trashUntracked);
-		const entry = needsUndo
-			? await this.#record(
+			(toRestore.length > 0 && stashSha !== "") || trashId !== null;
+		if (needsUndo) {
+			try {
+				await this.#record(
 					"discard",
 					`Scarta ${paths.join(", ")}`,
 					{
@@ -306,32 +336,16 @@ export class CliGitBackend implements GitBackend {
 								? toRestore
 								: undefined,
 						stash: stashSha || null,
+						trash: trashId,
+						untrackedPaths: trashId ? toDelete : undefined,
+						trashBytes: stored?.bytes,
+						trashFiles: stored?.files,
 					},
-					{ allowNoHead: true }
-			  )
-			: null;
-
-		if (toDelete.length > 0 && trashUntracked) {
-			if (!entry)
-				throw new Error("Copertura di sicurezza non disponibile.");
-			try {
-				await copyToTrash({
-					gitDir: info.gitDir,
-					root: info.root,
-					id: entry.id,
-					paths: toDelete,
-				});
-				await this.#updateUndo(entry.id, {
-					trash: entry.id,
-					untrackedPaths: toDelete,
-				});
+					{ allowNoHead: true, id: trashId ?? undefined }
+				);
 			} catch (error) {
-				// niente cancellazione se la copia non è riuscita: il journal non deve mentire
-				await this.#dropUndo(entry.id);
-				if (error instanceof TrashLimitError)
-					throw new Error(
-						`${error.message} Disattiva la copia dei file non tracciati nelle impostazioni per cancellarlo comunque.`
-					);
+				// la voce non è stata scritta: il ref appena creato sarebbe orfano
+				if (trashId) await removeTrash(info.root, info.gitDir, trashId);
 				throw error;
 			}
 		}
@@ -519,8 +533,8 @@ export class CliGitBackend implements GitBackend {
 				// se qualcosa occupa già quel nome, `restoreFromTrash` si ferma prima di toccare
 				// il repository: la voce resta annullabile.
 				await restoreFromTrash({
-					gitDir: info.gitDir,
 					root: info.root,
+					gitDir: info.gitDir,
 					id: entry.trash,
 					paths: entry.untrackedPaths,
 				});
@@ -533,6 +547,7 @@ export class CliGitBackend implements GitBackend {
 		const remaining = entries.slice(1);
 		await this.#writeUndo(remaining);
 		await pruneTrash(
+			info.root,
 			info.gitDir,
 			new Set(
 				remaining
@@ -541,6 +556,22 @@ export class CliGitBackend implements GitBackend {
 			)
 		);
 		return this.refresh();
+	}
+
+	async trashUsage(): Promise<TrashUsage> {
+		// la finestra delle impostazioni si apre anche senza repository: zero, non un errore
+		if (!this.#info) return { bytes: 0, files: 0, entries: 0 };
+		const entries = await this.#readUndo();
+		let bytes = 0;
+		let files = 0;
+		let count = 0;
+		for (const entry of entries) {
+			if (!entry.trash) continue;
+			bytes += entry.trashBytes ?? 0;
+			files += entry.trashFiles ?? 0;
+			count++;
+		}
+		return { bytes, files, entries: count };
 	}
 
 	#undoPath(info: RepoInfo): string {
@@ -577,6 +608,10 @@ export class CliGitBackend implements GitBackend {
 	 * Registra lo stato corrente prima di un'operazione distruttiva.
 	 * Senza HEAD (repository senza commit) non c'è uno snapshot da conservare, ma per lo scarto dei
 	 * file non tracciati la copia di sicurezza basta: `allowNoHead` lo consente.
+	 *
+	 * Il journal viene scritto **prima** di eliminare i ref delle voci uscite: un crash nel mezzo
+	 * lascia al massimo un ref orfano (innocuo, e la potatura successiva lo toglie), mai una voce
+	 * che promette un ripristino impossibile.
 	 */
 	async #record(
 		kind: UndoKind,
@@ -586,8 +621,10 @@ export class CliGitBackend implements GitBackend {
 			stash?: string | null;
 			trash?: string | null;
 			untrackedPaths?: string[];
+			trashBytes?: number;
+			trashFiles?: number;
 		} = {},
-		options: { allowNoHead?: boolean } = {}
+		options: { allowNoHead?: boolean; id?: string } = {}
 	): Promise<UndoEntry | null> {
 		const info = this.#requireInfo();
 		const headResult = await runGit(
@@ -599,9 +636,7 @@ export class CliGitBackend implements GitBackend {
 		if (!head && !options.allowNoHead) return null;
 
 		const existing = await this.#readUndo();
-		let id = undoId(kind);
-		if (existing.some((entry) => entry.id === id))
-			id = `${id}-${existing.length + 1}`;
+		const id = options.id ?? (await this.#nextUndoId(kind, existing));
 
 		const entry: UndoEntry = {
 			id,
@@ -616,18 +651,35 @@ export class CliGitBackend implements GitBackend {
 		if (head)
 			await runGit(info.root, ["update-ref", snapshotRef(id), head]);
 
-		const all = [entry, ...existing];
-		for (const dropped of all.slice(UNDO_LIMIT)) {
-			if (dropped.trash) await removeTrash(info.gitDir, dropped.trash);
-			await runGit(
-				info.root,
-				["update-ref", "-d", snapshotRef(dropped.id)],
-				{ allowFailure: true }
-			);
+		let kept = [entry, ...existing].slice(0, UNDO_LIMIT);
+		const dropped = [entry, ...existing].slice(UNDO_LIMIT);
+
+		// Quota totale: si eliminano le voci più vecchie con una copia, mai quella appena creata.
+		// La somma è dei byte logici conservati; la deduplica reale può solo migliorarla.
+		const { quotaBytes } = (await this.#settings()).trash;
+		let total = kept.reduce(
+			(sum, item) => sum + (item.trash ? item.trashBytes ?? 0 : 0),
+			0
+		);
+		while (total > quotaBytes) {
+			let index = -1;
+			for (let position = kept.length - 1; position >= 0; position--) {
+				if (kept[position]!.trash) {
+					index = position;
+					break;
+				}
+			}
+			if (index < 0 || kept[index]!.id === entry.id) break;
+			const evicted = kept[index]!;
+			dropped.push(evicted);
+			total -= evicted.trashBytes ?? 0;
+			kept = kept.filter((_, position) => position !== index);
 		}
-		const kept = all.slice(0, UNDO_LIMIT);
+
 		await this.#writeUndo(kept);
+		for (const item of dropped) await this.#discardEntry(item);
 		await pruneTrash(
+			info.root,
 			info.gitDir,
 			new Set(
 				kept
@@ -638,38 +690,30 @@ export class CliGitBackend implements GitBackend {
 		return entry;
 	}
 
-	/** Aggiorna una voce già scritta (per esempio quando la copia di sicurezza è pronta). */
-	async #updateUndo(id: string, patch: Partial<UndoEntry>): Promise<void> {
-		// Si legge il JSON grezzo: la voce è ancora incompleta e `parseUndoLog` la scarterebbe.
-		const path = this.#undoPath(this.#requireInfo());
-		let data: unknown;
-		try {
-			data = JSON.parse(await readFile(path, "utf8"));
-		} catch (error) {
-			if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
-			throw error;
-		}
-		if (!Array.isArray(data)) return;
-		const next = data.map((item) =>
-			typeof item === "object" &&
-			item !== null &&
-			(item as Record<string, unknown>).id === id
-				? { ...(item as Record<string, unknown>), ...patch }
-				: item
-		);
-		await this.#writeUndoRaw(next);
+	/** Cancella ref e snapshot di una voce che non è più annullabile. */
+	async #discardEntry(entry: UndoEntry): Promise<void> {
+		const info = this.#requireInfo();
+		if (entry.trash) await removeTrash(info.root, info.gitDir, entry.trash);
+		await runGit(info.root, ["update-ref", "-d", snapshotRef(entry.id)], {
+			allowFailure: true,
+		});
 	}
 
 	/** Toglie una voce registrata per un'operazione poi fallita. */
 	async #dropUndo(id: string): Promise<void> {
-		const info = this.#requireInfo();
 		const entries = await this.#readUndo();
 		const dropped = entries.find((entry) => entry.id === id);
-		if (dropped?.trash) await removeTrash(info.gitDir, dropped.trash);
 		await this.#writeUndo(entries.filter((entry) => entry.id !== id));
-		await runGit(info.root, ["update-ref", "-d", snapshotRef(id)], {
-			allowFailure: true,
-		});
+		if (dropped) await this.#discardEntry(dropped);
+	}
+
+	/** Id libero per una nuova voce, senza leggere due volte il journal. */
+	async #nextUndoId(kind: UndoKind, existing?: UndoEntry[]): Promise<string> {
+		const entries = existing ?? (await this.#readUndo());
+		let id = undoId(kind);
+		if (entries.some((entry) => entry.id === id))
+			id = `${id}-${entries.length + 1}`;
+		return id;
 	}
 
 	#requireInfo(): RepoInfo {

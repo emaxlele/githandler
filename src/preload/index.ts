@@ -28,6 +28,7 @@ const api: GitApi = {
 	settings: () => ipcRenderer.invoke("app:settings"),
 	saveSettings: (settings) =>
 		ipcRenderer.invoke("app:settings:save", settings),
+	trashUsage: () => ipcRenderer.invoke("app:trashUsage"),
 	watching: () => ipcRenderer.invoke("app:watching"),
 	onChanged: (listener) => {
 		const handler = (

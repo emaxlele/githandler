@@ -12,6 +12,8 @@ export interface RunOptions {
 	timeoutMs?: number;
 	/** Un exit code diverso da 0 non è un errore (es. `rev-parse` su repo vuoto). */
 	allowFailure?: boolean;
+	/** Variabili aggiuntive (per esempio `GIT_INDEX_FILE` per un indice temporaneo). */
+	env?: Record<string, string>;
 }
 
 export class GitError extends Error {
@@ -66,6 +68,7 @@ export function runGit(
 					GIT_OPTIONAL_LOCKS: "0",
 					GIT_PAGER: "cat",
 					PAGER: "cat",
+					...options.env,
 				},
 			},
 			(error, stdout, stderr) => {

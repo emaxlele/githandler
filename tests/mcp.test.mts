@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { after, test } from "node:test";
 
 import { CliGitBackend } from "../src/main/backend.ts";
-import type { Settings } from "../src/core/settings.ts";
+import { defaultSettings, type Settings } from "../src/core/settings.ts";
 import { handleRequest, PROTOCOL_VERSION } from "../src/mcp/server.ts";
 
 /**
@@ -31,9 +31,10 @@ const backend = new CliGitBackend();
 await backend.open(root);
 
 /** La policy che il server legge a ogni richiesta: i test la cambiano al volo. */
+const defaultTrash = defaultSettings().trash;
 let settings: Settings = {
 	api: { mode: "all", tools: [] },
-	trashUntracked: true,
+	trash: defaultTrash,
 };
 const context = {
 	backend,
@@ -200,18 +201,18 @@ test("la policy delle impostazioni filtra tools/list e tools/call", async () => 
 		return result.tools;
 	};
 
-	settings = { api: { mode: "off", tools: [] }, trashUntracked: true };
+	settings = { api: { mode: "off", tools: [] }, trash: defaultTrash };
 	assert.deepEqual(await list(), []);
 	const denied = await callTool("repo_status");
 	assert.equal(denied.isError, true);
 	assert.match(denied.content[0]!.text, /not enabled/);
 
-	settings = { api: { mode: "read", tools: [] }, trashUntracked: true };
+	settings = { api: { mode: "read", tools: [] }, trash: defaultTrash };
 	assert.equal((await list()).length, 5);
 
 	settings = {
 		api: { mode: "custom", tools: ["history", "blame"] },
-		trashUntracked: true,
+		trash: defaultTrash,
 	};
 	assert.deepEqual(
 		(await list()).map((tool) => tool.name),
@@ -222,8 +223,8 @@ test("la policy delle impostazioni filtra tools/list e tools/call", async () => 
 	assert.equal((await callTool("blame", { path: "a.txt" })).isError, undefined);
 
 	// una policy con tool che non esistono non li inventa
-	settings = { api: { mode: "custom", tools: [] }, trashUntracked: true };
+	settings = { api: { mode: "custom", tools: [] }, trash: defaultTrash };
 	assert.deepEqual(await list(), []);
 
-	settings = { api: { mode: "all", tools: [] }, trashUntracked: true };
+	settings = { api: { mode: "all", tools: [] }, trash: defaultTrash };
 });

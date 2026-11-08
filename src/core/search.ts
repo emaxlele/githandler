@@ -78,6 +78,8 @@ export function formatHistoryQuery(query: HistoryQuery): string {
 export function historyArgs(query: HistoryQuery, limit = 500): string[] {
 	const args = [
 		"log",
+		// I ref di servizio (snapshot di undo, trash) non sono storia del progetto.
+		"--exclude=refs/gitcraft/*",
 		"--all",
 		"--date-order",
 		`-n${limit}`,

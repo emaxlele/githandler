@@ -150,6 +150,7 @@ function registerIpc(): void {
 		await saveSettings(settings);
 		return settings;
 	});
+	handle("app:trashUsage", () => backend.trashUsage());
 }
 
 function buildMenu(): void {

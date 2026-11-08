@@ -14,6 +14,9 @@ const {
 	normalizeSettings,
 	parseSettings,
 	serializeSettings,
+	MEBIBYTE,
+	TRASH_DEFAULTS,
+	TRASH_RANGES,
 } = await import("../src/core/settings.ts");
 const { loadSettings, saveSettings, settingsDirectory, settingsFile } =
 	await import("../src/main/settings.ts");
@@ -26,7 +29,12 @@ test("il default spegne l'API e accende la copia dei non tracciati", () => {
 	const settings = defaultSettings();
 	assert.equal(settings.api.mode, "off");
 	assert.deepEqual(settings.api.tools, []);
-	assert.equal(settings.trashUntracked, true);
+	assert.deepEqual(settings.trash, {
+		enabled: true,
+		maxBytes: 25 * MEBIBYTE,
+		maxFiles: 2000,
+		quotaBytes: 5 * 1024 * MEBIBYTE,
+	});
 });
 
 test("un file corrotto o incompleto non apre l'API", () => {
@@ -37,7 +45,7 @@ test("un file corrotto o incompleto non apre l'API", () => {
 
 	const partial = parseSettings('{"api":{"mode":"read"}}');
 	assert.equal(partial.api.mode, "read");
-	assert.equal(partial.trashUntracked, true);
+	assert.deepEqual(partial.trash, TRASH_DEFAULTS);
 });
 
 test("normalizeSettings scarta campi ignoti e duplicati", () => {
@@ -47,23 +55,78 @@ test("normalizeSettings scarta campi ignoti e duplicati", () => {
 			tools: ["history", "history", "rm_rf", "blame", 42],
 			admin: true,
 		},
-		trashUntracked: false,
+		trash: { enabled: false, maxBytes: 1 },
 		shell: "rm -rf /",
 	});
 	assert.deepEqual(settings.api, {
 		mode: "custom",
 		tools: ["history", "blame"],
 	});
-	assert.equal(settings.trashUntracked, false);
+	assert.equal(settings.trash.enabled, false);
+	assert.equal(settings.trash.maxBytes, TRASH_RANGES.maxBytes.min);
 
 	assert.equal(normalizeSettings(null).api.mode, "off");
-	assert.equal(normalizeSettings({ trashUntracked: "sì" }).trashUntracked, true);
+	assert.equal(normalizeSettings({ trash: "sì" }).trash.enabled, true);
+});
+
+test("i limiti fuori intervallo vengono riportati dentro, mai a zero", () => {
+	const settings = normalizeSettings({
+		trash: {
+			enabled: true,
+			maxBytes: 10 ** 15,
+			maxFiles: 0,
+			quotaBytes: -5,
+		},
+	});
+	assert.equal(settings.trash.maxBytes, TRASH_RANGES.maxBytes.max);
+	assert.equal(settings.trash.maxFiles, TRASH_RANGES.maxFiles.min);
+	assert.equal(settings.trash.quotaBytes, TRASH_RANGES.quotaBytes.min);
+
+	const small = normalizeSettings({
+		trash: { maxBytes: 1, maxFiles: 1, quotaBytes: 1 },
+	});
+	// un limite a zero trasformerebbe la rete di sicurezza in una cancellazione
+	assert.equal(small.trash.maxBytes, MEBIBYTE);
+	assert.equal(small.trash.maxFiles, 1);
+	assert.equal(small.trash.quotaBytes, MEBIBYTE);
+
+	const fractional = normalizeSettings({
+		trash: { maxBytes: 2.7 * MEBIBYTE, maxFiles: 12.4 },
+	});
+	assert.equal(fractional.trash.maxBytes, Math.round(2.7 * MEBIBYTE));
+	assert.equal(fractional.trash.maxFiles, 12);
+});
+
+test("il formato v0.4 migra senza perdere la scelta di accensione", () => {
+	const off = parseSettings('{"api":{"mode":"off"},"trashUntracked":false}');
+	assert.equal(off.trash.enabled, false);
+	assert.equal(off.trash.maxBytes, TRASH_DEFAULTS.maxBytes);
+
+	const on = parseSettings('{"trashUntracked":true}');
+	assert.equal(on.trash.enabled, true);
+
+	// il formato nuovo vince su quello vecchio
+	const both = parseSettings(
+		'{"trashUntracked":false,"trash":{"enabled":true}}'
+	);
+	assert.equal(both.trash.enabled, true);
+
+	// un valore non booleano non deve spegnere (né accendere) niente a caso
+	assert.equal(
+		parseSettings('{"trashUntracked":"sì"}').trash.enabled,
+		TRASH_DEFAULTS.enabled
+	);
 });
 
 test("la serializzazione si rilegge uguale", () => {
 	const settings = {
 		api: { mode: "custom" as const, tools: ["blame" as const] },
-		trashUntracked: false,
+		trash: {
+			enabled: false,
+			maxBytes: 50 * MEBIBYTE,
+			maxFiles: 500,
+			quotaBytes: 2 * 1024 * MEBIBYTE,
+		},
 	};
 	assert.deepEqual(parseSettings(serializeSettings(settings)), settings);
 });
@@ -96,13 +159,19 @@ test("senza file valgono i default; salvare e rileggere conserva i valori", asyn
 
 	const custom = {
 		api: { mode: "custom" as const, tools: ["repo_status" as const] },
-		trashUntracked: false,
+		trash: {
+			enabled: false,
+			maxBytes: 10 * MEBIBYTE,
+			maxFiles: 100,
+			quotaBytes: 512 * MEBIBYTE,
+		},
 	};
 	await saveSettings(custom);
 	assert.deepEqual(await loadSettings(), custom);
 
 	const text = await readFile(settingsFile(), "utf8");
 	assert.match(text, /"repo_status"/);
+	assert.match(text, /"quotaBytes"/);
 	const mode = (await stat(settingsFile())).mode & 0o777;
 	assert.equal(mode, 0o600);
 });

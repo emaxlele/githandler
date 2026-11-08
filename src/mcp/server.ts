@@ -23,7 +23,7 @@ import type { GitBackend } from "../main/backend.ts";
  * errore, non un'esecuzione.
  */
 
-export const SERVER_INFO = { name: "gitcraft", version: "0.4.0" } as const;
+export const SERVER_INFO = { name: "gitcraft", version: "0.5.0" } as const;
 export const PROTOCOL_VERSION = "2024-11-05";
 
 export interface McpContext {

@@ -3,9 +3,12 @@ import { buildPatch } from "../core/patch.ts";
 import { layoutGraph } from "../core/graph.ts";
 import {
 	API_TOOLS,
+	MEBIBYTE,
+	TRASH_DEFAULTS,
 	type ApiMode,
 	type ApiTool,
 	type Settings,
+	type TrashUsage,
 } from "../core/settings.ts";
 import type { Commit, CommitFile, DiffFile, Snapshot } from "../core/types.ts";
 import { describeUndo } from "../core/undo.ts";
@@ -117,6 +120,10 @@ const ui = {
 	settingsForm: byId<HTMLFormElement>("settings-form"),
 	apiTools: byId("api-tools"),
 	settingTrash: byId<HTMLInputElement>("setting-trash"),
+	settingTrashBytes: byId<HTMLInputElement>("setting-trash-bytes"),
+	settingTrashFiles: byId<HTMLInputElement>("setting-trash-files"),
+	settingTrashQuota: byId<HTMLInputElement>("setting-trash-quota"),
+	trashUsage: byId("trash-usage"),
 	settingsCancel: byId<HTMLButtonElement>("settings-cancel"),
 	toast: byId("toast"),
 };
@@ -235,6 +242,48 @@ function updateApiToolState(): void {
 	}
 }
 
+/** I limiti si applicano solo con la copia attiva: spenta, non ha senso modificarli. */
+function updateTrashState(): void {
+	const enabled = ui.settingTrash.checked;
+	for (const input of [
+		ui.settingTrashBytes,
+		ui.settingTrashFiles,
+		ui.settingTrashQuota,
+	]) {
+		input.disabled = !enabled;
+	}
+}
+
+/** Byte → MB per i campi della UI (interi, come li mostra il dialog). */
+function toMebibytes(bytes: number): number {
+	return Math.round(bytes / MEBIBYTE);
+}
+
+/** MB → byte; un campo vuoto o non numerico torna al default, non a zero. */
+function readMebibytes(input: HTMLInputElement, fallback: number): number {
+	const value = Number.parseFloat(input.value.replace(",", "."));
+	return Number.isFinite(value) ? Math.round(value * MEBIBYTE) : fallback;
+}
+
+function readCount(input: HTMLInputElement, fallback: number): number {
+	const value = Number.parseInt(input.value, 10);
+	return Number.isFinite(value) ? value : fallback;
+}
+
+/** Dimensione leggibile con le stesse unità dei campi: 0 B, 512 kB, 12,4 MB, 1,2 GB. */
+function formatBytes(bytes: number): string {
+	if (bytes < 1024) return `${bytes} B`;
+	const units = ["kB", "MB", "GB", "TB"];
+	let value = bytes / 1024;
+	let unit = 0;
+	while (value >= 1024 && unit < units.length - 1) {
+		value /= 1024;
+		unit++;
+	}
+	const text = value.toLocaleString("it-IT", { maximumFractionDigits: 1 });
+	return `${text} ${units[unit]}`;
+}
+
 function fillSettings(settings: Settings): void {
 	for (const radio of ui.settingsForm.querySelectorAll<HTMLInputElement>(
 		"input[name=api-mode]"
@@ -246,8 +295,12 @@ function fillSettings(settings: Settings): void {
 	)) {
 		box.checked = settings.api.tools.includes(box.value as ApiTool);
 	}
-	ui.settingTrash.checked = settings.trashUntracked;
+	ui.settingTrash.checked = settings.trash.enabled;
+	ui.settingTrashBytes.value = String(toMebibytes(settings.trash.maxBytes));
+	ui.settingTrashFiles.value = String(settings.trash.maxFiles);
+	ui.settingTrashQuota.value = String(toMebibytes(settings.trash.quotaBytes));
 	updateApiToolState();
+	updateTrashState();
 }
 
 function collectSettings(): Settings {
@@ -264,7 +317,39 @@ function collectSettings(): Settings {
 				tools.push(box.value as ApiTool);
 		}
 	}
-	return { api: { mode, tools }, trashUntracked: ui.settingTrash.checked };
+	return {
+		api: { mode, tools },
+		trash: {
+			enabled: ui.settingTrash.checked,
+			maxBytes: readMebibytes(
+				ui.settingTrashBytes,
+				TRASH_DEFAULTS.maxBytes
+			),
+			maxFiles: readCount(ui.settingTrashFiles, TRASH_DEFAULTS.maxFiles),
+			quotaBytes: readMebibytes(
+				ui.settingTrashQuota,
+				TRASH_DEFAULTS.quotaBytes
+			),
+		},
+	};
+}
+
+/** Riga informativa sotto i campi: quanto spazio occupano le copie ancora annullabili. */
+async function refreshTrashUsage(quotaBytes: number): Promise<void> {
+	try {
+		const usage: TrashUsage = await api.trashUsage();
+		ui.trashUsage.textContent =
+			usage.entries === 0
+				? "Nessuna copia conservata."
+				: `${usage.entries} ${
+						usage.entries === 1 ? "copia" : "copie"
+				  } · ${formatBytes(usage.bytes)} su ${formatBytes(
+						quotaBytes
+				  )}`;
+	} catch (error) {
+		console.warn("spazio delle copie non disponibile:", error);
+		ui.trashUsage.textContent = "";
+	}
 }
 
 async function openSettings(): Promise<void> {
@@ -272,6 +357,7 @@ async function openSettings(): Promise<void> {
 	if (!settings) return;
 	fillSettings(settings);
 	ui.settingsDialog.showModal();
+	await refreshTrashUsage(settings.trash.quotaBytes);
 }
 
 let logRequest = 0;
@@ -631,12 +717,17 @@ async function unstage(paths: string[]): Promise<void> {
 
 async function discard(paths: string[]): Promise<void> {
 	const label = paths.length === 1 ? paths[0] : `${paths.length} file`;
-	if (
-		!window.confirm(
-			`Scartare le modifiche di ${label}? I file non tracciati vengono copiati in una zona di sicurezza e si possono ripristinare con Annulla.`
-		)
-	)
-		return;
+	// La conferma deve dire la verità: con la copia spenta i file non tracciati spariscono davvero.
+	let copies = true;
+	try {
+		copies = (await api.settings()).trash.enabled;
+	} catch (error) {
+		console.warn("impostazioni non disponibili:", error);
+	}
+	const message = copies
+		? `Scartare le modifiche di ${label}? Le modifiche tracciate si ripristinano con Annulla; i file non tracciati vengono conservati come oggetti Git.`
+		: `Scartare le modifiche di ${label}? Le modifiche tracciate si ripristinano con Annulla, ma i file non tracciati vengono eliminati definitivamente.`;
+	if (!window.confirm(message)) return;
 	const snapshot = await guard("Scarta", () => api.discard(paths));
 	if (snapshot) applySnapshot(snapshot);
 }
@@ -735,6 +826,7 @@ for (const radio of ui.settingsForm.querySelectorAll<HTMLInputElement>(
 )) {
 	radio.addEventListener("change", updateApiToolState);
 }
+ui.settingTrash.addEventListener("change", updateTrashState);
 ui.settingsForm.addEventListener("submit", (event) => {
 	event.preventDefault();
 	void (async () => {
@@ -743,6 +835,7 @@ ui.settingsForm.addEventListener("submit", (event) => {
 		);
 		if (!saved) return;
 		fillSettings(saved);
+		await refreshTrashUsage(saved.trash.quotaBytes);
 		ui.settingsDialog.close();
 		toast("Impostazioni salvate.", "ok");
 	})();

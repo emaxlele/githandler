@@ -331,12 +331,46 @@
 							Annulla li ripristina</span
 						>
 					</label>
+					<div class="settings-grid">
+						<label for="setting-trash-bytes"
+							>Limite per operazione (MB)</label
+						>
+						<input
+							id="setting-trash-bytes"
+							type="number"
+							min="1"
+							max="1024"
+							step="1"
+						/>
+						<label for="setting-trash-files"
+							>File per operazione</label
+						>
+						<input
+							id="setting-trash-files"
+							type="number"
+							min="1"
+							max="100000"
+							step="1"
+						/>
+						<label for="setting-trash-quota"
+							>Spazio totale (MB)</label
+						>
+						<input
+							id="setting-trash-quota"
+							type="number"
+							min="1"
+							max="51200"
+							step="1"
+						/>
+					</div>
 					<p class="hint">
-						La copia vive in
-						<code>.git/gitcraft/trash/</code> e vale fino a 25 MB e
-						2.000 file per operazione. Oltre il limite lo scarto si
-						ferma e lo dice, invece di cancellare senza rete.
+						Le copie sono oggetti Git
+						(<code>refs/gitcraft/trash</code>): compresse,
+						deduplicate e mai inviate al remoto. Oltre i limiti lo
+						scarto si ferma; quando lo spazio totale è pieno si
+						eliminano per prime le copie più vecchie.
 					</p>
+					<p class="hint" id="trash-usage"></p>
 				</section>
 
 				<div class="settings-actions">

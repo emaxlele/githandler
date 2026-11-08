@@ -36,13 +36,17 @@ test("logArgs traduce skip in --skip", () => {
 	const args = logArgs({ limit: 10, skip: 20 });
 	assert.ok(args.includes("-n10"));
 	assert.ok(args.includes("--skip=20"));
-	assert.ok(args.includes("--all"));
+	const all = args.indexOf("--all");
+	assert.ok(all > 0);
+	// l'esclusione deve precedere `--all`, altrimenti i nostri ref rientrerebbero nel log
+	assert.equal(args[all - 1], "--exclude=refs/gitcraft/*");
 	assert.ok(!logArgs({ skip: 0 }).some((arg) => arg.startsWith("--skip")));
 	assert.deepEqual(logArgs({ all: false }).slice(0, 3), [
 		"log",
 		"--date-order",
 		"-n5000",
 	]);
+	assert.ok(!logArgs({ all: false }).includes("--all"));
 });
 
 test("le pagine si susseguono senza buchi né duplicati", async () => {

@@ -5,8 +5,10 @@
  * - `commit`    → HEAD prima del commit; l'annullamento è un `reset --soft`.
  * - `checkout`  → ramo (o HEAD staccato) prima dello spostamento.
  * - `discard`   → un commit di stash con il contenuto del working tree, più i path toccati.
- *   I file non tracciati non entrano nello stash: se la copia di sicurezza è attiva, finiscono in
- *   `.git/gitcraft/trash/<id>/` e vengono ripristinati da lì.
+ *   I file non tracciati non entrano nello stash: se la copia di sicurezza è attiva, i loro byte
+ *   diventano blob Git raggiungibili da `refs/gitcraft/trash/<scope>/<id>` e vengono ripristinati
+ *   da lì. Quando la voce esce dal journal il ref viene eliminato e gli oggetti diventano
+ *   irraggiungibili: lo spazio lo recupera il `git gc` dell'utente.
  *
  * Il commit a cui punta una voce resta raggiungibile tramite `refs/gitcraft/snapshots/<id>`, così
  * `git gc` non lo cancella mentre l'annullamento è ancora possibile.
@@ -29,10 +31,13 @@ export interface UndoEntry {
 	paths?: string[];
 	/** solo per `discard`: commit di stash con il working tree di allora */
 	stash?: string | null;
-	/** solo per `discard`: file non tracciati, copiati prima della cancellazione */
+	/** solo per `discard`: file non tracciati, conservati prima della cancellazione */
 	untrackedPaths?: string[];
-	/** solo per `discard`: cartella dentro `.git/gitcraft/trash/` */
+	/** solo per `discard`: id del ref/cartella della copia di sicurezza */
 	trash?: string | null;
+	/** solo per `discard`: byte e file logici conservati dalla copia (per la quota totale) */
+	trashBytes?: number;
+	trashFiles?: number;
 }
 
 export const UNDO_REF_PREFIX = "refs/gitcraft/snapshots/";
@@ -120,7 +125,7 @@ export function parseUndoLog(raw: string): UndoEntry[] {
 			continue;
 		}
 
-		// l'id del trash diventa un nome di cartella: niente separatori né risalite
+		// l'id del trash diventa un nome di ref: niente separatori né risalite
 		const trash = record.trash;
 		if (trash === null) entry.trash = null;
 		else if (typeof trash === "string" && /^[0-9A-Za-z._-]+$/.test(trash))
@@ -128,6 +133,13 @@ export function parseUndoLog(raw: string): UndoEntry[] {
 		else if (trash !== undefined) continue;
 		if (kind === "discard" && entry.untrackedPaths && !entry.trash)
 			continue;
+
+		const bytes = record.trashBytes;
+		const files = record.trashFiles;
+		if (typeof bytes === "number" && Number.isInteger(bytes) && bytes >= 0)
+			entry.trashBytes = bytes;
+		if (typeof files === "number" && Number.isInteger(files) && files >= 0)
+			entry.trashFiles = files;
 
 		entries.push(entry);
 	}
