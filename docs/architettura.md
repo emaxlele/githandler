@@ -113,6 +113,21 @@ astrazione in più è un costo che si paga su ogni riga.
 Il formato del diff, il tema, la larghezza dei pannelli: `localStorage` nel renderer. Il backend non
 deve sapere nulla dell'aspetto dell'app. Se un giorno servirà sincronizzare, si aggiunge un canale.
 
+### 2.9 Un backend, più consumatori
+
+La UI non è l'unico cliente possibile: una CLI, un'automazione o un server per agenti AI possono
+leggere lo stesso repository. Il modo sbagliato è farli parlare direttamente con Git: si ricrea la
+seconda verità che il §2.4 esiste per evitare. Il modo giusto è **importare il backend** e i parser
+del core.
+
+-   Il secondo consumatore non esegue comandi propri: chiama `GitBackend`.
+-   Se non deve scrivere, non espone scritture: nessun `stage`, `commit`, `reset` nell'API.
+-   Il protocollo sta in poche righe di standard library prima di aggiungere un SDK.
+-   I path passano dalle stesse validazioni, gli errori tornano come dati, non come crash.
+
+In `gitcraft` questo è il server MCP (`src/mcp/`): cinque comandi di sola lettura, zero dipendenze,
+stesso backend della UI.
+
 ## 3. I contratti, in concreto
 
 ```ts
@@ -236,6 +251,8 @@ Copiabile così com'è; le voci in corsivo sono le più facili da saltare e le p
 10. Packaging che include i profili di sicurezza (AppArmor su Linux) e modalità headless per la
     verifica.
 11. Benchmark e soglie scritte **prima** di discutere di ottimizzazioni.
+12. Se serve un secondo consumatore (CLI, API per agenti), importa il backend esistente e resta in
+    sola lettura finché non c'è un consenso esplicito.
 
 ## 8. Cosa questa architettura non risolve
 
