@@ -5,6 +5,32 @@
 
 ## 2026-11-08
 
+### Pull, push, stash, terminale e più repository: le operazioni che mancavano
+
+-   **Cosa**: l'app ora sa fare **pull** e **push** verso il server, salvare e riprendere le modifiche
+    con lo **stash**, elencare e aggiornare i **submodule**, unire due rami (**merge**), riscrivere un
+    ramo sopra un altro (**rebase**) e applicare un singolo commit altrove (**cherry-pick**). C'è una
+    scheda **Terminale** per lanciare comandi nella cartella del progetto e si possono tenere aperti
+    **più repository insieme**, ognuno nella propria scheda. Se un merge o un rebase si ferma su un
+    conflitto compare un avviso con «annulla» che riporta allo stato di prima.
+-   **Perché**: erano i comandi che mancavano per lavorare tutto il giorno senza tornare al
+    terminale; la richiesta era esplicita. In più il clic su un ramo non doveva più cambiare ramo di
+    nascosto, e la voce *Changes* doveva mostrare le modifiche a tutta area, senza la storia: in
+    quella modalità i commit non servono.
+-   **Come**: pull e push non forzano mai — se il ramo è divergente o manca il collegamento al server
+    si ferma e mostra il messaggio di Git, invece di combinare qualcosa da solo. Il clic su un ramo o
+    un tag sposta il cursore sul suo commit; le operazioni (checkout compreso) sono nel menu del tasto
+    destro, e lo stesso vale per cherry-pick e copia su un commit. Ogni repository aperto ha la sua
+    scheda che ricorda selezione e pannello; il terminale gira solo nella cartella del repository
+    attivo e ha il pulsante per interrompere il comando.
+-   **Verifica**: 108 test automatici verdi (9 nuovi), build riuscita, app reinstallata. Prova reale
+    con un repository di dimostrazione e un server locale: push con collegamento creato, pull,
+    stash e ripresa, cherry-pick annullato con *Annulla*, rebase riuscito, merge in conflitto con
+    l'avviso «annulla», terminale con `git status`, submodule elencato e aggiornato, due repository
+    aperti in schede e chiusura della scheda attiva.
+-   **Stato**: completato.
+-   **Riferimento**: commit `6b3f718` del repository `~/Projects/githandler`.
+
 ### L'interfaccia ora ha la struttura dei client Git desktop più usati
 
 -   **Cosa**: la finestra è stata ridisegnata. In alto ci sono le azioni con icona e nome (Apri,
