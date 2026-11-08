@@ -5,6 +5,33 @@
 
 ## 2026-11-08
 
+### Pannello dei dettagli ridimensionabile, a icona e in una finestra sua
+
+-   **Cosa**: il riquadro in basso (commit, modifiche, albero dei file, blame, terminale) ora si può
+    **allargare e stringere** con una maniglia, **chiudere lasciando solo la barra delle schede** per
+    vedere tutta la storia, e **aprire in una finestra separata** da mettere su un altro schermo o
+    accanto alla principale. Quando quella finestra si chiude il riquadro **torna al suo posto** con la
+    stessa selezione. Inoltre il diff e l'albero dei file **scorrono davvero**: prima il contenuto
+    veniva tagliato e non c'era modo di leggere il resto.
+-   **Perché**: erano le richieste della revisione dell'interfaccia — con un diff lungo non si poteva
+    leggere nulla, e chi lavora su due monitor vuole i dettagli di là e la storia di qua. In più i due
+    modi di vedere le modifiche erano confusi: ora la scheda *Changes* del riquadro le mostra lì dentro,
+    mentre la voce *Changes* della barra laterale continua a portarle a tutta area.
+-   **Come**: la maniglia si trascina fra il 18% e il 78% dell'altezza e la misura resta al riavvio; il
+    pannello ridotto occupa la sola riga delle schede. La finestra separata usa lo stesso programma in
+    modalità «solo pannello»; è la finestra principale a decidere cosa si sta guardando e a comunicarlo,
+    così le due non si rincorrono. Se nella principale si apre un altro repository, la finestra dei
+    dettagli lo segue.
+-   **In più**: il menu del tasto destro su un commit ora ha **crea ramo da qui, merge, rebase e reset**
+    (soft, mixed, hard, quest'ultimo in rosso con conferma), oltre a cherry-pick e copia. Il reset si può
+    annullare con *Annulla*: si torna al punto di prima lasciando le modifiche da rivedere.
+-   **Verifica**: 110 test automatici verdi (2 nuovi), build riuscita. Prova reale con un repository di
+    dimostrazione: diff da oltre 5.000 righe che scorre, albero che scorre, pannello ridotto e riaperto,
+    pannello staccato e rientrato, selezione sincronizzata fra le due finestre, ramo creato dal menu,
+    reset annullato.
+-   **Stato**: completato.
+-   **Riferimento**: commit `e82eebc` del repository `~/Projects/githandler`.
+
 ### Pull, push, stash, terminale e più repository: le operazioni che mancavano
 
 -   **Cosa**: l'app ora sa fare **pull** e **push** verso il server, salvare e riprendere le modifiche
