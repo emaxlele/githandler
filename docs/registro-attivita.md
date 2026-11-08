@@ -29,7 +29,7 @@
     rispetto al ramo in cui il merge è stato fatto.
 -   **Stato**: completato, 99 test automatici verdi, build riuscita, app installata e aperta da
     `/tmp/gitdemo` per la prova.
--   **Riferimento**: commit v0.5.0 del repository `~/Projects/githandler`.
+-   **Riferimento**: commit `3b81eef` del repository `~/Projects/githandler`.
 
 ### Il progetto si chiama GitHandler
 
