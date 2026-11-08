@@ -1,9 +1,10 @@
 /**
- * Build: tre bundle separati.
+ * Build: quattro bundle separati.
  *
  *   main      -> Node/Electron, CommonJS, `electron` esterno
  *   preload   -> Node/Electron, CommonJS, contesto isolato
  *   renderer  -> browser, IIFE, nessuna API Node
+ *   mcp       -> Node, CommonJS, server MCP su stdio (nessuna dipendenza da Electron)
  *
  * Il renderer non ha dipendenze runtime: solo DOM e il core puro importato.
  */
@@ -38,6 +39,12 @@ const bundles = [
 		format: "iife",
 		outfile: "dist/renderer/app.js",
 		target: "chrome130",
+	},
+	{
+		entryPoints: ["src/mcp/index.ts"],
+		platform: "node",
+		format: "cjs",
+		outfile: "dist/mcp/index.js",
 	},
 ];
 

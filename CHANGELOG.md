@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.3.0] — 2026-11-08
+
+### Aggiunto
+
+-   **Undo generale**: prima di un commit, un checkout o uno scarto l'app registra lo stato in
+    `refs/gitcraft/snapshots/*` e in un journal in `.git/gitcraft/undo.json` (massimo 50 voci).
+    Il pulsante in barra (o `Ctrl+Z`) riporta indietro: il commit con `reset --soft` (le modifiche
+    restano in stage), il checkout tornando al ramo precedente, lo scarto ripristinando il contenuto
+    dal commit di stash registrato. I file non tracciati restano fuori: la conferma lo dice.
+-   **Sorveglianza del repository** (`--watch`, `GITCRAFT_WATCH=1`): `fs.watch` ricorsivo con debounce,
+    filtro su `.git/objects`, `node_modules` e file di lock; il renderer si aggiorna da solo, mostra
+    il chip **Live** e avvisa solo quando cambia HEAD. Un solo refresh in volo, gli eventi si accodano.
+-   **Ricerca nella storia**: barra sopra il log con testo letterale, `author:` e `file:`; risultati
+    nel grafo con conteggio e ripristino con `Esc`. La query è nel core, quindi la usa anche l'API.
+-   **Server MCP in sola lettura** (`npm run mcp`, `dist/mcp/index.js`): `repo_status`, `history`,
+    `show_commit`, `worktree_diff`, `blame` su stdio, senza dipendenze e con lo stesso backend della
+    UI. Configurazione e limiti in `docs/mcp.md`.
+-   Parser di `git blame --line-porcelain` e `formatDiff` nel core.
+
+### Corretto
+
+-   Gli errori di Git mostrano anche l'output su stdout quando stderr è vuoto (per esempio il
+    "nothing to commit" di un commit a vuoto), invece del solo "Command failed".
+
+### Test
+
+-   28 nuovi test (70 in totale): journal e undo contro repository veri, ricerca, blame, protocollo
+    MCP in-process, watcher e debounce.
+
 ## [0.2.2] — 2026-11-08
 
 ### Documentazione

@@ -5,6 +5,61 @@
 
 ## 2026-11-08
 
+### Si può annullare l'ultima operazione
+
+-   **Cosa**: aggiunto "Annulla" (pulsante in alto e `Ctrl+Z`). Prima di un commit, di un cambio di
+    ramo o di uno scarto l'app salva lo stato precedente; il comando riporta indietro: il commit
+    sparisce ma le modifiche tornano in attesa di essere committate, il cambio di ramo torna al ramo
+    di prima, i file scartati tornano con il contenuto che avevano.
+-   **Perché**: era il punto in cui un client grafico può fare danni veri con un clic. il client concorrente non ha
+    questa funzione, un client a pagamento la riserva al piano a pagamento.
+-   **Cosa resta da sapere**: i file che Git non traccia, se scartati, vengono cancellati
+    definitivamente: la finestra di conferma lo dice. Lo stato salvato vive dentro il repository
+    (`.git/gitcraft/` e i riferimenti `refs/gitcraft/snapshots/`), non in un database dell'app.
+-   **Stato**: completato, provato su repository veri (commit, scarto e cambio ramo annullati).
+-   **Riferimento**: commit successivo a `7cda117`.
+
+### Il repository si aggiorna da solo
+
+-   **Cosa**: con `--watch` (o la variabile `GITCRAFT_WATCH=1`) l'app sorveglia la cartella e rilegge
+    lo stato quando qualcosa cambia: un salvataggio dell'editor, un commit fatto da terminale, un
+    cambio di ramo esterno. Un chip **Live** in alto dice che la sorveglianza è attiva; un avviso
+    compare solo quando cambia l'ultimo commit, non a ogni salvataggio.
+-   **Perché**: senza, chi lavora metà in terminale e metà nell'app preme "Aggiorna" di continuo o
+    guarda dati vecchi. È la prima voce della milestone sulla scala.
+-   **Come**: sorveglianza ricorsiva con attesa di 400 ms per raggruppare gli eventi, esclusi i file
+    interni di Git che cambiano a ogni operazione e le cartelle di dipendenze; un solo aggiornamento
+    alla volta, gli altri si accodano.
+-   **Stato**: completato, spento di default; `--no-watch` lo disattiva quando è attivo per ambiente.
+-   **Riferimento**: commit successivo a `7cda117`.
+
+### Ricerca nella storia
+
+-   **Cosa**: barra sopra la storia: si scrive un testo e si vedono solo i commit che lo contengono,
+    oppure si filtra per autore (`author:`) o per file (`file:`). Il conteggio è accanto al campo,
+    `Esc` toglie il filtro.
+-   **Perché**: trovare "quando è cambiata quella riga" senza passare dal terminale era la lacuna più
+    fastidiosa per chi lavora da terminale.
+-   **Come**: il testo è cercato alla lettera (parentesi e punti non diventano espressioni
+    regolari); il linguaggio della ricerca sta nel nucleo, quindi lo usano sia l'interfaccia sia l'API.
+-   **Stato**: completato, verificato a schermo e con test.
+-   **Riferimento**: commit successivo a `7cda117`.
+
+### Un'API per l'AI: il repository in sola lettura
+
+-   **Cosa**: aggiunto un server MCP (`npm run mcp`, file `dist/mcp/index.js`) che un agente AI può
+    collegare per leggere il repository: stato e modifiche, ricerca nella storia, dettaglio di un
+    commit con il diff, diff del working tree, attribuzione riga per riga (blame). Cinque comandi,
+    tutti in sola lettura.
+-   **Perché**: un agente che deve capire "cosa è cambiato e perché" oggi apre file e indovina; così
+    legge gli stessi dati che mostra l'app, con lo stesso motore. Nessun comando che scrive, per
+    scelta: commit e scarti restano azioni dell'utente.
+-   **Come**: niente dipendenze aggiunte (protocollo e trasporto scritti a mano, un messaggio JSON
+    per riga), riuso del backend dell'app, nessuna shell. Configurazione per OpenCode e Claude in
+    `docs/mcp.md`.
+-   **Stato**: completato, provato su stdio e con test automatici.
+-   **Riferimento**: commit successivo a `7cda117`.
+
 ### L'architettura scritta una volta, per riusarla negli altri progetti
 
 -   **Cosa**: aggiunto `docs/architettura.md`, il documento che descrive l'impianto del programma e

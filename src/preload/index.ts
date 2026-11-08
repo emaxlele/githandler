@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 import type { GitApi } from "../shared/api.ts";
+import { CHANGED_CHANNEL, type RepoChangeEvent } from "../shared/api.ts";
 
 const api: GitApi = {
 	open: (path) => ipcRenderer.invoke("git:open", path),
@@ -19,6 +20,21 @@ const api: GitApi = {
 	checkout: (branch) => ipcRenderer.invoke("git:checkout", branch),
 	createBranch: (name) => ipcRenderer.invoke("git:createBranch", name),
 	fetch: () => ipcRenderer.invoke("git:fetch"),
+	search: (query) => ipcRenderer.invoke("git:search", query),
+	blame: (path, start, end) =>
+		ipcRenderer.invoke("git:blame", path, start, end),
+	undo: () => ipcRenderer.invoke("git:undo"),
+	watching: () => ipcRenderer.invoke("app:watching"),
+	onChanged: (listener) => {
+		const handler = (
+			_event: Electron.IpcRendererEvent,
+			event: RepoChangeEvent
+		): void => listener(event);
+		ipcRenderer.on(CHANGED_CHANNEL, handler);
+		return () => {
+			ipcRenderer.removeListener(CHANGED_CHANNEL, handler);
+		};
+	},
 };
 
 contextBridge.exposeInMainWorld("gitcraft", api);

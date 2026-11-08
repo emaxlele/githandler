@@ -1,5 +1,7 @@
 /** Modelli condivisi fra main, renderer e test. Nessuna dipendenza da Electron. */
 
+import type { UndoEntry } from "./undo.ts";
+
 export type DecorationKind = "head" | "local" | "remote" | "tag";
 
 export interface Decoration {
@@ -132,4 +134,6 @@ export interface Snapshot {
 	graph: GraphRow[];
 	refs: RefInfo[];
 	status: WorkingTree;
+	/** ultima operazione annullabile, se c'è */
+	undo: UndoEntry | null;
 }

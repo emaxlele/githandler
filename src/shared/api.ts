@@ -1,5 +1,6 @@
+import type { BlameFile } from "../core/blame.ts";
 import type { PatchMode } from "../core/patch.ts";
-import type { CommitFile, DiffFile, Snapshot } from "../core/types.ts";
+import type { Commit, CommitFile, DiffFile, Snapshot } from "../core/types.ts";
 
 /**
  * Contratto fra renderer e main. È l'unico punto in cui il renderer può chiedere qualcosa:
@@ -25,6 +26,16 @@ export interface GitApi {
 	checkout(branch: string): Promise<Snapshot>;
 	createBranch(name: string): Promise<Snapshot>;
 	fetch(): Promise<Snapshot>;
+	/** Ricerca nella storia: testo libero, `author:`, `file:`. */
+	search(query: string): Promise<Commit[]>;
+	/** Attribuzione riga per riga di un file. */
+	blame(path: string, start?: number, end?: number): Promise<BlameFile>;
+	/** Annulla l'ultima operazione registrata (commit, checkout, scarto). */
+	undo(): Promise<Snapshot>;
+	/** La sorveglianza del repository è attiva (`--watch`). */
+	watching(): Promise<boolean>;
+	/** Si iscrive agli aggiornamenti spontanei; restituisce la funzione per disiscriversi. */
+	onChanged(listener: (event: RepoChangeEvent) => void): () => void;
 }
 
 export type IpcChannel =
@@ -40,4 +51,15 @@ export type IpcChannel =
 	| "git:commit"
 	| "git:checkout"
 	| "git:createBranch"
-	| "git:fetch";
+	| "git:fetch"
+	| "git:search"
+	| "git:blame"
+	| "git:undo"
+	| "app:watching";
+
+/** Canale di solo invio: il main avvisa il renderer che il repository è cambiato. */
+export const CHANGED_CHANNEL = "repo:changed";
+
+export type RepoChangeEvent =
+	| { kind: "snapshot"; snapshot: Snapshot }
+	| { kind: "error"; message: string };

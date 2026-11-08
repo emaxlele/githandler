@@ -1,6 +1,8 @@
 import type { HunkSelection, PatchMode } from "../core/patch.ts";
 import { buildPatch } from "../core/patch.ts";
-import type { CommitFile, DiffFile, Snapshot } from "../core/types.ts";
+import { layoutGraph } from "../core/graph.ts";
+import type { Commit, CommitFile, DiffFile, Snapshot } from "../core/types.ts";
+import { describeUndo } from "../core/undo.ts";
 import type { GitApi } from "../shared/api.ts";
 import { pickKey, renderDiff, type DiffLayout } from "./diff-view.ts";
 import { byId, clear, el, fullDate } from "./dom.ts";
@@ -29,6 +31,8 @@ interface State {
 	picked: Set<string>;
 	diffLayout: DiffLayout;
 	tab: Tab;
+	/** filtro attivo sulla storia (null = storia normale) */
+	searchQuery: string | null;
 }
 
 const state: State = {
@@ -42,6 +46,7 @@ const state: State = {
 	picked: new Set(),
 	diffLayout: savedLayout(),
 	tab: "changes",
+	searchQuery: null,
 };
 
 /** Il formato del diff è una preferenza dell'utente: si ricorda fra un avvio e l'altro. */
@@ -58,10 +63,15 @@ function savedLayout(): DiffLayout {
 const ui = {
 	repoName: byId("repo-name"),
 	repoBranch: byId("repo-branch"),
+	repoWatch: byId("repo-watch"),
 	repoSync: byId("repo-sync"),
 	btnOpen: byId<HTMLButtonElement>("btn-open"),
+	btnUndo: byId<HTMLButtonElement>("btn-undo"),
 	btnRefresh: byId<HTMLButtonElement>("btn-refresh"),
 	btnFetch: byId<HTMLButtonElement>("btn-fetch"),
+	searchInput: byId<HTMLInputElement>("search-input"),
+	searchInfo: byId("search-info"),
+	btnSearchClear: byId<HTMLButtonElement>("btn-search-clear"),
 	listBranches: byId("list-branches"),
 	listRemotes: byId("list-remotes"),
 	listTags: byId("list-tags"),
@@ -118,13 +128,14 @@ async function guard<T>(
 // ── rendering ────────────────────────────────────────────────────────────────
 
 function applySnapshot(snapshot: Snapshot): void {
+	const sameRepo = state.snapshot?.info.root === snapshot.info.root;
+	if (!sameRepo && state.searchQuery) {
+		state.searchQuery = null;
+		ui.searchInput.value = "";
+		ui.btnSearchClear.classList.add("hidden");
+		ui.searchInfo.textContent = "";
+	}
 	state.snapshot = snapshot;
-
-	logView.setEmptyMessage(
-		snapshot.commits.length === 0
-			? "Repository senza commit: crea il primo dalla scheda Modifiche."
-			: ""
-	);
 
 	if (
 		state.selectedCommit &&
@@ -142,12 +153,68 @@ function applySnapshot(snapshot: Snapshot): void {
 	ui.repoSync.classList.remove("hidden");
 
 	ui.commitCount.textContent = `${snapshot.commits.length} commit`;
-	logView.setData(snapshot.commits, snapshot.graph);
+	void loadLog();
 	if (state.selectedCommit) logView.select(state.selectedCommit);
 
 	renderRefs(snapshot);
 	renderChanges(snapshot);
+	renderUndo();
+	void updateWatchChip();
 	void reloadOpenDiff();
+}
+
+/** La sorveglianza parte quando il repository è aperto: il chip va aggiornato dopo, non al boot. */
+async function updateWatchChip(): Promise<void> {
+	try {
+		ui.repoWatch.classList.toggle("hidden", !(await api.watching()));
+	} catch (error) {
+		console.warn("stato della sorveglianza non disponibile:", error);
+	}
+}
+
+let logRequest = 0;
+
+/** Disegna la storia normale oppure i risultati della ricerca attiva. */
+async function loadLog(): Promise<void> {
+	const snapshot = state.snapshot;
+	if (!snapshot) return;
+
+	const token = ++logRequest;
+	const query = state.searchQuery;
+	if (!query) {
+		logView.setEmptyMessage(
+			snapshot.commits.length === 0
+				? "Repository senza commit: crea il primo dalla scheda Modifiche."
+				: ""
+		);
+		logView.setData(snapshot.commits, snapshot.graph);
+		ui.searchInfo.textContent = "";
+		return;
+	}
+
+	const commits = await guard("Ricerca", () => api.search(query));
+	if (token !== logRequest || !commits) return;
+	logView.setEmptyMessage(
+		commits.length === 0 ? `Nessun commit per «${query}».` : ""
+	);
+	logView.setData(commits, layoutGraph(commits as Commit[]));
+	ui.searchInfo.textContent = `${commits.length} risultati`;
+}
+
+async function runSearch(raw: string): Promise<void> {
+	const query = raw.trim();
+	state.searchQuery = query || null;
+	ui.searchInput.value = query;
+	ui.btnSearchClear.classList.toggle("hidden", !state.searchQuery);
+	await loadLog();
+}
+
+function renderUndo(): void {
+	const undo = state.snapshot?.undo ?? null;
+	ui.btnUndo.disabled = !undo;
+	ui.btnUndo.title = undo
+		? `${describeUndo(undo)} (Ctrl+Z)`
+		: "Niente da annullare";
 }
 
 function renderRefs(snapshot: Snapshot): void {
@@ -422,12 +489,20 @@ async function discard(paths: string[]): Promise<void> {
 	const label = paths.length === 1 ? paths[0] : `${paths.length} file`;
 	if (
 		!window.confirm(
-			`Scartare le modifiche di ${label}? L'operazione non è reversibile.`
+			`Scartare le modifiche di ${label}? I file non tracciati vengono cancellati definitivamente, quelli tracciati si possono ripristinare con Annulla.`
 		)
 	)
 		return;
 	const snapshot = await guard("Scarta", () => api.discard(paths));
 	if (snapshot) applySnapshot(snapshot);
+}
+
+async function doUndo(): Promise<void> {
+	if (!state.snapshot?.undo) return;
+	const snapshot = await guard("Annulla", () => api.undo());
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast("Operazione annullata.", "ok");
 }
 
 async function doCommit(): Promise<void> {
@@ -471,6 +546,7 @@ ui.btnOpen.addEventListener("click", () => {
 	})();
 });
 
+ui.btnUndo.addEventListener("click", () => void doUndo());
 ui.btnRefresh.addEventListener("click", () => void refresh());
 
 function updateDiffButtons(): void {
@@ -510,6 +586,26 @@ ui.btnFetch.addEventListener("click", () => void fetchAll());
 
 ui.tabChanges.addEventListener("click", () => setTab("changes"));
 ui.tabCommit.addEventListener("click", () => setTab("commit"));
+
+ui.searchInput.addEventListener("keydown", (event) => {
+	if (event.key === "Enter") {
+		event.preventDefault();
+		void runSearch(ui.searchInput.value);
+	} else if (event.key === "Escape") {
+		event.preventDefault();
+		void runSearch("");
+	}
+});
+
+ui.searchInput.addEventListener("input", () => {
+	// svuotare il campo toglie il filtro: non serve premere Invio
+	if (!ui.searchInput.value.trim() && state.searchQuery) void runSearch("");
+});
+
+ui.btnSearchClear.addEventListener("click", () => {
+	ui.searchInput.focus();
+	void runSearch("");
+});
 
 ui.changesList.addEventListener("click", (event) => {
 	const target = event.target as HTMLElement;
@@ -621,6 +717,11 @@ document.addEventListener("keydown", (event) => {
 		return;
 	}
 	if (typing) return;
+	if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+		event.preventDefault();
+		void doUndo();
+		return;
+	}
 	if (event.key === "ArrowDown") {
 		event.preventDefault();
 		logView.step(1);
@@ -628,6 +729,19 @@ document.addEventListener("keydown", (event) => {
 		event.preventDefault();
 		logView.step(-1);
 	}
+});
+
+/** Aggiornamento spontaneo: il main ha riletto il repository dopo un cambiamento sul disco. */
+api.onChanged((event) => {
+	if (event.kind === "error") {
+		toast(`Aggiornamento automatico: ${event.message}`);
+		return;
+	}
+	const previous = state.snapshot?.commits[0]?.sha ?? null;
+	applySnapshot(event.snapshot);
+	const next = event.snapshot.commits[0]?.sha ?? null;
+	if (previous && next !== previous)
+		toast("Repository aggiornato da fuori.", "ok");
 });
 
 void boot();

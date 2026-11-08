@@ -14,10 +14,24 @@
 			<div class="topbar-repo">
 				<span class="repo-name" id="repo-name">gitcraft</span>
 				<span class="chip hidden" id="repo-branch"></span>
+				<span
+					class="chip hidden"
+					id="repo-watch"
+					title="Il repository viene riletto quando cambia sul disco (--watch)"
+					>Live</span
+				>
 				<span class="sync hidden" id="repo-sync"></span>
 			</div>
 			<div class="topbar-actions">
 				<button class="btn" id="btn-open">Apri repository…</button>
+				<button
+					class="btn"
+					id="btn-undo"
+					title="Annulla l'ultima operazione"
+					disabled
+				>
+					Annulla
+				</button>
 				<button class="btn" id="btn-refresh" title="Ctrl+R">
 					Aggiorna
 				</button>
@@ -67,6 +81,23 @@
 			</aside>
 
 			<main class="main">
+				<div class="log-search">
+					<input
+						id="search-input"
+						type="search"
+						placeholder="Cerca nella storia — testo, author:nome, file:percorso"
+						autocomplete="off"
+						spellcheck="false"
+					/>
+					<span class="search-info" id="search-info"></span>
+					<button
+						class="icon-btn hidden"
+						id="btn-search-clear"
+						title="Togli il filtro"
+					>
+						×
+					</button>
+				</div>
 				<div class="log" id="log">
 					<div class="log-spacer" id="log-spacer"></div>
 					<div class="log-window" id="log-window">

@@ -1,0 +1,179 @@
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { after, test } from "node:test";
+
+import { CliGitBackend } from "../src/main/backend.ts";
+import { handleRequest, PROTOCOL_VERSION } from "../src/mcp/server.ts";
+
+/**
+ * Il protocollo si prova in-process: stesso `handleRequest` che il trasporto stdio chiama.
+ * Il repository è vero, quindi i tool sono provati contro Git, non contro mock.
+ */
+
+const root = await mkdtemp(join(tmpdir(), "gitcraft-mcp-"));
+
+function git(...args: string[]): string {
+	return execFileSync("git", args, { cwd: root, encoding: "utf8" });
+}
+
+git("init", "-b", "main");
+git("config", "user.name", "Test");
+git("config", "user.email", "test@example.com");
+await writeFile(join(root, "a.txt"), "uno\ndue\n");
+git("add", "a.txt");
+git("commit", "-m", "primo commit");
+
+const backend = new CliGitBackend();
+await backend.open(root);
+const context = { backend, repo: root };
+
+after(async () => {
+	await rm(root, { recursive: true, force: true });
+});
+
+interface ToolResult {
+	content: Array<{ type: string; text: string }>;
+	isError?: boolean;
+}
+
+async function callTool(
+	name: string,
+	args: Record<string, unknown> = {},
+): Promise<ToolResult> {
+	const response = await handleRequest(context, {
+		jsonrpc: "2.0",
+		id: 7,
+		method: "tools/call",
+		params: { name, arguments: args },
+	});
+	assert.ok(response);
+	const result = response.result as ToolResult;
+	assert.ok(Array.isArray(result.content));
+	return result;
+}
+
+function data(result: ToolResult): Record<string, unknown> {
+	return JSON.parse(result.content[0]!.text) as Record<string, unknown>;
+}
+
+test("initialize dichiara il protocollo e i tool", async () => {
+	const response = await handleRequest(context, {
+		jsonrpc: "2.0",
+		id: 1,
+		method: "initialize",
+	});
+	assert.ok(response);
+	const result = response.result as {
+		protocolVersion: string;
+		serverInfo: { name: string };
+		capabilities: { tools: unknown };
+	};
+	assert.equal(result.protocolVersion, PROTOCOL_VERSION);
+	assert.equal(result.serverInfo.name, "gitcraft");
+	assert.ok(result.capabilities.tools);
+});
+
+test("tools/list elenca i cinque tool di sola lettura", async () => {
+	const response = await handleRequest(context, {
+		jsonrpc: "2.0",
+		id: 2,
+		method: "tools/list",
+	});
+	const result = response!.result as {
+		tools: Array<{ name: string; inputSchema: unknown }>;
+	};
+	assert.deepEqual(
+		result.tools.map((tool) => tool.name),
+		["repo_status", "history", "show_commit", "worktree_diff", "blame"],
+	);
+	for (const tool of result.tools) assert.ok(tool.inputSchema);
+});
+
+test("le notifiche non ricevono risposta e i metodi ignoti danno errore", async () => {
+	const notification = await handleRequest(context, {
+		jsonrpc: "2.0",
+		method: "notifications/initialized",
+	});
+	assert.equal(notification, null);
+
+	const unknown = await handleRequest(context, {
+		jsonrpc: "2.0",
+		id: 3,
+		method: "tools/nope",
+	});
+	assert.equal(unknown?.error?.code, -32601);
+});
+
+test("repo_status descrive ramo, modifiche e undo", async () => {
+	await writeFile(join(root, "a.txt"), "uno\nDUE\n");
+	const status = data(await callTool("repo_status"));
+	assert.equal(status.branch, "main");
+	assert.equal(status.detached, false);
+	const changes = status.changes as Array<{ path: string; worktree: string }>;
+	assert.equal(changes.length, 1);
+	assert.equal(changes[0]!.path, "a.txt");
+	assert.equal(changes[0]!.worktree, "M");
+	assert.equal(status.undo, null);
+});
+
+test("history filtra e show_commit restituisce il diff richiesto", async () => {
+	const history = data(await callTool("history", { text: "primo" }));
+	const commits = history.commits as Array<{ sha: string; subject: string }>;
+	assert.equal(commits.length, 1);
+
+	const shown = data(
+		await callTool("show_commit", { sha: commits[0]!.sha, path: "a.txt" }),
+	);
+	const commit = shown.commit as { sha: string; subject: string };
+	assert.equal(commit.subject, "primo commit");
+	const files = shown.files as Array<{ path: string; status: string }>;
+	assert.deepEqual(files, [{ path: "a.txt", originalPath: null, status: "A" }]);
+	assert.equal(shown.path, "a.txt");
+	assert.match(shown.diff as string, /\+uno/);
+
+	const withoutDiff = data(
+		await callTool("show_commit", { sha: commits[0]!.sha }),
+	);
+	assert.equal(withoutDiff.diff, null);
+});
+
+test("worktree_diff restituisce il testo unified", async () => {
+	const result = data(await callTool("worktree_diff", { path: "a.txt" }));
+	assert.equal(result.staged, false);
+	assert.equal(result.additions, 1);
+	assert.equal(result.deletions, 1);
+	assert.match(result.diff as string, /-due\n\+DUE/);
+});
+
+test("blame attribuisce le righe", async () => {
+	const result = data(await callTool("blame", { path: "a.txt" }));
+	const lines = result.lines as Array<{
+		line: number;
+		author: string;
+		commit: string | null;
+		text: string;
+	}>;
+	assert.equal(lines.length, 2);
+	assert.equal(lines[0]!.line, 1);
+	assert.equal(lines[0]!.author, "Test");
+	assert.equal(lines[0]!.text, "uno");
+	assert.equal(lines[1]!.commit, null); // riga modificata, non committata
+	assert.equal(lines[1]!.text, "DUE");
+});
+
+test("gli errori dei tool tornano come contenuto, non come crash", async () => {
+	const missing = await callTool("show_commit", {});
+	assert.equal(missing.isError, true);
+
+	const badSha = await callTool("show_commit", { sha: "non-un-sha" });
+	assert.equal(badSha.isError, true);
+
+	const unknownTool = await callTool("rm_rf");
+	assert.equal(unknownTool.isError, true);
+
+	const traversal = await callTool("worktree_diff", { path: "../etc/passwd" });
+	assert.equal(traversal.isError, true);
+});

@@ -73,6 +73,7 @@ export function runGit(
 				if (code !== 0 && !options.allowFailure) {
 					const detail =
 						stderr.trim() ||
+						stdout.trim() ||
 						(error?.message ?? "errore sconosciuto");
 					reject(
 						new GitError(

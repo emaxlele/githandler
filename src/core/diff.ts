@@ -139,6 +139,31 @@ export function parseDiff(raw: string, path: string): DiffFile {
 }
 
 /**
+ * Riscrive il diff in formato unified, per chi lo legge come testo (API per l'AI, test).
+ * Il percorso non compare: è già noto a chi ha chiesto il diff.
+ */
+export function formatDiff(file: DiffFile): string {
+	if (file.binary) return `Binary file ${file.path} differs`;
+	if (file.hunks.length === 0) return "";
+
+	const out: string[] = [];
+	for (const hunk of file.hunks) {
+		out.push(
+			`@@ -${hunk.oldStart},${hunk.oldLines} +${hunk.newStart},${
+				hunk.newLines
+			} @@${hunk.header ? ` ${hunk.header}` : ""}`
+		);
+		for (const line of hunk.lines) {
+			if (line.type === "nonewline") out.push(line.text);
+			else if (line.type === "add") out.push(`+${line.text}`);
+			else if (line.type === "del") out.push(`-${line.text}`);
+			else out.push(` ${line.text}`);
+		}
+	}
+	return out.join("\n");
+}
+
+/**
  * Parser di `--name-status -z`.
  * Formato: `M\0path\0`, e per rename/copy `R100\0vecchio\0nuovo\0`.
  */

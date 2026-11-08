@@ -119,6 +119,17 @@ body {
 	transform: translateY(1px);
 }
 
+.btn:disabled {
+	color: var(--text-faint);
+	background: #151a23;
+	border-color: var(--border);
+	cursor: default;
+}
+
+.btn:disabled:hover {
+	background: #151a23;
+}
+
 .btn-small {
 	padding: 3px 8px;
 	font-size: 11.5px;
@@ -240,8 +251,52 @@ body {
 
 .main {
 	display: grid;
-	grid-template-rows: minmax(0, 58%) minmax(0, 42%);
+	grid-template-rows: auto minmax(0, 58fr) minmax(0, 42fr);
 	min-height: 0;
+}
+
+/* ── ricerca nella storia ───────────────────────────────────────────────── */
+
+.log-search {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 10px;
+	border-bottom: 1px solid var(--border);
+	background: var(--panel);
+	min-width: 0;
+}
+
+.log-search input {
+	flex: 1;
+	min-width: 0;
+	appearance: none;
+	background: transparent;
+	border: none;
+	color: var(--text);
+	font: inherit;
+	font-size: 12.5px;
+	padding: 8px 0;
+}
+
+.log-search input:focus {
+	outline: none;
+}
+
+.log-search input::placeholder {
+	color: var(--text-faint);
+}
+
+.search-info {
+	font-size: 11.5px;
+	color: var(--text-faint);
+	white-space: nowrap;
+}
+
+#repo-watch {
+	color: #9ece6a;
+	background: rgba(158, 206, 106, 0.12);
+	border: 1px solid rgba(158, 206, 106, 0.28);
 }
 
 /* ── log ────────────────────────────────────────────────────────────────── */

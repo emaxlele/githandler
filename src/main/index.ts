@@ -2,8 +2,9 @@ import { app, BrowserWindow, dialog, ipcMain, Menu } from "electron";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import type { IpcChannel } from "../shared/api.ts";
+import { CHANGED_CHANNEL, type IpcChannel } from "../shared/api.ts";
 import { CliGitBackend } from "./backend.ts";
+import { startWatcher } from "./watcher.ts";
 
 const argv = process.argv.slice(1);
 const argValue = (name: string): string | null => {
@@ -16,6 +17,14 @@ const shotsMode = argv.includes("--shots") || shotsPath !== null;
 let pendingRepo = argValue("--repo");
 
 /**
+ * Sorveglianza del repository: opt-in (`--watch` o `GITCRAFT_WATCH=1`), spenta con `--no-watch`.
+ * Un client che si aggiorna da solo mentre si lavora in terminale è utile solo se lo si vuole.
+ */
+const watchEnabled = argv.includes("--no-watch")
+	? false
+	: argv.includes("--watch") || process.env.GITCRAFT_WATCH === "1";
+
+/**
  * Su questa macchina il processo GPU di Chromium non parte (vedi `clevo-control`).
  * Per un'app testuale il rendering software è invisibile: lo teniamo come default e
  * lasciamo `GITCRAFT_GPU=1` per riattivare l'accelerazione dove funziona.
@@ -24,6 +33,9 @@ if (process.env.GITCRAFT_GPU !== "1") app.disableHardwareAcceleration();
 
 const backend = new CliGitBackend();
 let window: BrowserWindow | null = null;
+let stopWatching: (() => void) | null = null;
+let refreshing = false;
+let refreshPending = false;
 
 function cleanError(error: unknown): string {
 	const message = error instanceof Error ? error.message : String(error);
@@ -31,6 +43,40 @@ function cleanError(error: unknown): string {
 		/^Error invoking remote method '[^']+': (Error: )?/,
 		""
 	);
+}
+
+/** Rilegge il repository e lo manda al renderer; un solo aggiornamento in volo alla volta. */
+async function pushRefresh(): Promise<void> {
+	if (refreshing) {
+		refreshPending = true;
+		return;
+	}
+	refreshing = true;
+	try {
+		const snapshot = await backend.refresh();
+		window?.webContents.send(CHANGED_CHANNEL, {
+			kind: "snapshot",
+			snapshot,
+		});
+	} catch (error) {
+		window?.webContents.send(CHANGED_CHANNEL, {
+			kind: "error",
+			message: cleanError(error),
+		});
+	} finally {
+		refreshing = false;
+		if (refreshPending) {
+			refreshPending = false;
+			void pushRefresh();
+		}
+	}
+}
+
+function watchRepository(root: string): void {
+	stopWatching?.();
+	stopWatching = null;
+	if (!watchEnabled) return;
+	stopWatching = startWatcher({ root, onChange: () => void pushRefresh() });
 }
 
 function handle<T>(
@@ -61,7 +107,9 @@ function registerIpc(): void {
 			if (result.canceled || !target) return null;
 		}
 
-		return backend.open(target);
+		const snapshot = await backend.open(target);
+		watchRepository(snapshot.info.root);
+		return snapshot;
 	});
 
 	handle("git:refresh", () => backend.refresh());
@@ -73,8 +121,10 @@ function registerIpc(): void {
 		backend.worktreePatch(path, staged)
 	);
 	handle("git:stage", (paths: string[]) => backend.stage(paths));
-	handle("git:applyPatch", (path: string, patch: string, mode: "stage" | "unstage") =>
-		backend.applyPatch(path, patch, mode),
+	handle(
+		"git:applyPatch",
+		(path: string, patch: string, mode: "stage" | "unstage") =>
+			backend.applyPatch(path, patch, mode)
 	);
 	handle("git:unstage", (paths: string[]) => backend.unstage(paths));
 	handle("git:discard", (paths: string[]) => backend.discard(paths));
@@ -84,6 +134,12 @@ function registerIpc(): void {
 	handle("git:checkout", (branch: string) => backend.checkout(branch));
 	handle("git:createBranch", (name: string) => backend.createBranch(name));
 	handle("git:fetch", () => backend.fetch());
+	handle("git:search", (query: string) => backend.search(query));
+	handle("git:blame", (path: string, start?: number, end?: number) =>
+		backend.blame(path, start, end)
+	);
+	handle("git:undo", () => backend.undo());
+	handle("app:watching", async () => watchEnabled && stopWatching !== null);
 }
 
 function buildMenu(): void {
@@ -136,6 +192,8 @@ function createWindow(): void {
 	}
 
 	window.on("closed", () => {
+		stopWatching?.();
+		stopWatching = null;
 		window = null;
 	});
 }
@@ -159,6 +217,14 @@ async function runShots(): Promise<void> {
 			`document.getElementById("tab-changes")?.click();
 			 document.querySelector("#changes-list li")?.click();`,
 			target.replace(/\.png$/, "-changes.png"),
+		],
+		[
+			`(() => {
+				const input = document.getElementById("search-input");
+				input.value = "author:Anna";
+				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+			})()`,
+			target.replace(/\.png$/, "-search.png"),
 		],
 	];
 

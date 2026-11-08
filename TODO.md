@@ -8,20 +8,23 @@ Stato al 2026-11-08. Le voci spuntate sono in `CHANGELOG.md`.
         togliere dallo stage)
 -   [x] Diff affiancato (prima/dopo) con accoppiamento riga per riga ed evidenza della porzione
         cambiata; scelta ricordata fra un avvio e l'altro
+-   [x] Undo generale (journal in `.git/gitcraft/undo.json`, `refs/gitcraft/snapshots/*`): commit,
+        checkout e scarto, con pulsante e `Ctrl+Z`
+-   [x] Ricerca nella storia: testo letterale, `author:`, `file:`; usata da UI e API
+-   [x] Refresh automatico su `fs.watch` con debounce, filtro e chip Live (`--watch`)
+-   [x] Parser di blame (`git blame --line-porcelain`) e `formatDiff` nel core
+-   [x] Server MCP in sola lettura (`npm run mcp`): `repo_status`, `history`, `show_commit`,
+        `worktree_diff`, `blame`; configurazione in `docs/mcp.md`
 
 ## In corso
 
 -   [ ] Milestone 2 — il diff che conta
     -   [ ] Evidenziazione della sintassi (CodeMirror 6, licenza MIT)
-    -   [ ] Undo generale (snapshot in `refs/gitcraft/snapshots/*`): il differenziatore che i client concorrenti non
-            ha e un client a pagamento riserva al piano a pagamento
-    -   [ ] Blame con timeline
-    -   [ ] Ricerca nella storia (`author:`, `file:`, `change:`)
+    -   [ ] Blame con timeline nella UI (parser e tool MCP già ci sono)
 
 ## Aperto
 
 -   [ ] Milestone 3 — scala e affidabilità
-    -   [ ] Refresh incrementale su `fs.watch` con debounce
     -   [ ] Paginazione della storia e caricamento progressivo oltre i 5.000 commit
     -   [ ] Misura di `status` e del primo paint su repo da 100k file e 50k commit
     -   [ ] Solo sopra soglia: `koffi` + libgit2 per le letture calde
@@ -30,8 +33,6 @@ Stato al 2026-11-08. Le voci spuntate sono in `CHANGELOG.md`.
     -   [ ] AppImage e pacchetto `.rpm`
     -   [ ] Rebase interattivo, cherry-pick, stash, worktree, submodule
     -   [ ] Preferenze e temi
--   [x] Benchmark del backend (`npm run bench`): 5.000 commit = 35 ms di `git log` e 11 ms di
-        parsing; 100.000 file di `status` = 82 ms. Numeri e soglie in `docs/backend-performance.md`
 -   [ ] Verificare la resa del testo su un diff da ~3.000 righe contro WebKitGTK (Tauri/Wails) e
         Avalonia: è la misura che ha motivato la scelta di Electron
 -   [ ] Decidere se e come pubblicare il repository
