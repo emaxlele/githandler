@@ -1,6 +1,6 @@
 # TODO
 
-Stato al 2026-11-08 (v0.5.0). Le voci spuntate sono in `CHANGELOG.md`.
+Stato al 2026-11-08 (v0.6.0). Le voci spuntate sono in `CHANGELOG.md`.
 
 ## Fatto
 
@@ -31,6 +31,17 @@ Stato al 2026-11-08 (v0.5.0). Le voci spuntate sono in `CHANGELOG.md`.
         Commit / Changes / File Tree / Blame
 -   [x] **Dettaglio commit con autore e committer separati** (`git show -s`, canale
         `git:commitDetails`), SHA e parents nel pannello
+-   [x] **Pull, push, stash, submodule, merge/rebase/cherry-pick**: argomenti e parser in
+        `src/core/ops.ts` con validazione dei nomi di ref; pull solo `--ff-only`, push senza forza e
+        con tracking al primo invio; undo che copre anche merge, rebase e cherry-pick
+-   [x] **Terminale integrato**: `bash -lc` nella cartella del repository attivo, output in streaming,
+        pulsante *Interrompi* (nessuna dipendenza nuova, niente `node-pty`)
+-   [x] **Più repository aperti insieme**: backend per root e sessione per scheda, root come primo
+        argomento di ogni canale IPC, watcher sulla scheda attiva
+-   [x] **Changes a tutta area**: la voce della barra laterale porta il pannello delle modifiche
+        nell'area principale, senza storia né pannello inferiore
+-   [x] **Clic sul ref = cursore sul commit** e **menu contestuale** su rami e commit (checkout, merge,
+        rebase, rinomina, elimina, copia; cherry-pick sui commit)
 -   [x] **File dei merge** (`--first-parent` in `commitFilesArgs`): senza, il commit di merge compariva
         senza alcun file
 
@@ -47,9 +58,7 @@ Stato al 2026-11-08 (v0.5.0). Le voci spuntate sono in `CHANGELOG.md`.
             richiede verifica su macchina pulita. Nel frattempo `./build/install-local.sh` installa
             launcher, voce nel menu e icona nel profilo utente
     -   [ ] AppImage e pacchetto `.rpm`
-    -   [ ] Rebase interattivo, cherry-pick, stash, worktree, submodule
-    -   [ ] Schede multiple di repository nella stessa finestra: oggi il `+` apre un altro repository
-            sostituendo quello corrente
+    -   [ ] Rebase interattivo e worktree
     -   [ ] Preferenze e temi
 -   [ ] Verificare la resa del testo su un diff da ~3.000 righe contro WebKitGTK (Tauri/Wails) e
         Avalonia: è la misura che ha motivato la scelta di Electron

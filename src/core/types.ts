@@ -141,7 +141,11 @@ export interface RepoInfo {
 	name: string;
 	branch: string | null;
 	detached: boolean;
+	/** merge, rebase o cherry-pick lasciato a metà: si può annullare */
+	operation: RepoOperation | null;
 }
+
+export type RepoOperation = "merge" | "rebase" | "cherry-pick";
 
 export interface CommitDetail {
 	files: CommitFile[];
@@ -165,4 +169,32 @@ export interface Snapshot {
 export interface CommitPage {
 	commits: Commit[];
 	hasMore: boolean;
+}
+
+/** Una voce di `git stash list`. */
+export interface StashEntry {
+	/** posizione nello stack: `stash@{index}` */
+	index: number;
+	sha: string;
+	/** messaggio dello stash ("WIP on main: …" oppure quello scelto) */
+	message: string;
+	/** ramo su cui è stato creato, quando Git lo scrive nel messaggio */
+	branch: string | null;
+	/** secondi epoch */
+	timestamp: number;
+}
+
+/** Stato di un submodule come lo stampa `git submodule status`. */
+export type SubmoduleState =
+	| "clean"
+	| "modified"
+	| "uninitialized"
+	| "conflict";
+
+export interface SubmoduleInfo {
+	path: string;
+	sha: string;
+	state: SubmoduleState;
+	/** descrizione fra parentesi, quando c'è (`(heads/main)`) */
+	description: string | null;
 }

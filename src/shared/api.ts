@@ -8,15 +8,22 @@ import type {
 	CommitPage,
 	DiffFile,
 	Snapshot,
+	StashEntry,
+	SubmoduleInfo,
 } from "../core/types.ts";
 
 /**
  * Contratto fra renderer e main. È l'unico punto in cui il renderer può chiedere qualcosa:
  * niente accesso a Node, niente filesystem, niente `child_process`.
+ *
+ * Le chiamate valgono per il repository attivo: `open` e `use` lo impostano, così il renderer può
+ * tenere aperti più repository senza passare il path a ogni richiesta.
  */
 export interface GitApi {
 	/** Apre un repository; senza path mostra il dialog di sistema. */
 	open(path?: string): Promise<Snapshot | null>;
+	/** Rende attivo un repository già aperto (schede della UI). */
+	use(root: string): Promise<void>;
 	/** Rilegge storia, ref e stato del repository corrente. */
 	refresh(): Promise<Snapshot>;
 	/** Autore, committer, SHA, genitori e messaggio di un commit. */
@@ -36,6 +43,25 @@ export interface GitApi {
 	checkout(branch: string): Promise<Snapshot>;
 	createBranch(name: string): Promise<Snapshot>;
 	fetch(): Promise<Snapshot>;
+	/** Solo fast-forward: un ramo divergente si ferma con il messaggio di Git. */
+	pull(): Promise<Snapshot>;
+	/** Push senza forza; il primo push crea il tracking su origin. */
+	push(): Promise<Snapshot>;
+	stashList(): Promise<StashEntry[]>;
+	stashSave(message: string): Promise<Snapshot>;
+	stashApply(index: number, drop: boolean): Promise<Snapshot>;
+	stashDrop(index: number): Promise<Snapshot>;
+	submodules(): Promise<SubmoduleInfo[]>;
+	updateSubmodules(): Promise<Snapshot>;
+	merge(branch: string): Promise<Snapshot>;
+	rebase(onto: string): Promise<Snapshot>;
+	cherryPick(sha: string): Promise<Snapshot>;
+	renameBranch(from: string, to: string): Promise<Snapshot>;
+	deleteBranch(name: string, force: boolean): Promise<Snapshot>;
+	/** Crea un ramo locale con tracking da un ref remoto. */
+	checkoutTracking(remoteRef: string, local: string): Promise<Snapshot>;
+	/** Annulla un merge, rebase o cherry-pick sospeso a metà. */
+	abortOperation(): Promise<Snapshot>;
 	/** Ricerca nella storia: testo libero, `author:`, `file:`. */
 	search(query: string): Promise<Commit[]>;
 	/** Pagina successiva della storia, a partire da `skip`. */
@@ -54,10 +80,16 @@ export interface GitApi {
 	watching(): Promise<boolean>;
 	/** Si iscrive agli aggiornamenti spontanei; restituisce la funzione per disiscriversi. */
 	onChanged(listener: (event: RepoChangeEvent) => void): () => void;
+	/** Esegue un comando nella shell, nel root del repository attivo; l'output arriva a pezzi. */
+	terminalRun(id: string, command: string): Promise<void>;
+	terminalKill(id: string): Promise<void>;
+	/** Si iscrive all'output del terminale; restituisce la funzione per disiscriversi. */
+	onTerminal(listener: (event: TerminalEvent) => void): () => void;
 }
 
 export type IpcChannel =
 	| "git:open"
+	| "git:use"
 	| "git:refresh"
 	| "git:commitDetails"
 	| "git:commitFiles"
@@ -71,6 +103,21 @@ export type IpcChannel =
 	| "git:checkout"
 	| "git:createBranch"
 	| "git:fetch"
+	| "git:pull"
+	| "git:push"
+	| "git:stashList"
+	| "git:stashSave"
+	| "git:stashApply"
+	| "git:stashDrop"
+	| "git:submodules"
+	| "git:updateSubmodules"
+	| "git:merge"
+	| "git:rebase"
+	| "git:cherryPick"
+	| "git:renameBranch"
+	| "git:deleteBranch"
+	| "git:checkoutTracking"
+	| "git:abortOperation"
 	| "git:search"
 	| "git:moreCommits"
 	| "git:blame"
@@ -78,10 +125,20 @@ export type IpcChannel =
 	| "app:watching"
 	| "app:settings"
 	| "app:settings:save"
-	| "app:trashUsage";
+	| "app:trashUsage"
+	| "term:run"
+	| "term:kill";
 
 /** Canale di solo invio: il main avvisa il renderer che il repository è cambiato. */
 export const CHANGED_CHANNEL = "repo:changed";
+
+/** Canale di solo invio: output e fine dei comandi del terminale integrato. */
+export const TERMINAL_CHANNEL = "term:event";
+
+export type TerminalEvent =
+	| { kind: "data"; id: string; text: string }
+	| { kind: "exit"; id: string; code: number | null }
+	| { kind: "error"; id: string; message: string };
 
 export type RepoChangeEvent =
 	| { kind: "snapshot"; snapshot: Snapshot }

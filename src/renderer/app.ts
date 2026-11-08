@@ -1,6 +1,7 @@
 import type { HunkSelection, PatchMode } from "../core/patch.ts";
 import { buildPatch } from "../core/patch.ts";
 import { layoutGraph } from "../core/graph.ts";
+import { localNameForRemote } from "../core/ops.ts";
 import {
 	API_TOOLS,
 	MEBIBYTE,
@@ -15,6 +16,7 @@ import type {
 	CommitDetails,
 	CommitFile,
 	DiffFile,
+	RefInfo,
 	Snapshot,
 	StatusEntry,
 } from "../core/types.ts";
@@ -40,9 +42,14 @@ declare global {
 
 const api = window.githandler;
 
-type Tab = "changes" | "commit" | "tree" | "blame";
+type Tab = "changes" | "commit" | "tree" | "blame" | "term";
+
+/** La barra laterale decide cosa occupa l'area principale. */
+type Side = "changes" | "commits";
 
 interface State {
+	/** root del repository: identifica la sessione */
+	root: string;
 	snapshot: Snapshot | null;
 	/** storia caricata: la prima pagina più quelle richieste scorrendo */
 	commits: Commit[];
@@ -67,27 +74,38 @@ interface State {
 	tab: Tab;
 	/** filtro attivo sulla storia (null = storia normale) */
 	searchQuery: string | null;
+	/** Changes nell'area principale, oppure la storia */
+	side: Side;
 }
 
-const state: State = {
-	snapshot: null,
-	commits: [],
-	hasMore: false,
-	loadingMore: false,
-	selectedCommit: null,
-	commitDetails: null,
-	commitFiles: [],
-	commitPath: null,
-	treePath: null,
-	treeCollapsed: new Set(),
-	changePath: null,
-	changeStaged: false,
-	changeDiff: null,
-	picked: new Set(),
-	diffLayout: savedLayout(),
-	tab: "commit",
-	searchQuery: null,
-};
+/** Stato di un repository aperto: uno per scheda. */
+function emptyState(root = ""): State {
+	return {
+		root,
+		snapshot: null,
+		commits: [],
+		hasMore: false,
+		loadingMore: false,
+		selectedCommit: null,
+		commitDetails: null,
+		commitFiles: [],
+		commitPath: null,
+		treePath: null,
+		treeCollapsed: new Set(),
+		changePath: null,
+		changeStaged: false,
+		changeDiff: null,
+		picked: new Set(),
+		diffLayout: savedLayout(),
+		tab: "commit",
+		searchQuery: null,
+		side: "commits",
+	};
+}
+
+/** Le sessioni aperte, per root; `state` è quella attiva (le funzioni la leggono al momento). */
+const sessions = new Map<string, State>();
+let state: State = emptyState();
 
 /** Il formato del diff è una preferenza dell'utente: si ricorda fra un avvio e l'altro. */
 function savedLayout(): DiffLayout {
@@ -103,8 +121,9 @@ function savedLayout(): DiffLayout {
 const ui = {
 	repoName: byId("repo-name"),
 	repoBranch: byId("repo-branch"),
-	repoTabName: byId("repo-tab-name"),
-	repoTabBranch: byId("repo-tab-branch"),
+	repoTabs: byId("repo-tabs"),
+	log: byId("log"),
+	repoOperation: byId<HTMLButtonElement>("repo-operation"),
 	sideRepo: byId("side-repo"),
 	sideChanges: byId<HTMLButtonElement>("side-changes"),
 	sideCommits: byId<HTMLButtonElement>("side-commits"),
@@ -116,6 +135,10 @@ const ui = {
 	btnUndo: byId<HTMLButtonElement>("btn-undo"),
 	btnRefresh: byId<HTMLButtonElement>("btn-refresh"),
 	btnFetch: byId<HTMLButtonElement>("btn-fetch"),
+	btnPull: byId<HTMLButtonElement>("btn-pull"),
+	btnPush: byId<HTMLButtonElement>("btn-push"),
+	btnStash: byId<HTMLButtonElement>("btn-stash"),
+	btnSubmodule: byId<HTMLButtonElement>("btn-submodule"),
 	btnSettings: byId<HTMLButtonElement>("btn-settings"),
 	searchInput: byId<HTMLInputElement>("search-input"),
 	searchInfo: byId("search-info"),
@@ -131,7 +154,12 @@ const ui = {
 	tabCommit: byId<HTMLButtonElement>("tab-commit"),
 	tabTree: byId<HTMLButtonElement>("tab-tree"),
 	tabBlame: byId<HTMLButtonElement>("tab-blame"),
+	tabTerm: byId<HTMLButtonElement>("tab-term"),
+	main: byId("main"),
+	changesMain: byId("changes-main"),
+	panes: byId("panes"),
 	panelChanges: byId("panel-changes"),
+	panelTerm: byId("panel-term"),
 	panelCommit: byId("panel-commit"),
 	panelTree: byId("panel-tree"),
 	panelBlame: byId("panel-blame"),
@@ -161,6 +189,26 @@ const ui = {
 	settingTrashQuota: byId<HTMLInputElement>("setting-trash-quota"),
 	trashUsage: byId("trash-usage"),
 	settingsCancel: byId<HTMLButtonElement>("settings-cancel"),
+	ctxMenu: byId("ctx-menu"),
+	stashDialog: byId<HTMLDialogElement>("stash-dialog"),
+	stashMessage: byId<HTMLInputElement>("stash-message"),
+	stashList: byId("stash-list"),
+	btnStashSave: byId<HTMLButtonElement>("btn-stash-save"),
+	stashClose: byId<HTMLButtonElement>("stash-close"),
+	submoduleDialog: byId<HTMLDialogElement>("submodule-dialog"),
+	submoduleList: byId("submodule-list"),
+	btnSubmoduleUpdate: byId<HTMLButtonElement>("btn-submodule-update"),
+	submoduleClose: byId<HTMLButtonElement>("submodule-close"),
+	inputDialog: byId<HTMLDialogElement>("input-dialog"),
+	inputForm: byId<HTMLFormElement>("input-form"),
+	inputTitle: byId("input-title"),
+	inputLabel: byId("input-label"),
+	inputField: byId<HTMLInputElement>("input-field"),
+	inputCancel: byId<HTMLButtonElement>("input-cancel"),
+	termOutput: byId("term-output"),
+	termForm: byId<HTMLFormElement>("term-form"),
+	termInput: byId<HTMLInputElement>("term-input"),
+	termStop: byId<HTMLButtonElement>("term-stop"),
 	toast: byId("toast"),
 };
 
@@ -183,6 +231,12 @@ function toast(message: string, kind: "error" | "ok" = "error"): void {
 	);
 }
 
+/** Il messaggio vero, senza il prefisso che Electron aggiunge agli errori IPC. */
+function readableError(error: unknown): string {
+	const message = error instanceof Error ? error.message : String(error);
+	return message.replace(/^Error invoking remote method '[^']+': (Error: )?/, "");
+}
+
 /** Esegue un'operazione Git mostrando l'errore reale invece di fallire in silenzio. */
 async function guard<T>(
 	label: string,
@@ -191,21 +245,50 @@ async function guard<T>(
 	try {
 		return await task();
 	} catch (error) {
-		toast(`${label}: ${(error as Error).message}`);
+		toast(`${label}: ${readableError(error)}`);
+		return null;
+	}
+}
+
+/**
+ * Come `guard`, ma dopo l'errore rilegge lo stato: merge, rebase e cherry-pick possono essere
+ * rimasti a metà, e il chip «annulla» deve comparire subito, non al prossimo refresh.
+ */
+async function guardRepo<T>(
+	label: string,
+	task: () => Promise<T>
+): Promise<T | null> {
+	try {
+		return await task();
+	} catch (error) {
+		toast(`${label}: ${readableError(error)}`);
+		try {
+			applySnapshot(await api.refresh());
+		} catch (refreshError) {
+			console.warn("stato non rileggibile dopo l'errore:", refreshError);
+		}
 		return null;
 	}
 }
 
 // ── rendering ────────────────────────────────────────────────────────────────
 
+/**
+ * Applica la fotografia del repository attivo. Un aggiornamento che arriva per un'altra scheda
+ * finisce nella sua sessione: le risposte in ritardo non possono sovrascrivere la vista corrente.
+ */
 function applySnapshot(snapshot: Snapshot): void {
-	const sameRepo = state.snapshot?.info.root === snapshot.info.root;
-	if (!sameRepo && state.searchQuery) {
-		state.searchQuery = null;
-		ui.searchInput.value = "";
-		ui.btnSearchClear.classList.add("hidden");
-		ui.searchInfo.textContent = "";
+	if (snapshot.info.root !== state.root) {
+		const other = sessions.get(snapshot.info.root);
+		if (other) {
+			other.snapshot = snapshot;
+			other.commits = snapshot.commits;
+			other.hasMore = snapshot.hasMore;
+			other.loadingMore = false;
+		}
+		return;
 	}
+
 	state.snapshot = snapshot;
 	// il refresh riparte dalla prima pagina: le pagine accumulate non valgono più
 	state.commits = snapshot.commits;
@@ -219,16 +302,8 @@ function applySnapshot(snapshot: Snapshot): void {
 		state.selectedCommit = null;
 	}
 
-	ui.repoName.textContent = snapshot.info.name;
-	ui.sideRepo.textContent = snapshot.info.name;
-	ui.repoTabName.textContent = snapshot.info.name;
-	ui.repoBranch.textContent = snapshot.info.branch ?? "HEAD staccato";
-	ui.repoTabBranch.textContent = snapshot.info.branch ?? "detached";
-
-	const { ahead, behind } = snapshot.status;
-	ui.repoSync.textContent = `↑${ahead} ↓${behind}`;
-	ui.repoSync.classList.remove("hidden");
-
+	renderHeader(snapshot);
+	renderRepoTabs();
 	updateCommitCount();
 	void loadLog();
 	if (state.selectedCommit) logView.select(state.selectedCommit);
@@ -239,6 +314,101 @@ function applySnapshot(snapshot: Snapshot): void {
 	void updateWatchChip();
 	void reloadOpenDiff();
 	if (state.tab === "blame") void loadBlame();
+}
+
+/** Nome, ramo, sincronizzazione e operazione sospesa del repository attivo. */
+function renderHeader(snapshot: Snapshot | null): void {
+	ui.repoName.textContent = snapshot?.info.name ?? "nessun repository";
+	ui.sideRepo.textContent = snapshot?.info.name ?? "—";
+	ui.repoBranch.textContent = snapshot?.info.branch ?? "—";
+	if (!snapshot) {
+		ui.repoSync.classList.add("hidden");
+		ui.btnPull.disabled = true;
+		ui.btnPush.disabled = true;
+		renderOperation(null);
+		return;
+	}
+	const { ahead, behind } = snapshot.status;
+	ui.repoSync.textContent = `↑${ahead} ↓${behind}`;
+	ui.repoSync.classList.remove("hidden");
+	// i comandi restano attivi: se manca il remoto Git lo dice, e il messaggio è più utile
+	ui.btnPull.disabled = false;
+	ui.btnPush.disabled = false;
+	renderOperation(snapshot);
+}
+
+/** Merge, rebase o cherry-pick lasciato a metà: un clic lo annulla. */
+function renderOperation(snapshot: Snapshot | null): void {
+	const operation = snapshot?.info.operation ?? null;
+	ui.repoOperation.classList.toggle("hidden", operation === null);
+	if (!operation) return;
+	const label =
+		operation === "merge"
+			? "Merge in corso"
+			: operation === "rebase"
+			? "Rebase in corso"
+			: "Cherry-pick in corso";
+	ui.repoOperation.textContent = `${label} · annulla`;
+	ui.repoOperation.dataset.operation = operation;
+}
+
+/** Schede dei repository aperti: una per sessione, con la chiusura. */
+function renderRepoTabs(): void {
+	clear(ui.repoTabs);
+	for (const session of sessions.values()) {
+		const tab = el("button", "repo-tab");
+		tab.dataset.root = session.root;
+		tab.title = session.root;
+		if (session.root === state.root) tab.classList.add("is-active");
+		tab.appendChild(
+			el("span", "repo-tab-name", session.snapshot?.info.name ?? "…")
+		);
+		tab.appendChild(
+			el(
+				"span",
+				"repo-tab-branch",
+				session.snapshot?.info.branch ?? "detached"
+			)
+		);
+		const close = el("span", "repo-tab-close", "×");
+		close.dataset.close = session.root;
+		close.title = "Chiudi la scheda";
+		tab.appendChild(close);
+		ui.repoTabs.appendChild(tab);
+	}
+	// il «+» torna in fondo dopo le schede
+	ui.repoTabs.appendChild(ui.btnNewTab);
+}
+
+/** Ridisegna la sessione attiva senza tornare a Git (cambio scheda). */
+function renderSession(): void {
+	const snapshot = state.snapshot;
+	renderHeader(snapshot);
+	renderRepoTabs();
+	renderUndo();
+	renderOperation(snapshot);
+
+	if (!snapshot) {
+		logView.setData([], []);
+		logView.setEmptyMessage("Nessun repository aperto.");
+		ui.commitCount.textContent = "—";
+		return;
+	}
+
+	renderRefs(snapshot);
+	renderChanges(snapshot);
+	void loadLog();
+	if (state.selectedCommit) logView.select(state.selectedCommit);
+	updateCommitCount();
+	renderCommitFiles();
+	if (state.tab === "tree") renderTree(snapshot);
+	setSide(state.side);
+	if (state.side === "commits") {
+		if (state.tab === "blame") void loadBlame();
+		if (state.tab === "term") renderTerminal();
+	}
+	void reloadOpenDiff();
+	void updateWatchChip();
 }
 
 function updateCommitCount(): void {
@@ -494,17 +664,22 @@ function renderRefs(snapshot: Snapshot): void {
 		for (const ref of refs) {
 			const item = el("li");
 			if (ref.current) item.classList.add("is-current");
+			item.dataset.ref = ref.short;
+			item.dataset.kind = ref.kind;
+			item.dataset.sha = ref.sha;
 			item.appendChild(el("span", "ref-name", ref.short));
 			if (ref.ahead || ref.behind) {
 				item.appendChild(
 					el("span", "ref-track", `↑${ref.ahead} ↓${ref.behind}`)
 				);
 			}
-			item.title =
-				ref.kind === "tag" ? ref.name : `checkout ${ref.short}`;
-			if (ref.kind !== "tag") {
-				item.addEventListener("click", () => void checkout(ref.short));
-			}
+			item.title = `Vai al commit di ${ref.short} · tasto destro per le operazioni`;
+			// il clic non fa checkout: sposta il cursore, come nella storia
+			item.addEventListener("click", () => void revealRef(ref.sha));
+			item.addEventListener("contextmenu", (event) => {
+				event.preventDefault();
+				openRefMenu(ref, event.clientX, event.clientY);
+			});
 			container.appendChild(item);
 		}
 	}
@@ -821,8 +996,8 @@ function renderCommitFiles(): void {
 // ── azioni ───────────────────────────────────────────────────────────────────
 
 async function boot(): Promise<void> {
-	const snapshot = await guard("Apertura", () => api.open());
-	if (snapshot) applySnapshot(snapshot);
+	await openRepository();
+	renderSession();
 }
 
 async function refresh(): Promise<void> {
@@ -996,22 +1171,58 @@ async function reloadOpenDiff(): Promise<void> {
 	}
 }
 
-function setTab(tab: Tab): void {
-	state.tab = tab;
-	const tabs: Array<[Tab, HTMLElement, HTMLElement]> = [
+/** Un solo pannello inferiore attivo alla volta. */
+function syncPanels(): void {
+	const panels: Array<[Tab, HTMLElement, HTMLElement]> = [
 		["changes", ui.tabChanges, ui.panelChanges],
 		["commit", ui.tabCommit, ui.panelCommit],
 		["tree", ui.tabTree, ui.panelTree],
 		["blame", ui.tabBlame, ui.panelBlame],
+		["term", ui.tabTerm, ui.panelTerm],
 	];
-	for (const [name, button, panel] of tabs) {
-		button.classList.toggle("is-active", tab === name);
-		panel.classList.toggle("is-active", tab === name);
+	for (const [name, button, panel] of panels) {
+		button.classList.toggle("is-active", state.tab === name);
+		panel.classList.toggle("is-active", state.tab === name);
 	}
-	ui.sideChanges.classList.toggle("is-active", tab === "changes");
-	ui.sideCommits.classList.toggle("is-active", tab !== "changes");
+}
+
+/**
+ * La barra laterale sceglie l'area principale: *Changes* prende tutto lo spazio e la storia
+ * sparisce; *All Commits* riporta la storia con il pannello inferiore.
+ */
+function setSide(side: Side): void {
+	state.side = side;
+	ui.sideChanges.classList.toggle("is-active", side === "changes");
+	ui.sideCommits.classList.toggle("is-active", side === "commits");
+	ui.main.classList.toggle("is-changes", side === "changes");
+
+	if (side === "changes") {
+		if (ui.panelChanges.parentElement !== ui.changesMain) {
+			ui.changesMain.appendChild(ui.panelChanges);
+		}
+		// il pannello inferiore è nascosto: resta attivo quello scelto per quando si torna
+		ui.panelChanges.classList.add("in-main", "is-active");
+	} else {
+		if (ui.panelChanges.parentElement !== ui.panes) {
+			ui.panes.appendChild(ui.panelChanges);
+		}
+		ui.panelChanges.classList.remove("in-main");
+		syncPanels();
+	}
+}
+
+function setTab(tab: Tab): void {
+	if (state.side === "changes" && tab !== "changes") {
+		// dalla modalità modifiche si torna alla storia, con il pannello scelto
+		state.tab = tab;
+		setSide("commits");
+	} else {
+		state.tab = tab;
+		syncPanels();
+	}
 	if (tab === "blame") void loadBlame();
 	if (tab === "tree" && state.snapshot) renderTree(state.snapshot);
+	if (tab === "term") renderTerminal();
 }
 
 /** Blame del file aperto: quello delle Modifiche, altrimenti quello del commit selezionato. */
@@ -1078,7 +1289,6 @@ async function doCommit(): Promise<void> {
 	if (!snapshot) return;
 	ui.commitMessage.value = "";
 	applySnapshot(snapshot);
-	setTab("changes");
 	toast("Commit creato.", "ok");
 }
 
@@ -1098,14 +1308,642 @@ async function fetchAll(): Promise<void> {
 	}
 }
 
-// ── eventi ───────────────────────────────────────────────────────────────────
+// ── menu contestuale ─────────────────────────────────────────────────────────
 
-ui.btnOpen.addEventListener("click", () => {
+interface MenuEntry {
+	label: string;
+	action: () => void;
+	danger?: boolean;
+	disabled?: boolean;
+}
+
+function openMenu(
+	x: number,
+	y: number,
+	entries: Array<MenuEntry | "separator">
+): void {
+	clear(ui.ctxMenu);
+	for (const entry of entries) {
+		if (entry === "separator") {
+			ui.ctxMenu.appendChild(el("div", "ctx-sep"));
+			continue;
+		}
+		const button = el("button", "ctx-item", entry.label);
+		button.type = "button";
+		if (entry.danger) button.classList.add("is-danger");
+		if (entry.disabled) {
+			button.disabled = true;
+		} else {
+			button.addEventListener("click", () => {
+				closeMenu();
+				entry.action();
+			});
+		}
+		ui.ctxMenu.appendChild(button);
+	}
+	// prima si mostra, poi si misura: da nascosto il rettangolo è vuoto
+	ui.ctxMenu.classList.remove("hidden");
+	ui.ctxMenu.style.left = "0px";
+	ui.ctxMenu.style.top = "0px";
+	const box = ui.ctxMenu.getBoundingClientRect();
+	ui.ctxMenu.style.left = `${Math.max(
+		4,
+		Math.min(x, window.innerWidth - box.width - 6)
+	)}px`;
+	ui.ctxMenu.style.top = `${Math.max(
+		4,
+		Math.min(y, window.innerHeight - box.height - 6)
+	)}px`;
+}
+
+function closeMenu(): void {
+	if (ui.ctxMenu.classList.contains("hidden")) return;
+	ui.ctxMenu.classList.add("hidden");
+	clear(ui.ctxMenu);
+}
+
+async function copyText(text: string): Promise<void> {
+	try {
+		await navigator.clipboard.writeText(text);
+		toast("Copiato negli appunti.", "ok");
+	} catch (error) {
+		toast(`Copia non riuscita: ${readableError(error)}`);
+	}
+}
+
+// ── ref: navigazione e operazioni ────────────────────────────────────────────
+
+/**
+ * Clic su un ramo o un tag: il cursore va al commit corrispondente, come nella storia.
+ * Il checkout resta nel menu del tasto destro: qui non si tocca il working tree.
+ */
+async function revealRef(sha: string): Promise<void> {
+	if (state.searchQuery) await runSearch("");
+	if (state.side === "changes") setSide("commits");
+
+	let index = state.commits.findIndex((commit) => commit.sha === sha);
+	// un ref può puntare oltre la prima pagina: si carica finché il commit non compare
+	while (index < 0 && state.hasMore) {
+		const before = state.commits.length;
+		await loadMore();
+		if (state.commits.length === before) break;
+		index = state.commits.findIndex((commit) => commit.sha === sha);
+	}
+
+	if (index < 0) {
+		toast("Commit non presente nella storia caricata.");
+		return;
+	}
+
+	setTab("commit");
+	await selectCommit(sha);
+	logView.reveal(sha);
+}
+
+function openRefMenu(ref: RefInfo, x: number, y: number): void {
+	const entries: Array<MenuEntry | "separator"> = [
+		{ label: "Vai al commit", action: () => void revealRef(ref.sha) },
+		"separator",
+	];
+
+	if (ref.kind === "local") {
+		entries.push(
+			{
+				label: ref.current
+					? `${ref.short} è il ramo attuale`
+					: `Checkout di ${ref.short}`,
+				disabled: ref.current,
+				action: () => void checkout(ref.short),
+			},
+			{
+				label: `Merge di ${ref.short} nel ramo attuale`,
+				disabled: ref.current,
+				action: () => void mergeBranch(ref.short),
+			},
+			{
+				label: `Rebase del ramo attuale su ${ref.short}`,
+				disabled: ref.current,
+				action: () => void rebaseOnto(ref.short),
+			},
+			"separator",
+			{ label: "Rinomina…", action: () => void renameBranch(ref.short) },
+			{
+				label: `Elimina ${ref.short}`,
+				danger: true,
+				disabled: ref.current,
+				action: () => void deleteBranch(ref.short),
+			}
+		);
+	} else if (ref.kind === "remote") {
+		const local = localBranchName(ref.short);
+		entries.push({
+			label: `Crea ${local} e passa a quel ramo`,
+			action: () => void startTracking(ref.short, local),
+		});
+	}
+
+	entries.push(
+		"separator",
+		{ label: "Copia nome", action: () => void copyText(ref.short) },
+		{ label: "Copia SHA", action: () => void copyText(ref.sha) }
+	);
+
+	openMenu(x, y, entries);
+}
+
+/** `origin/feature/x` → `feature/x`: il nome che il checkout con tracking creerebbe. */
+function localBranchName(remoteRef: string): string {
+	try {
+		return localNameForRemote(remoteRef);
+	} catch (error) {
+		console.warn("ref remoto senza nome locale:", error);
+		return remoteRef;
+	}
+}
+
+async function mergeBranch(branch: string): Promise<void> {
+	if (!window.confirm(`Unire ${branch} nel ramo attuale?`)) return;
+	const snapshot = await guardRepo(`Merge di ${branch}`, () =>
+		api.merge(branch)
+	);
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast("Merge completato.", "ok");
+}
+
+async function rebaseOnto(branch: string): Promise<void> {
+	if (
+		!window.confirm(
+			`Riscrivere il ramo attuale sopra ${branch}? La storia locale cambia.`
+		)
+	)
+		return;
+	const snapshot = await guard(`Rebase su ${branch}`, () =>
+		api.rebase(branch)
+	);
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast("Rebase completato.", "ok");
+}
+
+async function renameBranch(branch: string): Promise<void> {
+	const next = await askInput({
+		title: "Rinomina il ramo",
+		label: `Nuovo nome per ${branch}`,
+		value: branch,
+	});
+	if (!next || next === branch) return;
+	const snapshot = await guard("Rinomina", () =>
+		api.renameBranch(branch, next)
+	);
+	if (snapshot) applySnapshot(snapshot);
+}
+
+async function deleteBranch(branch: string): Promise<void> {
+	if (!window.confirm(`Eliminare il ramo locale ${branch}?`)) return;
+	try {
+		const snapshot = await api.deleteBranch(branch, false);
+		applySnapshot(snapshot);
+		return;
+	} catch (error) {
+		// Git protegge i rami non uniti: cancellarli è una scelta esplicita
+		if (
+			!window.confirm(
+				`${readableError(error)}\n\nEliminare comunque ${branch}?`
+			)
+		)
+			return;
+	}
+	const snapshot = await guard(`Elimina ${branch}`, () =>
+		api.deleteBranch(branch, true)
+	);
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast("Ramo eliminato.", "ok");
+}
+
+async function startTracking(remoteRef: string, local: string): Promise<void> {
+	const snapshot = await guard(`Checkout di ${remoteRef}`, () =>
+		api.checkoutTracking(remoteRef, local)
+	);
+	if (snapshot) applySnapshot(snapshot);
+}
+
+async function cherryPickCommit(sha: string): Promise<void> {
+	if (!window.confirm(`Applicare ${sha.slice(0, 8)} sul ramo attuale?`))
+		return;
+	const snapshot = await guardRepo("Cherry-pick", () => api.cherryPick(sha));
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast("Cherry-pick completato.", "ok");
+}
+
+// ── remoto, stash, submodule ─────────────────────────────────────────────────
+
+async function pullChanges(): Promise<void> {
+	toast("Pull in corso…", "ok");
+	const snapshot = await guard("Pull", () => api.pull());
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast("Pull completato.", "ok");
+}
+
+async function pushChanges(): Promise<void> {
+	toast("Push in corso…", "ok");
+	const snapshot = await guard("Push", () => api.push());
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast("Push completato.", "ok");
+}
+
+/** Merge, rebase o cherry-pick sospeso: si torna allo stato di prima. */
+async function abortOperation(): Promise<void> {
+	const operation = state.snapshot?.info.operation;
+	if (!operation) return;
+	if (
+		!window.confirm(
+			`Annullare il ${operation} in corso e tornare allo stato precedente?`
+		)
+	)
+		return;
+	const snapshot = await guard("Annulla operazione", () =>
+		api.abortOperation()
+	);
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast("Operazione annullata.", "ok");
+}
+
+let inputResolve: ((value: string | null) => void) | null = null;
+
+/** Sostituto di `window.prompt`, che in Electron non esiste. */
+function askInput(options: {
+	title: string;
+	label: string;
+	value?: string;
+}): Promise<string | null> {
+	if (ui.inputDialog.open) settleInput(null);
+	ui.inputTitle.textContent = options.title;
+	ui.inputLabel.textContent = options.label;
+	ui.inputField.value = options.value ?? "";
+	ui.inputDialog.showModal();
+	ui.inputField.focus();
+	ui.inputField.select();
+	return new Promise((resolve) => {
+		inputResolve = resolve;
+	});
+}
+
+function settleInput(value: string | null): void {
+	if (ui.inputDialog.open) ui.inputDialog.close();
+	const resolve = inputResolve;
+	inputResolve = null;
+	resolve?.(value);
+}
+
+async function openStash(): Promise<void> {
+	ui.stashMessage.value = "";
+	if (!ui.stashDialog.open) ui.stashDialog.showModal();
+	await loadStashList();
+}
+
+async function loadStashList(): Promise<void> {
+	clear(ui.stashList);
+	const entries = await guard("Stash", () => api.stashList());
+	if (!entries) return;
+	if (entries.length === 0) {
+		ui.stashList.appendChild(el("li", "muted", "Nessuno stash."));
+		return;
+	}
+	for (const entry of entries) {
+		const item = el("li");
+		item.dataset.index = String(entry.index);
+		const text = el("div", "stash-text");
+		text.appendChild(el("span", "stash-message", entry.message));
+		text.appendChild(
+			el(
+				"span",
+				"stash-meta",
+				`stash@{${entry.index}} · ${shortDate(entry.timestamp * 1000)}${
+					entry.branch ? ` · ${entry.branch}` : ""
+				}`
+			)
+		);
+		item.appendChild(text);
+
+		const actions = el("div", "stash-actions");
+		const button = (
+			label: string,
+			act: string,
+			className = "btn btn-small"
+		): HTMLButtonElement => {
+			const node = el("button", className, label);
+			node.type = "button";
+			node.dataset.stash = act;
+			return node;
+		};
+		actions.append(
+			button("Applica", "apply"),
+			button("Pop", "pop", "btn btn-small btn-primary"),
+			button("Elimina", "drop")
+		);
+		item.appendChild(actions);
+		ui.stashList.appendChild(item);
+	}
+}
+
+async function stashAction(
+	action: "apply" | "pop" | "drop",
+	index: number
+): Promise<void> {
+	const labels = {
+		apply: "Applica stash",
+		pop: "Pop stash",
+		drop: "Elimina stash",
+	};
+	if (action === "drop" && !window.confirm(`Eliminare stash@{${index}}?`))
+		return;
+	const snapshot =
+		action === "drop"
+			? await guard(labels.drop, () => api.stashDrop(index))
+			: await guard(labels[action], () =>
+					api.stashApply(index, action === "pop")
+			  );
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	await loadStashList();
+}
+
+async function openSubmodules(): Promise<void> {
+	if (!ui.submoduleDialog.open) ui.submoduleDialog.showModal();
+	await loadSubmodules();
+}
+
+async function loadSubmodules(): Promise<void> {
+	clear(ui.submoduleList);
+	const modules = await guard("Submodule", () => api.submodules());
+	if (!modules) return;
+	if (modules.length === 0) {
+		ui.submoduleList.appendChild(el("li", "muted", "Nessun submodule."));
+		return;
+	}
+	const labels: Record<string, string> = {
+		clean: "allineato",
+		modified: "da aggiornare",
+		uninitialized: "non inizializzato",
+		conflict: "in conflitto",
+	};
+	for (const module of modules) {
+		const item = el("li");
+		const text = el("div", "stash-text");
+		text.appendChild(el("span", "stash-message", module.path));
+		text.appendChild(
+			el(
+				"span",
+				"stash-meta",
+				`${module.sha.slice(0, 8)} · ${
+					labels[module.state] ?? module.state
+				}${module.description ? ` · ${module.description}` : ""}`
+			)
+		);
+		item.appendChild(text);
+		ui.submoduleList.appendChild(item);
+	}
+}
+
+// ── terminale integrato ──────────────────────────────────────────────────────
+
+const TERMINAL_LIMIT = 200_000;
+let runningTerminal: string | null = null;
+let terminalCounter = 0;
+let terminalChars = 0;
+
+function appendTerminal(text: string): void {
+	ui.termOutput.appendChild(document.createTextNode(text));
+	terminalChars += text.length;
+	// l'output resta leggibile senza crescere all'infinito: si tiene la coda
+	if (terminalChars > TERMINAL_LIMIT) {
+		const keep = (ui.termOutput.textContent ?? "").slice(-TERMINAL_LIMIT);
+		ui.termOutput.textContent = keep;
+		terminalChars = keep.length;
+	}
+	ui.termOutput.scrollTop = ui.termOutput.scrollHeight;
+}
+
+function updateTerminalState(): void {
+	const busy = runningTerminal !== null;
+	ui.termStop.disabled = !busy;
+	ui.termInput.placeholder = busy
+		? "comando in corso… Interrompi per fermarlo"
+		: "comando nella cartella del repository";
+}
+function renderTerminal(): void {
+	updateTerminalState();
+	ui.termOutput.scrollTop = ui.termOutput.scrollHeight;
+	ui.termInput.focus();
+}
+
+// ── schede dei repository ────────────────────────────────────────────────────
+
+/** Apre un repository (dialog di sistema se `path` manca) e lo rende attivo. */
+async function openRepository(path?: string): Promise<void> {
+	const snapshot = await guard("Apertura", () => api.open(path));
+	if (!snapshot) return;
+	const root = snapshot.info.root;
+	let session = sessions.get(root);
+	if (!session) {
+		session = emptyState(root);
+		sessions.set(root, session);
+	}
+	state = session;
+	applySnapshot(snapshot);
+}
+
+/** Passa a un repository già aperto: la sessione ricorda selezione e scheda. */
+async function useSession(root: string): Promise<void> {
+	const session = sessions.get(root);
+	if (!session || session === state) return;
+	try {
+		await api.use(root);
+	} catch (error) {
+		toast(`Cambio repository: ${readableError(error)}`);
+		return;
+	}
+	state = session;
+	renderSession();
+}
+
+async function closeSession(root: string): Promise<void> {
+	if (sessions.size <= 1) {
+		toast("L'ultimo repository aperto non si chiude.");
+		return;
+	}
+	sessions.delete(root);
+	if (state.root !== root) {
+		renderRepoTabs();
+		return;
+	}
+	const next = sessions.values().next().value as State;
+	state = next;
+	try {
+		await api.use(next.root);
+	} catch (error) {
+		toast(`Cambio repository: ${readableError(error)}`);
+	}
+	renderSession();
+}
+
+// ── eventi delle nuove zone ──────────────────────────────────────────────────
+
+ui.btnPull.addEventListener("click", () => void pullChanges());
+ui.btnPush.addEventListener("click", () => void pushChanges());
+ui.btnStash.addEventListener("click", () => void openStash());
+ui.btnSubmodule.addEventListener("click", () => void openSubmodules());
+ui.repoOperation.addEventListener("click", () => void abortOperation());
+
+ui.stashClose.addEventListener("click", () => ui.stashDialog.close());
+ui.btnStashSave.addEventListener("click", () => {
 	void (async () => {
-		const snapshot = await guard("Apertura", () => api.open());
-		if (snapshot) applySnapshot(snapshot);
+		const snapshot = await guard("Stash", () =>
+			api.stashSave(ui.stashMessage.value)
+		);
+		if (!snapshot) return;
+		ui.stashMessage.value = "";
+		applySnapshot(snapshot);
+		await loadStashList();
+		toast("Modifiche salvate nello stash.", "ok");
 	})();
 });
+ui.stashList.addEventListener("click", (event) => {
+	const button = (event.target as HTMLElement).closest<HTMLButtonElement>(
+		"[data-stash]"
+	);
+	const index = Number(
+		button?.closest<HTMLElement>("li")?.dataset.index ?? Number.NaN
+	);
+	const action = button?.dataset.stash;
+	if (!button || !Number.isInteger(index) || !action) return;
+	if (action !== "apply" && action !== "pop" && action !== "drop") return;
+	void stashAction(action, index);
+});
+
+ui.submoduleClose.addEventListener("click", () => ui.submoduleDialog.close());
+ui.btnSubmoduleUpdate.addEventListener("click", () => {
+	void (async () => {
+		toast("Aggiornamento dei submodule…", "ok");
+		const snapshot = await guard("Submodule", () => api.updateSubmodules());
+		if (!snapshot) return;
+		applySnapshot(snapshot);
+		await loadSubmodules();
+		toast("Submodule aggiornati.", "ok");
+	})();
+});
+
+ui.inputForm.addEventListener("submit", (event) => {
+	event.preventDefault();
+	settleInput(ui.inputField.value.trim() || null);
+});
+ui.inputCancel.addEventListener("click", () => settleInput(null));
+ui.inputDialog.addEventListener("cancel", () => {
+	const resolve = inputResolve;
+	inputResolve = null;
+	resolve?.(null);
+});
+
+ui.termForm.addEventListener("submit", (event) => {
+	event.preventDefault();
+	const command = ui.termInput.value.trim();
+	if (!command) return;
+	ui.termInput.value = "";
+	terminalCounter += 1;
+	const id = `term-${terminalCounter}`;
+	appendTerminal(`$ ${command}\n`);
+	runningTerminal = id;
+	updateTerminalState();
+	void api.terminalRun(id, command).catch((error: Error) => {
+		appendTerminal(`[errore] ${error.message}\n`);
+		if (runningTerminal === id) {
+			runningTerminal = null;
+			updateTerminalState();
+		}
+	});
+});
+
+ui.termStop.addEventListener("click", () => {
+	const id = runningTerminal;
+	if (!id) return;
+	void api
+		.terminalKill(id)
+		.catch((error: Error) => toast(`Interruzione: ${error.message}`));
+});
+
+api.onTerminal((event) => {
+	if (event.kind === "data") {
+		appendTerminal(event.text);
+		return;
+	}
+	if (event.kind === "error")
+		appendTerminal(`[errore] ${event.message}\n`);
+	else appendTerminal(`[uscita ${event.code ?? "?"}]\n`);
+	if (event.id === runningTerminal) {
+		runningTerminal = null;
+		updateTerminalState();
+	}
+});
+
+ui.repoTabs.addEventListener("click", (event) => {
+	const target = event.target as HTMLElement;
+	const closeRoot = target.closest<HTMLElement>("[data-close]")?.dataset.close;
+	if (closeRoot) {
+		void closeSession(closeRoot);
+		return;
+	}
+	const root = target.closest<HTMLElement>(".repo-tab")?.dataset.root;
+	if (root) void useSession(root);
+});
+
+ui.log.addEventListener("contextmenu", (event) => {
+	const row = (event.target as HTMLElement).closest<HTMLElement>(".row");
+	const sha = row?.dataset.sha;
+	if (!sha) return;
+	event.preventDefault();
+	const commit = state.commits.find((item) => item.sha === sha);
+	const entries: Array<MenuEntry | "separator"> = [
+		{
+			label: "Vai al commit",
+			action: () => {
+				setTab("commit");
+				void selectCommit(sha);
+			},
+		},
+		"separator",
+		{
+			label: "Cherry-pick sul ramo attuale",
+			action: () => void cherryPickCommit(sha),
+		},
+		{ label: "Copia SHA", action: () => void copyText(sha) },
+	];
+	if (commit) {
+		entries.push({
+			label: "Copia messaggio",
+			action: () => void copyText(commit.subject),
+		});
+	}
+	openMenu(event.clientX, event.clientY, entries);
+});
+
+// Il menu si chiude appena si clicca altrove, si scorre o si ridimensiona.
+document.addEventListener("click", (event) => {
+	const target = event.target as HTMLElement;
+	if (!target.closest("#ctx-menu")) closeMenu();
+});
+document.addEventListener("scroll", () => closeMenu(), true);
+window.addEventListener("resize", () => closeMenu());
+updateTerminalState();
+
+// ── eventi ───────────────────────────────────────────────────────────────────
+
+ui.btnOpen.addEventListener("click", () => void openRepository());
 
 ui.btnUndo.addEventListener("click", () => void doUndo());
 ui.btnRefresh.addEventListener("click", () => void refresh());
@@ -1170,15 +2008,16 @@ ui.settingsForm.addEventListener("submit", (event) => {
 	})();
 });
 
-ui.tabChanges.addEventListener("click", () => setTab("changes"));
+ui.tabChanges.addEventListener("click", () => setSide("changes"));
 ui.tabCommit.addEventListener("click", () => setTab("commit"));
 ui.tabTree.addEventListener("click", () => setTab("tree"));
 ui.tabBlame.addEventListener("click", () => setTab("blame"));
+ui.tabTerm.addEventListener("click", () => setTab("term"));
 
-ui.sideChanges.addEventListener("click", () => setTab("changes"));
-ui.sideCommits.addEventListener("click", () => setTab("commit"));
+ui.sideChanges.addEventListener("click", () => setSide("changes"));
+ui.sideCommits.addEventListener("click", () => setSide("commits"));
 ui.btnSearchFocus.addEventListener("click", () => ui.searchInput.focus());
-ui.btnNewTab.addEventListener("click", () => ui.btnOpen.click());
+ui.btnNewTab.addEventListener("click", () => void openRepository());
 
 for (const section of document.querySelectorAll<HTMLElement>(
 	".side-section"
@@ -1352,6 +2191,7 @@ document.addEventListener("keydown", (event) => {
 		void refresh();
 		return;
 	}
+	if (event.key === "Escape") closeMenu();
 	if (typing) return;
 	if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
 		event.preventDefault();
@@ -1371,6 +2211,17 @@ document.addEventListener("keydown", (event) => {
 api.onChanged((event) => {
 	if (event.kind === "error") {
 		toast(`Aggiornamento automatico: ${event.message}`);
+		return;
+	}
+	const session = sessions.get(event.snapshot.info.root);
+	if (!session) return;
+	if (session !== state) {
+		// aggiornamento di una scheda non attiva: si conserva per il cambio scheda
+		session.snapshot = event.snapshot;
+		session.commits = event.snapshot.commits;
+		session.hasMore = event.snapshot.hasMore;
+		session.loadingMore = false;
+		renderRepoTabs();
 		return;
 	}
 	const previous = state.snapshot?.commits[0]?.sha ?? null;

@@ -1,4 +1,11 @@
-import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import {
+	access,
+	mkdir,
+	readFile,
+	rename,
+	rm,
+	writeFile,
+} from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
 import { blameArgs, parseBlame, type BlameFile } from "../core/blame.ts";
@@ -24,6 +31,22 @@ import { parseStatus, statusArgs } from "../core/status.ts";
 import { patchTargetsOnly, type PatchMode } from "../core/patch.ts";
 import { historyArgs, parseHistoryQuery } from "../core/search.ts";
 import {
+	cherryPickArgs,
+	checkoutTrackingArgs,
+	deleteBranchArgs,
+	mergeArgs,
+	parseStashList,
+	parseSubmodules,
+	pullArgs,
+	pushArgs,
+	rebaseArgs,
+	renameBranchArgs,
+	stashApplyArgs,
+	stashDropArgs,
+	stashListArgs,
+	stashSaveArgs,
+} from "../core/ops.ts";
+import {
 	defaultSettings,
 	type Settings,
 	type TrashUsage,
@@ -43,7 +66,10 @@ import type {
 	CommitPage,
 	DiffFile,
 	RepoInfo,
+	RepoOperation,
 	Snapshot,
+	StashEntry,
+	SubmoduleInfo,
 } from "../core/types.ts";
 import { GitError, runGit } from "./git.ts";
 import {
@@ -85,6 +111,23 @@ export interface GitBackend {
 	checkout(branch: string): Promise<Snapshot>;
 	createBranch(name: string): Promise<Snapshot>;
 	fetch(): Promise<Snapshot>;
+	/** `git pull --ff-only`: un ramo divergente si ferma con il messaggio di Git. */
+	pull(): Promise<Snapshot>;
+	/** Push senza forza; senza upstream crea il tracking su `origin`. */
+	push(): Promise<Snapshot>;
+	stashList(): Promise<StashEntry[]>;
+	stashSave(message: string): Promise<Snapshot>;
+	/** Applica (`pop` falso) o applica ed elimina (`pop` vero) lo stash indicato. */
+	stashApply(index: number, drop: boolean): Promise<Snapshot>;
+	stashDrop(index: number): Promise<Snapshot>;
+	submodules(): Promise<SubmoduleInfo[]>;
+	updateSubmodules(): Promise<Snapshot>;
+	merge(branch: string): Promise<Snapshot>;
+	rebase(onto: string): Promise<Snapshot>;
+	cherryPick(sha: string): Promise<Snapshot>;
+	renameBranch(from: string, to: string): Promise<Snapshot>;
+	deleteBranch(name: string, force: boolean): Promise<Snapshot>;
+	checkoutTracking(remoteRef: string, local: string): Promise<Snapshot>;
 	/** Ricerca nella storia: testo libero, `author:`, `file:`. */
 	search(query: string, limit?: number): Promise<Commit[]>;
 	/** Pagina successiva della storia, a partire da `skip`. */
@@ -140,6 +183,7 @@ export class CliGitBackend implements GitBackend {
 			name: basename(root),
 			branch,
 			detached: branch === null,
+			operation: await this.#operation(gitDir),
 		};
 		return this.refresh();
 	}
@@ -164,6 +208,7 @@ export class CliGitBackend implements GitBackend {
 		this.#info = {
 			...info,
 			branch: head?.short ?? (info.detached ? null : info.branch),
+			operation: await this.#operation(info.gitDir),
 		};
 
 		return {
@@ -417,6 +462,155 @@ export class CliGitBackend implements GitBackend {
 		await runGit(info.root, ["fetch", "--all", "--prune"], {
 			timeoutMs: 120_000,
 		});
+		return this.refresh();
+	}
+
+	async pull(): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		await runGit(info.root, pullArgs(), { timeoutMs: 180_000 });
+		return this.refresh();
+	}
+
+	async push(): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		// `@{u}` esiste solo con il tracking: senza, il primo push lo crea su origin.
+		const upstream = await runGit(
+			info.root,
+			["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"],
+			{ allowFailure: true }
+		);
+		const hasUpstream =
+			upstream.code === 0 && upstream.stdout.trim() !== "";
+		await runGit(info.root, pushArgs(info.branch, hasUpstream), {
+			timeoutMs: 180_000,
+		});
+		return this.refresh();
+	}
+
+	async stashList(): Promise<StashEntry[]> {
+		const info = this.#requireInfo();
+		const result = await runGit(info.root, stashListArgs(), {
+			allowFailure: true,
+		});
+		return parseStashList(result.stdout);
+	}
+
+	async stashSave(message: string): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		if ((await this.refresh()).status.entries.length === 0)
+			throw new Error("Niente da salvare: il working tree è pulito.");
+		await runGit(info.root, stashSaveArgs(message), { timeoutMs: 120_000 });
+		return this.refresh();
+	}
+
+	async stashApply(index: number, drop: boolean): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		await runGit(info.root, stashApplyArgs(index, drop), {
+			timeoutMs: 120_000,
+		});
+		return this.refresh();
+	}
+
+	async stashDrop(index: number): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		await runGit(info.root, stashDropArgs(index));
+		return this.refresh();
+	}
+
+	async submodules(): Promise<SubmoduleInfo[]> {
+		const info = this.#requireInfo();
+		const result = await runGit(info.root, ["submodule", "status"], {
+			allowFailure: true,
+		});
+		return parseSubmodules(result.stdout);
+	}
+
+	async updateSubmodules(): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		await runGit(
+			info.root,
+			["submodule", "update", "--init", "--recursive"],
+			{
+				timeoutMs: 600_000,
+			}
+		);
+		return this.refresh();
+	}
+
+	async merge(branch: string): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		const entry = await this.#record("commit", `Merge di ${branch}`);
+		try {
+			await runGit(info.root, mergeArgs(branch), { timeoutMs: 180_000 });
+		} catch (error) {
+			if (entry) await this.#dropUndo(entry.id);
+			throw error;
+		}
+		return this.refresh();
+	}
+
+	async rebase(onto: string): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		const entry = await this.#record("commit", `Rebase su ${onto}`);
+		try {
+			await runGit(info.root, rebaseArgs(onto), { timeoutMs: 300_000 });
+		} catch (error) {
+			if (entry) await this.#dropUndo(entry.id);
+			throw error;
+		}
+		return this.refresh();
+	}
+
+	async cherryPick(sha: string): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		const entry = await this.#record(
+			"commit",
+			`Cherry-pick di ${sha.slice(0, 8)}`
+		);
+		try {
+			await runGit(info.root, cherryPickArgs(sha), {
+				timeoutMs: 180_000,
+			});
+		} catch (error) {
+			if (entry) await this.#dropUndo(entry.id);
+			throw error;
+		}
+		return this.refresh();
+	}
+
+	async renameBranch(from: string, to: string): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		await runGit(info.root, renameBranchArgs(from, to));
+		return this.refresh();
+	}
+
+	async deleteBranch(name: string, force: boolean): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		await runGit(info.root, deleteBranchArgs(name, force));
+		return this.refresh();
+	}
+
+	async checkoutTracking(
+		remoteRef: string,
+		local: string
+	): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		await runGit(info.root, checkoutTrackingArgs(remoteRef, local));
+		return this.refresh();
+	}
+
+	/** Operazione interrotta a metà (merge, rebase, cherry-pick), se c'è. */
+	async abortOperation(): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		const operation = await this.#operation(info.gitDir);
+		if (!operation) throw new Error("Nessuna operazione da annullare.");
+		const args =
+			operation === "merge"
+				? ["merge", "--abort"]
+				: operation === "rebase"
+				? ["rebase", "--abort"]
+				: ["cherry-pick", "--abort"];
+		await runGit(info.root, args);
 		return this.refresh();
 	}
 
@@ -725,6 +919,28 @@ export class CliGitBackend implements GitBackend {
 		if (entries.some((entry) => entry.id === id))
 			id = `${id}-${entries.length + 1}`;
 		return id;
+	}
+
+	/** Il repository aperto, per chi deve sapere dove girare (terminale, watcher). */
+	get info(): RepoInfo | null {
+		return this.#info;
+	}
+
+	/** File di stato che Git lascia quando merge, rebase o cherry-pick sono sospesi. */
+	async #operation(gitDir: string): Promise<RepoOperation | null> {
+		const exists = async (name: string): Promise<boolean> => {
+			try {
+				await access(join(gitDir, name));
+				return true;
+			} catch {
+				return false;
+			}
+		};
+		if (await exists("MERGE_HEAD")) return "merge";
+		if (await exists("CHERRY_PICK_HEAD")) return "cherry-pick";
+		if ((await exists("rebase-merge")) || (await exists("rebase-apply")))
+			return "rebase";
+		return null;
 	}
 
 	#requireInfo(): RepoInfo {

@@ -1,35 +1,75 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 import type { GitApi } from "../shared/api.ts";
-import { CHANGED_CHANNEL, type RepoChangeEvent } from "../shared/api.ts";
+import {
+	CHANGED_CHANNEL,
+	TERMINAL_CHANNEL,
+	type RepoChangeEvent,
+	type TerminalEvent,
+} from "../shared/api.ts";
+
+/**
+ * Le chiamate valgono per il repository attivo. Il root viaggia come primo argomento e non lo sceglie
+ * il renderer a ogni richiesta: `open` e `use` lo impostano, così una scheda non può leggere per
+ * sbaglio i dati di un'altra.
+ */
+let currentRoot: string | null = null;
+
+function invokeRepo<T>(channel: string, ...args: unknown[]): Promise<T> {
+	if (!currentRoot)
+		return Promise.reject(new Error("Nessun repository aperto."));
+	return ipcRenderer.invoke(channel, currentRoot, ...args);
+}
 
 const api: GitApi = {
-	open: (path) => ipcRenderer.invoke("git:open", path),
-	refresh: () => ipcRenderer.invoke("git:refresh"),
-	commitDetails: (sha) => ipcRenderer.invoke("git:commitDetails", sha),
-	commitFiles: (sha) => ipcRenderer.invoke("git:commitFiles", sha),
-	commitPatch: (sha, path) =>
-		ipcRenderer.invoke("git:commitPatch", sha, path),
+	open: async (path) => {
+		const snapshot = await ipcRenderer.invoke("git:open", path);
+		if (snapshot) currentRoot = snapshot.info.root;
+		return snapshot;
+	},
+	use: async (root) => {
+		await ipcRenderer.invoke("git:use", root);
+		currentRoot = root;
+	},
+	refresh: () => invokeRepo("git:refresh"),
+	commitDetails: (sha) => invokeRepo("git:commitDetails", sha),
+	commitFiles: (sha) => invokeRepo("git:commitFiles", sha),
+	commitPatch: (sha, path) => invokeRepo("git:commitPatch", sha, path),
 	worktreePatch: (path, staged) =>
-		ipcRenderer.invoke("git:worktreePatch", path, staged),
-	stage: (paths) => ipcRenderer.invoke("git:stage", paths),
+		invokeRepo("git:worktreePatch", path, staged),
+	stage: (paths) => invokeRepo("git:stage", paths),
 	applyPatch: (path, patch, mode) =>
-		ipcRenderer.invoke("git:applyPatch", path, patch, mode),
-	unstage: (paths) => ipcRenderer.invoke("git:unstage", paths),
-	discard: (paths) => ipcRenderer.invoke("git:discard", paths),
-	commit: (message, all) => ipcRenderer.invoke("git:commit", message, all),
-	checkout: (branch) => ipcRenderer.invoke("git:checkout", branch),
-	createBranch: (name) => ipcRenderer.invoke("git:createBranch", name),
-	fetch: () => ipcRenderer.invoke("git:fetch"),
-	search: (query) => ipcRenderer.invoke("git:search", query),
-	moreCommits: (skip) => ipcRenderer.invoke("git:moreCommits", skip),
-	blame: (path, start, end) =>
-		ipcRenderer.invoke("git:blame", path, start, end),
-	undo: () => ipcRenderer.invoke("git:undo"),
+		invokeRepo("git:applyPatch", path, patch, mode),
+	unstage: (paths) => invokeRepo("git:unstage", paths),
+	discard: (paths) => invokeRepo("git:discard", paths),
+	commit: (message, all) => invokeRepo("git:commit", message, all),
+	checkout: (branch) => invokeRepo("git:checkout", branch),
+	createBranch: (name) => invokeRepo("git:createBranch", name),
+	fetch: () => invokeRepo("git:fetch"),
+	pull: () => invokeRepo("git:pull"),
+	push: () => invokeRepo("git:push"),
+	stashList: () => invokeRepo("git:stashList"),
+	stashSave: (message) => invokeRepo("git:stashSave", message),
+	stashApply: (index, drop) => invokeRepo("git:stashApply", index, drop),
+	stashDrop: (index) => invokeRepo("git:stashDrop", index),
+	submodules: () => invokeRepo("git:submodules"),
+	updateSubmodules: () => invokeRepo("git:updateSubmodules"),
+	merge: (branch) => invokeRepo("git:merge", branch),
+	rebase: (onto) => invokeRepo("git:rebase", onto),
+	cherryPick: (sha) => invokeRepo("git:cherryPick", sha),
+	renameBranch: (from, to) => invokeRepo("git:renameBranch", from, to),
+	deleteBranch: (name, force) => invokeRepo("git:deleteBranch", name, force),
+	checkoutTracking: (remoteRef, local) =>
+		invokeRepo("git:checkoutTracking", remoteRef, local),
+	abortOperation: () => invokeRepo("git:abortOperation"),
+	search: (query) => invokeRepo("git:search", query),
+	moreCommits: (skip) => invokeRepo("git:moreCommits", skip),
+	blame: (path, start, end) => invokeRepo("git:blame", path, start, end),
+	undo: () => invokeRepo("git:undo"),
 	settings: () => ipcRenderer.invoke("app:settings"),
 	saveSettings: (settings) =>
 		ipcRenderer.invoke("app:settings:save", settings),
-	trashUsage: () => ipcRenderer.invoke("app:trashUsage"),
+	trashUsage: () => invokeRepo("app:trashUsage"),
 	watching: () => ipcRenderer.invoke("app:watching"),
 	onChanged: (listener) => {
 		const handler = (
@@ -39,6 +79,18 @@ const api: GitApi = {
 		ipcRenderer.on(CHANGED_CHANNEL, handler);
 		return () => {
 			ipcRenderer.removeListener(CHANGED_CHANNEL, handler);
+		};
+	},
+	terminalRun: (id, command) => invokeRepo("term:run", id, command),
+	terminalKill: (id) => ipcRenderer.invoke("term:kill", id),
+	onTerminal: (listener) => {
+		const handler = (
+			_event: Electron.IpcRendererEvent,
+			event: TerminalEvent
+		): void => listener(event);
+		ipcRenderer.on(TERMINAL_CHANNEL, handler);
+		return () => {
+			ipcRenderer.removeListener(TERMINAL_CHANNEL, handler);
 		};
 	},
 };

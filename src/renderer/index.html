@@ -32,6 +32,41 @@
 					</svg>
 					<span>Fetch</span>
 				</button>
+				<button
+					class="tool"
+					id="btn-pull"
+					title="git pull --ff-only"
+				>
+					<svg viewBox="0 0 20 20" aria-hidden="true">
+						<path d="M10 3v10" />
+						<path d="M6 9l4 4 4-4" />
+						<path d="M3.5 16.5h13" />
+					</svg>
+					<span>Pull</span>
+				</button>
+				<button class="tool" id="btn-push" title="git push (mai con forza)">
+					<svg viewBox="0 0 20 20" aria-hidden="true">
+						<path d="M10 15V5" />
+						<path d="M6 9l4-4 4 4" />
+						<path d="M3.5 16.5h13" />
+					</svg>
+					<span>Push</span>
+				</button>
+				<button class="tool" id="btn-stash" title="Stash: salva e riprendi">
+					<svg viewBox="0 0 20 20" aria-hidden="true">
+						<path d="M3.5 7h13v8.5h-13z" />
+						<path d="M5.5 7 6.8 3.5h6.4L14.5 7" />
+						<path d="M8 10.5h4" />
+					</svg>
+					<span>Stash</span>
+				</button>
+				<button class="tool" id="btn-submodule" title="Submodule">
+					<svg viewBox="0 0 20 20" aria-hidden="true">
+						<rect x="3.5" y="3.5" width="7" height="7" rx="1" />
+						<rect x="9.5" y="9.5" width="7" height="7" rx="1" />
+					</svg>
+					<span>Submodule</span>
+				</button>
 				<button class="tool" id="btn-refresh" title="Ctrl+R">
 					<svg viewBox="0 0 20 20" aria-hidden="true">
 						<path d="M16 10a6 6 0 1 1-1.8-4.3" />
@@ -70,6 +105,11 @@
 			</div>
 
 			<div class="toolbar-group toolbar-right">
+				<button
+					class="op-chip hidden"
+					id="repo-operation"
+					title="Annulla l'operazione sospesa"
+				></button>
 				<span class="sync hidden" id="repo-sync"></span>
 				<span
 					class="chip hidden"
@@ -80,17 +120,11 @@
 			</div>
 		</header>
 
-		<nav class="repo-tabs" aria-label="Repository aperti">
-			<button class="repo-tab is-active" id="repo-tab">
-				<span class="repo-tab-name" id="repo-tab-name"
-					>Nessun repository</span
-				>
-				<span class="repo-tab-branch" id="repo-tab-branch"></span>
-			</button>
+		<nav class="repo-tabs" id="repo-tabs" aria-label="Repository aperti">
 			<button
 				class="repo-tab-add"
 				id="btn-new-tab"
-				title="Apri un repository"
+				title="Apri un altro repository"
 			>
 				+
 			</button>
@@ -201,7 +235,7 @@
 				</div>
 			</aside>
 
-			<main class="main">
+			<main class="main" id="main">
 				<div class="log" id="log">
 					<div class="log-spacer" id="log-spacer"></div>
 					<div class="log-window" id="log-window">
@@ -216,6 +250,8 @@
 						Nessun repository aperto.
 					</div>
 				</div>
+
+				<div class="changes-main" id="changes-main"></div>
 
 				<div class="bottom">
 					<nav class="tabs">
@@ -234,6 +270,9 @@
 						</button>
 						<button class="tab" data-tab="blame" id="tab-blame">
 							Blame
+						</button>
+						<button class="tab" data-tab="term" id="tab-term">
+							Terminale
 						</button>
 						<span class="tabs-spacer"></span>
 						<div
@@ -258,6 +297,7 @@
 						</div>
 					</nav>
 
+					<div class="panes" id="panes">
 					<div class="panel is-active" id="panel-commit">
 						<div class="files">
 							<div class="commit-meta" id="commit-meta"></div>
@@ -376,6 +416,30 @@
 								</div>
 							</div>
 						</div>
+					</div>
+
+					<div class="panel" id="panel-term">
+						<div class="terminal">
+							<pre class="term-output" id="term-output"></pre>
+							<form class="term-line" id="term-form">
+								<span class="term-prompt">$</span>
+								<input
+									id="term-input"
+									autocomplete="off"
+									spellcheck="false"
+									placeholder="comando nella cartella del repository"
+								/>
+								<button
+									type="button"
+									class="btn btn-small"
+									id="term-stop"
+									title="Interrompi il comando"
+								>
+									Interrompi
+								</button>
+							</form>
+						</div>
+					</div>
 					</div>
 				</div>
 			</main>
@@ -521,6 +585,81 @@
 				</div>
 			</form>
 		</dialog>
+
+		<dialog class="dialog" id="stash-dialog">
+			<form method="dialog" id="stash-form">
+				<h2>Stash</h2>
+				<p class="hint">
+					Lo stash salva modifiche e file non tracciati e lascia il
+					working tree pulito. Riprendere uno stash lo rimette sui
+					file; «Pop» lo applica e lo elimina.
+				</p>
+				<div class="stash-save">
+					<input
+						id="stash-message"
+						placeholder="Messaggio (facoltativo)"
+						autocomplete="off"
+					/>
+					<button
+						type="button"
+						class="btn btn-primary"
+						id="btn-stash-save"
+					>
+						Salva stash
+					</button>
+				</div>
+				<ul class="stash-list" id="stash-list"></ul>
+				<div class="dialog-actions">
+					<button type="button" class="btn" id="stash-close">
+						Chiudi
+					</button>
+				</div>
+			</form>
+		</dialog>
+
+		<dialog class="dialog" id="submodule-dialog">
+			<form method="dialog" id="submodule-form">
+				<h2>Submodule</h2>
+				<p class="hint">
+					«Aggiorna» esegue
+					<code>git submodule update --init --recursive</code>: scarica
+					e allinea i submodule al commit registrato.
+				</p>
+				<ul class="submodule-list" id="submodule-list"></ul>
+				<div class="dialog-actions">
+					<button
+						type="button"
+						class="btn btn-primary"
+						id="btn-submodule-update"
+					>
+						Aggiorna
+					</button>
+					<button type="button" class="btn" id="submodule-close">
+						Chiudi
+					</button>
+				</div>
+			</form>
+		</dialog>
+
+		<dialog class="dialog" id="input-dialog">
+			<form method="dialog" id="input-form">
+				<h2 id="input-title">Titolo</h2>
+				<label class="field">
+					<span id="input-label">Valore</span>
+					<input id="input-field" autocomplete="off" />
+				</label>
+				<div class="dialog-actions">
+					<button type="button" class="btn" id="input-cancel">
+						Annulla
+					</button>
+					<button type="submit" class="btn btn-primary">
+						Conferma
+					</button>
+				</div>
+			</form>
+		</dialog>
+
+		<div class="ctx-menu hidden" id="ctx-menu" role="menu"></div>
 
 		<div class="toast hidden" id="toast"></div>
 		<script src="./app.js"></script>

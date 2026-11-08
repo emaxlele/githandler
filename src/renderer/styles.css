@@ -1640,3 +1640,329 @@ body {
 	padding-top: 12px;
 	border-top: 1px solid var(--border);
 }
+
+/* ── toolbar con le operazioni Git ──────────────────────────────────────── */
+
+.tool {
+	min-width: 46px;
+	padding: 4px 7px 3px;
+}
+
+.op-chip {
+	appearance: none;
+	border: 1px solid #7c4a2a;
+	background: #35220f;
+	color: #ffb27a;
+	font: inherit;
+	font-size: 11.5px;
+	padding: 3px 9px;
+	border-radius: 999px;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.op-chip:hover {
+	background: #462c15;
+	border-color: #a05f33;
+}
+
+/* ── schede repository: chiusura ────────────────────────────────────────── */
+
+.repo-tab {
+	position: relative;
+	padding-right: 26px;
+}
+
+.repo-tab-close {
+	position: absolute;
+	top: 3px;
+	right: 3px;
+	width: 16px;
+	height: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 4px;
+	font-size: 14px;
+	line-height: 1;
+	color: var(--text-faint);
+}
+
+.repo-tab-close:hover {
+	background: #2a3345;
+	color: var(--text);
+}
+
+/* ── modalità Changes a tutta area ──────────────────────────────────────── */
+
+.changes-main {
+	display: none;
+	min-height: 0;
+}
+
+.main.is-changes {
+	grid-template-rows: minmax(0, 1fr);
+}
+
+.main.is-changes .log,
+.main.is-changes .bottom {
+	display: none;
+}
+
+.main.is-changes .changes-main {
+	display: grid;
+	grid-template-rows: minmax(0, 1fr);
+	min-height: 0;
+}
+
+.changes-main > .panel {
+	min-height: 0;
+	border-top: 1px solid var(--border);
+}
+
+/* ── menu contestuale ───────────────────────────────────────────────────── */
+
+.ctx-menu {
+	position: fixed;
+	z-index: 60;
+	min-width: 240px;
+	padding: 4px;
+	display: flex;
+	flex-direction: column;
+	background: var(--panel-2);
+	border: 1px solid var(--border-strong);
+	border-radius: 7px;
+	box-shadow: 0 14px 34px rgba(0, 0, 0, 0.5);
+}
+
+.ctx-item {
+	appearance: none;
+	background: transparent;
+	border: none;
+	color: var(--text);
+	font: inherit;
+	font-size: 12.5px;
+	text-align: left;
+	padding: 6px 9px;
+	border-radius: 4px;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.ctx-item:hover:not(:disabled) {
+	background: #26303f;
+}
+
+.ctx-item:disabled {
+	color: var(--text-faint);
+	cursor: default;
+}
+
+.ctx-item.is-danger {
+	color: #f7768e;
+}
+
+.ctx-item.is-danger:hover:not(:disabled) {
+	background: #3a2028;
+}
+
+.ctx-sep {
+	height: 1px;
+	margin: 4px 2px;
+	background: var(--border);
+}
+
+/* ── dialoghi di stash, submodule e input ───────────────────────────────── */
+
+.dialog {
+	width: min(520px, calc(100vw - 40px));
+	padding: 0;
+	border: 1px solid var(--border-strong);
+	border-radius: 10px;
+	background: var(--panel);
+	color: var(--text);
+	box-shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+}
+
+.dialog::backdrop {
+	background: rgba(5, 8, 12, 0.62);
+}
+
+.dialog form {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 18px 20px 16px;
+}
+
+.dialog h2 {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.dialog .hint {
+	margin: 0;
+	font-size: 12px;
+	line-height: 1.45;
+	color: var(--text-dim);
+}
+
+.dialog-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	padding-top: 4px;
+}
+
+.dialog .field {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	font-size: 12px;
+	color: var(--text-dim);
+}
+
+.dialog input {
+	font: inherit;
+	font-size: 12.5px;
+	padding: 6px 8px;
+	border-radius: 6px;
+	border: 1px solid var(--border-strong);
+	background: #0e121a;
+	color: var(--text);
+}
+
+.dialog input:focus {
+	outline: none;
+	border-color: var(--accent);
+}
+
+.stash-save {
+	display: flex;
+	gap: 8px;
+}
+
+.stash-save input {
+	flex: 1;
+	min-width: 0;
+}
+
+.stash-list,
+.submodule-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	max-height: 46vh;
+	overflow: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.stash-list li,
+.submodule-list li {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 7px 9px;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	background: var(--panel-2);
+}
+
+.stash-list li.muted,
+.submodule-list li.muted {
+	border-style: dashed;
+	color: var(--text-faint);
+	justify-content: flex-start;
+}
+
+.stash-text {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.stash-message {
+	font-size: 12.5px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.stash-meta {
+	font-family: var(--mono);
+	font-size: 11px;
+	color: var(--text-faint);
+}
+
+.stash-actions {
+	display: flex;
+	gap: 4px;
+	flex: none;
+}
+
+/* ── terminale integrato ────────────────────────────────────────────────── */
+
+.terminal {
+	display: grid;
+	grid-template-rows: minmax(0, 1fr) auto;
+	min-height: 0;
+}
+
+.term-output {
+	margin: 0;
+	padding: 8px 12px;
+	overflow: auto;
+	font-family: var(--mono);
+	font-size: 12px;
+	line-height: 1.5;
+	color: #c3cbd8;
+	white-space: pre-wrap;
+	word-break: break-word;
+	background: #0b0f16;
+}
+
+.term-line {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 10px;
+	border-top: 1px solid var(--border);
+	background: var(--panel);
+}
+
+.term-prompt {
+	font-family: var(--mono);
+	font-size: 12.5px;
+	color: var(--accent);
+}
+
+.term-line input {
+	flex: 1;
+	min-width: 0;
+	font-family: var(--mono);
+	font-size: 12.5px;
+	padding: 5px 7px;
+	border-radius: 5px;
+	border: 1px solid var(--border-strong);
+	background: #0e121a;
+	color: var(--text);
+}
+
+.term-line input:focus {
+	outline: none;
+	border-color: var(--accent);
+}
+
+#panel-term {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+/* nell'area grande le due liste si dividono lo spazio disponibile */
+.changes-main .files {
+	grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1fr);
+}

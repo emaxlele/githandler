@@ -71,6 +71,13 @@ esegue processi. Quando arriverà `Libgit2Backend`, il resto dell'app non cambie
 dell'utente. Un path con spazi, apici, `$` o newline non deve poter diventare un comando. Vale anche
 per i path che arrivano dalla UI: vanno validati (`assertSafePath`) prima di essere passati.
 
+**Il terminale è l'eccezione, dichiarata.** La scheda *Terminale* esegue `bash -lc <comando>` nella
+cartella del repository attivo: è una shell, non un comando Git strutturato, e il testo lo scrive
+l'utente. Restano le altre regole: nessun argomento di Git passa mai da una shell, l'ambiente del
+terminale fissa `GIT_TERMINAL_PROMPT=0` (un comando che chiede credenziali fallisce invece di restare
+appeso), l'output arriva a pezzi e c'è un pulsante per interrompere. Niente stdin interattivo: per un
+editor o un `git rebase -i` serve un terminale vero, e l'app lo dice invece di fingere.
+
 ### 2.4 Mutazioni e letture non hanno lo stesso backend obbligatorio
 
 | Cosa                                   | Chi lo fa, oggi             | Perché                                                                                 |
@@ -113,7 +120,15 @@ astrazione in più è un costo che si paga su ogni riga.
 Il formato del diff, il tema, la larghezza dei pannelli: `localStorage` nel renderer. Il backend non
 deve sapere nulla dell'aspetto dell'app. Se un giorno servirà sincronizzare, si aggiunge un canale.
 
-### 2.9 Un backend, più consumatori
+### 2.9 Più repository, un solo root per richiesta
+
+Aprire più repository insieme non deve introdurre la seconda verità nemmeno per sbaglio. Il main tiene
+un `Map<root, GitBackend>`; il renderer ha una sessione per root; **ogni canale IPC porta il root come
+primo argomento**, e il preload lo aggiunge da sé alla richiesta. Una risposta che arriva in ritardo
+non può quindi finire sulla scheda sbagliata: al massimo aggiorna la sua sessione, che è nascosta.
+Il watcher e il refresh automatico seguono il repository attivo, non tutti.
+
+### 2.10 Un backend, più consumatori
 
 La UI non è l'unico cliente possibile: una CLI, un'automazione o un server per agenti AI possono
 leggere lo stesso repository. Il modo sbagliato è farli parlare direttamente con Git: si ricrea la

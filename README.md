@@ -2,7 +2,7 @@
 
 Client Git desktop **Linux-first**, in TypeScript su Electron. Apre un repository vero, mostra la
 storia con il grafo, mostra i diff e copre il flusso quotidiano: stage (anche parziale), unstage,
-scarto, commit, checkout, undo. Lo stesso repository è leggibile da un agente AI tramite un server
+scarto, commit, checkout, undo, pull, push, stash, merge, rebase, cherry-pick e submodule. Lo stesso repository è leggibile da un agente AI tramite un server
 MCP, spento di default e abilitabile comando per comando.
 
 Il nome: **`git`** davanti, perché è così che si cerca un client Git, e **handler** — chi maneggia il
@@ -12,42 +12,53 @@ poche ore dell'8 novembre 2026, `lanecraft` e `gitlattice`.
 Non è un fork di altri client: è una reimplementazione indipendente, clean-room. Nessun codice, stringa,
 icona o asset preso da prodotti esistenti.
 
-## Stato (v0.5)
+## Stato (v0.6)
 
-| Funzione                                           | Stato          |
-| -------------------------------------------------- | -------------- |
-| Apertura repository                                | ✅             |
-| Storia con grafo a corsie, paginata (2.000/pagina) | ✅             |
-| Rami, remoti, tag con ahead/behind                 | ✅             |
-| Staging per file, unstage, scarto                  | ✅             |
-| **Staging parziale per hunk e per riga**           | ✅             |
-| Diff unified e **affiancato** con intra-riga       | ✅             |
-| Commit (anche `-a`), checkout, nuovo ramo          | ✅             |
-| Fetch                                              | ✅             |
-| **Undo generale** (commit, checkout, scarto)       | ✅             |
-| **File non tracciati recuperabili** (oggetti Git)  | ✅             |
-| **Ricerca nella storia** (`author:`, `file:`)      | ✅             |
-| **Aggiornamento automatico** (`--watch`)           | ✅             |
-| **Blame nella UI** (pannello virtualizzato)        | ✅             |
-| **Server MCP con permessi configurabili**          | ✅             |
-| Syntax highlighting (CodeMirror 6)                 | ⏳ milestone 2 |
-| `.deb` con profilo AppArmor, rebase, stash         | ⏳ milestone 4 |
+| Funzione                                            | Stato         |
+| --------------------------------------------------- | ------------- |
+| Apertura repository                                 | ✅             |
+| Storia con grafo a corsie, paginata (2.000/pagina)  | ✅             |
+| Rami, remoti, tag con ahead/behind                  | ✅             |
+| Staging per file, unstage, scarto                   | ✅             |
+| **Staging parziale per hunk e per riga**            | ✅             |
+| Diff unified e **affiancato** con intra-riga        | ✅             |
+| Commit (anche `-a`), checkout, nuovo ramo           | ✅             |
+| Fetch                                               | ✅             |
+| **Pull** (`--ff-only`) e **push** (mai con forza)   | ✅             |
+| **Stash** (salva, applica, pop, elimina)            | ✅             |
+| **Merge, rebase, cherry-pick**, annulla conflitto   | ✅             |
+| **Submodule** (elenco e aggiornamento)              | ✅             |
+| **Terminale integrato** (nel repository attivo)     | ✅             |
+| **Più repository aperti insieme** (schede)          | ✅             |
+| **Undo generale** (commit, checkout, scarto, merge) | ✅             |
+| **File non tracciati recuperabili** (oggetti Git)   | ✅             |
+| **Ricerca nella storia** (`author:`, `file:`)       | ✅             |
+| **Aggiornamento automatico** (`--watch`)            | ✅             |
+| **Blame nella UI** (pannello virtualizzato)         | ✅             |
+| **Server MCP con permessi configurabili**           | ✅             |
+| Syntax highlighting (CodeMirror 6)                  | ⏳ milestone 2 |
+| `.deb` con profilo AppArmor                         | ⏳ milestone 4 |
 
 ## Interfaccia
 
 La finestra segue la disposizione dei client Git desktop affermati, con un tema scuro proprio:
 
--   **Toolbar** con le azioni etichettate (Apri, Fetch, Aggiorna, Annulla) e, al centro, repository e
-    ramo corrente. Sopra la storia c'è la scheda del repository aperto.
+-   **Toolbar** con le azioni etichettate (Apri, Fetch, Pull, Push, Stash, Submodule, Aggiorna,
+    Annulla) e, al centro, repository e ramo corrente. Sopra la storia ci sono le schede dei repository
+    aperti, con la × per chiuderle e il `+` per aprirne un altro.
 -   **Barra laterale**: nome del repository, *Changes* con il conteggio, *All Commits*, filtro di
     ricerca e i ref divisi in Branches / Remotes / Tags.
+-   **Changes a tutta area**: clic su *Changes* e il pannello delle modifiche prende l'area
+    principale, senza storia né pannello inferiore. *All Commits* riporta la storia.
 -   **Storia** in cinque colonne: grafo a corsie, messaggio con i badge dei ref, autore con avatar a
-    iniziali, SHA breve, data.
--   **Pannello inferiore** con quattro schede: `Commit` (AUTHOR e COMMITTER separati, SHA, PARENTS,
+    iniziali, SHA breve, data. Clic su un ramo o tag: il cursore va al suo commit. Tasto destro su un
+    ramo: checkout, merge, rebase, rinomina, elimina, copia; su un commit: cherry-pick, copia.
+-   **Pannello inferiore** con cinque schede: `Commit` (AUTHOR e COMMITTER separati, SHA, PARENTS,
     messaggio e file toccati), `Changes` (Staged e Unstaged divisi, diff, riquadro del commit),
-    `File Tree` (albero dei file del commit o del working tree, diff a destra) e `Blame`.
+    `File Tree` (albero dei file del commit o del working tree, diff a destra), `Blame` e `Terminale`.
 
-Solo le funzioni che esistono hanno un comando: niente pulsanti finti per pull, push o stash.
+Ogni funzione che esiste ha un comando, e ogni comando fa quello che dice: il terminale è una shell
+vera nella cartella del repository, con il pulsante per interrompere il comando.
 
 ## Architettura
 

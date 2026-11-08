@@ -1,5 +1,56 @@
 # Changelog
 
+## [0.6.0] — 2026-11-08
+
+### Le operazioni che mancavano
+
+-   **Pull, push, stash, submodule, terminale integrato, merge / rebase / cherry-pick** e **più
+    repository aperti insieme**: sono i comandi che nella 0.5 non esistevano, tanto da non avere
+    nemmeno un pulsante. Ora ci sono, e ogni pulsante fa quello che dice.
+-   **Pull** solo `--ff-only`: un ramo divergente si ferma con il messaggio di Git invece di creare un
+    merge che nessuno ha chiesto. **Push** senza forza, con `--set-upstream origin <ramo>` al primo
+    invio, così il tracking non manca.
+-   **Stash**: dialogo con messaggio facoltativo, elenco degli stash con data e ramo, applica, pop ed
+    elimina. Salva anche i file non tracciati (`--include-untracked`).
+-   **Submodule**: elenco con stato (allineato, da aggiornare, non inizializzato, in conflitto) e
+    aggiornamento con `git submodule update --init --recursive`.
+-   **Merge, rebase e cherry-pick** dal menu contestuale. Se Git si ferma su un conflitto compare un
+    chip «Merge in corso · annulla» (o rebase / cherry-pick) che esegue `--abort`.
+-   **Terminale integrato**, senza dipendenze nuove: `bash -lc` nella cartella del repository attivo,
+    output in streaming a pezzi, pulsante *Interrompi*. Anche qui `GIT_TERMINAL_PROMPT=0`: un comando
+    che chiede credenziali fallisce invece di restare appeso. Niente stdin interattivo, è dichiarato.
+-   **Più repository aperti insieme**: un backend per root (`Map<root, CliGitBackend>`) e una sessione
+    per scheda nel renderer. Ogni canale IPC porta il root come primo argomento, quindi una risposta in
+    ritardo non può finire sulla scheda sbagliata; il watcher segue la scheda attiva. Le schede si
+    chiudono con la ×, l'ultima non si chiude.
+-   **L'undo copre anche merge, rebase e cherry-pick**: la voce registra il pre-HEAD e «Annulla» ci
+    riporta con `reset --soft`, lasciando le modifiche da rivedere invece di buttarle.
+
+### Navigazione
+
+-   **Changes a tutta area**: clic su *Changes* nella barra laterale e il pannello delle modifiche
+    prende l'area principale — niente storia e niente pannello inferiore, perché in quella modalità i
+    commit non servono. *All Commits* riporta la storia e ricorda l'ultima scheda scelta.
+-   **Clic su un ramo o un tag**: il cursore va al commit corrispondente nella storia, senza toccare il
+    working tree. Se il commit è oltre la prima pagina la storia continua a caricare finché non compare.
+-   **Tasto destro su un ramo**: checkout, merge, rebase, rinomina, elimina, copia nome e SHA; su un ref
+    remoto, creazione del ramo locale con tracking. **Tasto destro su un commit**: cherry-pick, copia
+    SHA e messaggio.
+-   `window.prompt` non esiste in Electron: la rinomina usa un dialogo vero con Annulla e Conferma.
+
+### Corretto
+
+-   I messaggi d'errore mostravano il prefisso `Error invoking remote method 'git:…'` aggiunto da
+    Electron; ora si legge il messaggio di Git.
+-   Dopo un merge andato in conflitto lo stato viene riletto subito, così il chip «annulla» compare
+    senza dover aggiornare a mano.
+-   Il pull e il push non si disattivano più in base ai ref remoti noti: un repository con un remoto
+    ancora vuoto deve poter fare il primo push.
+
+### Numeri
+
+-   108 test automatici (erano 99): 9 nuovi sulle operazioni (`src/core/ops.ts`), con i nomi di ref
+    ostili (`--upload-pack=…`, spazi, `..`) che devono restare nomi e non opzioni.
 ## [0.5.0] — 2026-11-08
 
 ### Nome

@@ -1,8 +1,14 @@
+import { spawn, type ChildProcess } from "node:child_process";
 import { app, BrowserWindow, dialog, ipcMain, Menu } from "electron";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { CHANGED_CHANNEL, type IpcChannel } from "../shared/api.ts";
+import {
+	CHANGED_CHANNEL,
+	TERMINAL_CHANNEL,
+	type IpcChannel,
+	type TerminalEvent,
+} from "../shared/api.ts";
 import { normalizeSettings } from "../core/settings.ts";
 import { CliGitBackend } from "./backend.ts";
 import { loadSettings, saveSettings } from "./settings.ts";
@@ -33,11 +39,28 @@ const watchEnabled = argv.includes("--no-watch")
  */
 if (process.env.GITHANDLER_GPU !== "1") app.disableHardwareAcceleration();
 
-const backend = new CliGitBackend({ settings: loadSettings });
+/**
+ * Più repository aperti insieme: un backend per root, il root attivo guida watcher e refresh.
+ * Il renderer sceglie la scheda con `git:use`; ogni chiamata porta il root come primo argomento,
+ * quindi una risposta in ritardo non può finire sul repository sbagliato.
+ */
+const backends = new Map<string, CliGitBackend>();
+let activeRoot: string | null = null;
 let window: BrowserWindow | null = null;
 let stopWatching: (() => void) | null = null;
 let refreshing = false;
 let refreshPending = false;
+
+/** Il backend di un repository già aperto; un root sconosciuto è un errore, non un'apertura implicita. */
+function backendFor(root: string): CliGitBackend {
+	const backend = backends.get(root);
+	if (!backend) throw new Error(`Repository non aperto: ${root}`);
+	return backend;
+}
+
+function sendTerminal(event: TerminalEvent): void {
+	window?.webContents.send(TERMINAL_CHANNEL, event);
+}
 
 function cleanError(error: unknown): string {
 	const message = error instanceof Error ? error.message : String(error);
@@ -55,7 +78,8 @@ async function pushRefresh(): Promise<void> {
 	}
 	refreshing = true;
 	try {
-		const snapshot = await backend.refresh();
+		if (!activeRoot) return;
+		const snapshot = await backendFor(activeRoot).refresh();
 		window?.webContents.send(CHANGED_CHANNEL, {
 			kind: "snapshot",
 			snapshot,
@@ -109,40 +133,104 @@ function registerIpc(): void {
 			if (result.canceled || !target) return null;
 		}
 
+		const backend = new CliGitBackend({ settings: loadSettings });
 		const snapshot = await backend.open(target);
+		backends.set(snapshot.info.root, backend);
+		activeRoot = snapshot.info.root;
 		watchRepository(snapshot.info.root);
 		return snapshot;
 	});
 
-	handle("git:refresh", () => backend.refresh());
-	handle("git:commitDetails", (sha: string) => backend.commitDetails(sha));
-	handle("git:commitFiles", (sha: string) => backend.commitFiles(sha));
-	handle("git:commitPatch", (sha: string, path: string) =>
-		backend.commitPatch(sha, path)
+	handle("git:use", async (root: string) => {
+		backendFor(root);
+		activeRoot = root;
+		watchRepository(root);
+	});
+
+	handle("git:refresh", (root: string) => backendFor(root).refresh());
+	handle("git:commitDetails", (root: string, sha: string) =>
+		backendFor(root).commitDetails(sha)
 	);
-	handle("git:worktreePatch", (path: string, staged: boolean) =>
-		backend.worktreePatch(path, staged)
+	handle("git:commitFiles", (root: string, sha: string) =>
+		backendFor(root).commitFiles(sha)
 	);
-	handle("git:stage", (paths: string[]) => backend.stage(paths));
+	handle("git:commitPatch", (root: string, sha: string, path: string) =>
+		backendFor(root).commitPatch(sha, path)
+	);
+	handle("git:worktreePatch", (root: string, path: string, staged: boolean) =>
+		backendFor(root).worktreePatch(path, staged)
+	);
+	handle("git:stage", (root: string, paths: string[]) =>
+		backendFor(root).stage(paths)
+	);
 	handle(
 		"git:applyPatch",
-		(path: string, patch: string, mode: "stage" | "unstage") =>
-			backend.applyPatch(path, patch, mode)
+		(root: string, path: string, patch: string, mode: "stage" | "unstage") =>
+			backendFor(root).applyPatch(path, patch, mode)
 	);
-	handle("git:unstage", (paths: string[]) => backend.unstage(paths));
-	handle("git:discard", (paths: string[]) => backend.discard(paths));
-	handle("git:commit", (message: string, all: boolean) =>
-		backend.commit(message, all)
+	handle("git:unstage", (root: string, paths: string[]) =>
+		backendFor(root).unstage(paths)
 	);
-	handle("git:checkout", (branch: string) => backend.checkout(branch));
-	handle("git:createBranch", (name: string) => backend.createBranch(name));
-	handle("git:fetch", () => backend.fetch());
-	handle("git:search", (query: string) => backend.search(query));
-	handle("git:moreCommits", (skip: number) => backend.historyPage(skip));
-	handle("git:blame", (path: string, start?: number, end?: number) =>
-		backend.blame(path, start, end)
+	handle("git:discard", (root: string, paths: string[]) =>
+		backendFor(root).discard(paths)
 	);
-	handle("git:undo", () => backend.undo());
+	handle("git:commit", (root: string, message: string, all: boolean) =>
+		backendFor(root).commit(message, all)
+	);
+	handle("git:checkout", (root: string, branch: string) =>
+		backendFor(root).checkout(branch)
+	);
+	handle("git:createBranch", (root: string, name: string) =>
+		backendFor(root).createBranch(name)
+	);
+	handle("git:fetch", (root: string) => backendFor(root).fetch());
+	handle("git:pull", (root: string) => backendFor(root).pull());
+	handle("git:push", (root: string) => backendFor(root).push());
+	handle("git:stashList", (root: string) => backendFor(root).stashList());
+	handle("git:stashSave", (root: string, message: string) =>
+		backendFor(root).stashSave(message)
+	);
+	handle("git:stashApply", (root: string, index: number, drop: boolean) =>
+		backendFor(root).stashApply(index, drop)
+	);
+	handle("git:stashDrop", (root: string, index: number) =>
+		backendFor(root).stashDrop(index)
+	);
+	handle("git:submodules", (root: string) => backendFor(root).submodules());
+	handle("git:updateSubmodules", (root: string) =>
+		backendFor(root).updateSubmodules()
+	);
+	handle("git:merge", (root: string, branch: string) =>
+		backendFor(root).merge(branch)
+	);
+	handle("git:rebase", (root: string, onto: string) =>
+		backendFor(root).rebase(onto)
+	);
+	handle("git:cherryPick", (root: string, sha: string) =>
+		backendFor(root).cherryPick(sha)
+	);
+	handle("git:renameBranch", (root: string, from: string, to: string) =>
+		backendFor(root).renameBranch(from, to)
+	);
+	handle("git:deleteBranch", (root: string, name: string, force: boolean) =>
+		backendFor(root).deleteBranch(name, force)
+	);
+	handle("git:checkoutTracking", (root: string, ref: string, local: string) =>
+		backendFor(root).checkoutTracking(ref, local)
+	);
+	handle("git:abortOperation", (root: string) =>
+		backendFor(root).abortOperation()
+	);
+	handle("git:search", (root: string, query: string) =>
+		backendFor(root).search(query)
+	);
+	handle("git:moreCommits", (root: string, skip: number) =>
+		backendFor(root).historyPage(skip)
+	);
+	handle("git:blame", (root: string, path: string, start?: number, end?: number) =>
+		backendFor(root).blame(path, start, end)
+	);
+	handle("git:undo", (root: string) => backendFor(root).undo());
 	handle("app:watching", async () => watchEnabled && stopWatching !== null);
 	handle("app:settings", () => loadSettings());
 	handle("app:settings:save", async (input: unknown) => {
@@ -151,7 +239,46 @@ function registerIpc(): void {
 		await saveSettings(settings);
 		return settings;
 	});
-	handle("app:trashUsage", () => backend.trashUsage());
+	handle("app:trashUsage", (root: string) => backendFor(root).trashUsage());
+
+	// Il terminale esegue quello che l'utente scrive: è una shell, non un comando Git strutturato.
+	const terminals = new Map<string, ChildProcess>();
+	handle("term:run", async (root: string, id: string, command: string) => {
+		const cwd = backendFor(root).info?.root ?? root;
+		if (!command.trim()) return;
+		terminals.get(id)?.kill();
+
+		const child = spawn("bash", ["-lc", command], {
+			cwd,
+			env: {
+				...process.env,
+				TERM: "dumb",
+				PAGER: "cat",
+				GIT_PAGER: "cat",
+				// un comando che chiede password non deve restare appeso senza TTY
+				GIT_TERMINAL_PROMPT: "0",
+			},
+		});
+		terminals.set(id, child);
+
+		child.stdout?.on("data", (chunk: Buffer) =>
+			sendTerminal({ kind: "data", id, text: chunk.toString("utf8") })
+		);
+		child.stderr?.on("data", (chunk: Buffer) =>
+			sendTerminal({ kind: "data", id, text: chunk.toString("utf8") })
+		);
+		child.on("error", (error) => {
+			terminals.delete(id);
+			sendTerminal({ kind: "error", id, message: cleanError(error) });
+		});
+		child.on("close", (code) => {
+			terminals.delete(id);
+			sendTerminal({ kind: "exit", id, code });
+		});
+	});
+	handle("term:kill", async (id: string) => {
+		terminals.get(id)?.kill();
+	});
 }
 
 function buildMenu(): void {
@@ -246,6 +373,37 @@ async function runShots(): Promise<void> {
 				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
 			})()`,
 			target.replace(/\.png$/, "-search.png"),
+		],
+		[
+			`document.getElementById("side-changes")?.click()`,
+			target.replace(/\.png$/, "-changes-main.png"),
+		],
+		[
+			`document.querySelector("#list-branches li")?.click()`,
+			target.replace(/\.png$/, "-ref.png"),
+		],
+		[
+			`(() => {
+				const item = document.querySelector("#list-branches li");
+				if (!item) return;
+				item.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, clientX: 220, clientY: 260 }));
+			})()`,
+			target.replace(/\.png$/, "-ref-menu.png"),
+		],
+		[
+			`document.getElementById("btn-stash")?.click()`,
+			target.replace(/\.png$/, "-stash.png"),
+		],
+		[
+			`(() => {
+				document.getElementById("stash-dialog")?.close();
+				document.getElementById("tab-term")?.click();
+				const input = document.getElementById("term-input");
+				input.value = "git status --short";
+				document.getElementById("term-form")
+					.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+			})()`,
+			target.replace(/\.png$/, "-term.png"),
 		],
 		[
 			`document.getElementById("btn-settings")?.click()`,
