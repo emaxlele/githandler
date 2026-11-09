@@ -28,10 +28,7 @@ export const API_WRITE_TOOLS = [
 	"checkout_branch",
 ] as const;
 
-export const API_TOOLS = [
-	...API_READ_TOOLS,
-	...API_WRITE_TOOLS,
-] as const;
+export const API_TOOLS = [...API_READ_TOOLS, ...API_WRITE_TOOLS] as const;
 
 export type ApiTool = (typeof API_TOOLS)[number];
 
@@ -63,9 +60,25 @@ export interface TrashSettings {
 /** Language of the user interface: `auto` follows the system. */
 export type LocalePreference = "auto" | "it" | "en";
 
+/** Window colours: `auto` follows the system, `oled` keeps true blacks. */
+export type ThemePreference = "auto" | "dark" | "light" | "oled";
+
+/** Vertical rhythm: `compact` tightens rows and bars, useful on small screens. */
+export type DensityPreference = "comfortable" | "compact";
+
+/** Zoom of the whole window, applied by the main process. */
+export type FontScalePreference = "small" | "normal" | "large";
+
+export interface AppearanceSettings {
+	theme: ThemePreference;
+	density: DensityPreference;
+	fontScale: FontScalePreference;
+}
+
 export interface Settings {
 	api: ApiPolicy;
 	locale: LocalePreference;
+	appearance: AppearanceSettings;
 	trash: TrashSettings;
 	/**
 	 * Cartella da cui partono i dialog «Apri», «Crea» e «Clona». Non è un limite: da lì si può
@@ -80,6 +93,19 @@ export interface Settings {
 }
 
 export const MEBIBYTE = 1024 * 1024;
+
+/** Zoom factors used by the main process; a stored value is never taken as a number. */
+export const FONT_SCALE_FACTORS: Record<FontScalePreference, number> = {
+	small: 0.9,
+	normal: 1,
+	large: 1.12,
+};
+
+export const APPEARANCE_DEFAULTS: AppearanceSettings = {
+	theme: "auto",
+	density: "comfortable",
+	fontScale: "normal",
+};
 
 /** Valori usati quando il file manca o un campo non è valido. */
 export const TRASH_DEFAULTS = {
@@ -107,6 +133,7 @@ export function defaultSettings(): Settings {
 	return {
 		api: { mode: "off", tools: [] },
 		locale: "auto",
+		appearance: { ...APPEARANCE_DEFAULTS },
 		trash: { ...TRASH_DEFAULTS },
 		defaultRoot: null,
 		repoAccounts: {},
@@ -122,6 +149,43 @@ export function isApiTool(value: unknown): value is ApiTool {
 
 export function isLocalePreference(value: unknown): value is LocalePreference {
 	return value === "auto" || value === "it" || value === "en";
+}
+
+export function isThemePreference(value: unknown): value is ThemePreference {
+	return (
+		value === "auto" ||
+		value === "dark" ||
+		value === "light" ||
+		value === "oled"
+	);
+}
+
+export function isDensityPreference(
+	value: unknown
+): value is DensityPreference {
+	return value === "comfortable" || value === "compact";
+}
+
+export function isFontScalePreference(
+	value: unknown
+): value is FontScalePreference {
+	return value === "small" || value === "normal" || value === "large";
+}
+
+/** Appearance arrives from a hand-editable file: unknown values fall back one by one. */
+export function normalizeAppearance(data: unknown): AppearanceSettings {
+	const record = asRecord(data);
+	return {
+		theme: isThemePreference(record?.theme)
+			? record.theme
+			: APPEARANCE_DEFAULTS.theme,
+		density: isDensityPreference(record?.density)
+			? record.density
+			: APPEARANCE_DEFAULTS.density,
+		fontScale: isFontScalePreference(record?.fontScale)
+			? record.fontScale
+			: APPEARANCE_DEFAULTS.fontScale,
+	};
 }
 
 export function isApiMode(value: unknown): value is ApiMode {
@@ -186,6 +250,7 @@ export function normalizeSettings(data: unknown): Settings {
 		locale: isLocalePreference(record.locale)
 			? record.locale
 			: fallback.locale,
+		appearance: normalizeAppearance(record.appearance),
 		defaultRoot,
 		repoAccounts,
 		trash: {

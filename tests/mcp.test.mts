@@ -33,9 +33,11 @@ await backend.open(root);
 
 /** La policy che il server legge a ogni richiesta: i test la cambiano al volo. */
 const defaultTrash = defaultSettings().trash;
+const defaultAppearance = defaultSettings().appearance;
 let settings: Settings = {
 	api: { mode: "all", tools: [] },
 	locale: "auto",
+	appearance: defaultAppearance,
 	defaultRoot: null,
 	trash: defaultTrash,
 	repoAccounts: {},
@@ -221,18 +223,19 @@ test("la policy delle impostazioni filtra tools/list e tools/call", async () => 
 		return result.tools;
 	};
 
-	settings = { api: { mode: "off", tools: [] }, locale: "auto", defaultRoot: null, trash: defaultTrash, repoAccounts: {} };
+	settings = { api: { mode: "off", tools: [] }, locale: "auto", appearance: defaultAppearance, defaultRoot: null, trash: defaultTrash, repoAccounts: {} };
 	assert.deepEqual(await list(), []);
 	const denied = await callTool("repo_status");
 	assert.equal(denied.isError, true);
 	assert.match(denied.content[0]!.text, /not enabled/);
 
-	settings = { api: { mode: "read", tools: [] }, locale: "auto", defaultRoot: null, trash: defaultTrash, repoAccounts: {} };
+	settings = { api: { mode: "read", tools: [] }, locale: "auto", appearance: defaultAppearance, defaultRoot: null, trash: defaultTrash, repoAccounts: {} };
 	assert.equal((await list()).length, 5);
 
 	settings = {
 		api: { mode: "custom", tools: ["history", "blame"] },
 		locale: "auto",
+		appearance: defaultAppearance,
 		defaultRoot: null,
 		trash: defaultTrash,
 		repoAccounts: {},
@@ -246,16 +249,17 @@ test("la policy delle impostazioni filtra tools/list e tools/call", async () => 
 	assert.equal((await callTool("blame", { path: "a.txt" })).isError, undefined);
 
 	// una policy con tool che non esistono non li inventa
-	settings = { api: { mode: "custom", tools: [] }, locale: "auto", defaultRoot: null, trash: defaultTrash, repoAccounts: {} };
+	settings = { api: { mode: "custom", tools: [] }, locale: "auto", appearance: defaultAppearance, defaultRoot: null, trash: defaultTrash, repoAccounts: {} };
 	assert.deepEqual(await list(), []);
 
-	settings = { api: { mode: "all", tools: [] }, locale: "auto", defaultRoot: null, trash: defaultTrash, repoAccounts: {} };
+	settings = { api: { mode: "all", tools: [] }, locale: "auto", appearance: defaultAppearance, defaultRoot: null, trash: defaultTrash, repoAccounts: {} };
 });
 
 test("i tool che scrivono non compaiono con la sola lettura", async () => {
 	settings = {
 		api: { mode: "read", tools: [] },
 		locale: "auto",
+		appearance: defaultAppearance,
 		defaultRoot: null,
 		trash: defaultTrash,
 		repoAccounts: {},
@@ -267,6 +271,7 @@ test("i tool che scrivono non compaiono con la sola lettura", async () => {
 	settings = {
 		api: { mode: "all", tools: [] },
 		locale: "auto",
+		appearance: defaultAppearance,
 		defaultRoot: null,
 		trash: defaultTrash,
 		repoAccounts: {},

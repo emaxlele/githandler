@@ -5,6 +5,7 @@ import {
 	dialog,
 	ipcMain,
 	Menu,
+	nativeTheme,
 	screen,
 	shell,
 } from "electron";
@@ -29,7 +30,12 @@ import {
 	remoteWeb,
 } from "../core/providers.ts";
 import { parseHistoryQuery } from "../core/search.ts";
-import { normalizeSettings } from "../core/settings.ts";
+import {
+	APPEARANCE_DEFAULTS,
+	FONT_SCALE_FACTORS,
+	normalizeSettings,
+	type AppearanceSettings,
+} from "../core/settings.ts";
 import type { NewPullRequest } from "../core/pulls.ts";
 import {
 	accountRepos,
@@ -101,6 +107,51 @@ let lastPanelState: PanelState | null = null;
 let stopWatching: (() => void) | null = null;
 let refreshing = false;
 let refreshPending = false;
+/** Appearance is applied by the main process: zoom and native colour-scheme are window properties. */
+let currentAppearance: AppearanceSettings = { ...APPEARANCE_DEFAULTS };
+
+function windowBackground(appearance: AppearanceSettings): string {
+	if (appearance.theme === "light") return "#f7f8fa";
+	if (appearance.theme === "oled") return "#000000";
+	return "#0d1017";
+}
+
+/** Zoom, colour-scheme and background for one window; a destroyed window is simply skipped. */
+function applyWindowAppearance(
+	win: BrowserWindow,
+	appearance: AppearanceSettings
+): void {
+	if (win.isDestroyed()) return;
+	win.webContents.setZoomFactor(FONT_SCALE_FACTORS[appearance.fontScale]);
+	win.setBackgroundColor(windowBackground(appearance));
+}
+
+/** The renderer owns the theme attribute; here we only keep native widgets and zoom in step. */
+function applyAppearance(appearance: AppearanceSettings): void {
+	currentAppearance = appearance;
+	nativeTheme.themeSource =
+		appearance.theme === "auto"
+			? "system"
+			: appearance.theme === "oled"
+			? "dark"
+			: appearance.theme;
+	for (const win of BrowserWindow.getAllWindows()) {
+		applyWindowAppearance(win, appearance);
+	}
+}
+
+async function readAppearance(): Promise<AppearanceSettings> {
+	try {
+		return (await loadSettings()).appearance;
+	} catch (error) {
+		process.stderr.write(
+			`impostazioni non leggibili, aspetto predefinito: ${String(
+				error
+			)}\n`
+		);
+		return { ...APPEARANCE_DEFAULTS };
+	}
+}
 
 /** Il backend di un repository già aperto; un root sconosciuto è un errore, non un'apertura implicita. */
 /**
@@ -392,6 +443,7 @@ function registerIpc(): void {
 		// il renderer non è una fonte attendibile: si normalizza prima di scrivere
 		const settings = normalizeSettings(input);
 		await saveSettings(settings);
+		applyAppearance(settings.appearance);
 		return settings;
 	});
 	handle("app:trashUsage", (root: string) => backendFor(root).trashUsage());
@@ -659,7 +711,7 @@ function openPanelWindow(root: string): void {
 		height: 620,
 		minWidth: 520,
 		minHeight: 320,
-		backgroundColor: "#0d1017",
+		backgroundColor: windowBackground(currentAppearance),
 		title: "GitHandler — dettagli",
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
@@ -669,6 +721,7 @@ function openPanelWindow(root: string): void {
 		},
 	});
 	panelWindow = created;
+	applyWindowAppearance(created, currentAppearance);
 
 	if (window) {
 		const bounds = window.getBounds();
@@ -712,7 +765,7 @@ function createWindow(): void {
 		height: 900,
 		minWidth: 900,
 		minHeight: 560,
-		backgroundColor: "#0d1017",
+		backgroundColor: windowBackground(currentAppearance),
 		show: false,
 		title: "GitHandler",
 		webPreferences: {
@@ -723,6 +776,7 @@ function createWindow(): void {
 		},
 	});
 
+	applyWindowAppearance(window, currentAppearance);
 	window.loadFile(
 		join(__dirname, "../renderer/index.html"),
 		localeOverride ? { query: { locale: localeOverride } } : undefined
@@ -1045,7 +1099,9 @@ function showWindow(): void {
 	window.focus();
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+	currentAppearance = await readAppearance();
+	applyAppearance(currentAppearance);
 	registerIpc();
 	buildMenu();
 	createWindow();

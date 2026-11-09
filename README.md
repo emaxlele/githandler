@@ -31,54 +31,57 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 
 ## Stato (v0.10)
 
-| Funzione                                                         | Stato          |
-| ---------------------------------------------------------------- | -------------- |
-| Apertura repository                                              | ✅             |
-| **Creazione repository** (`git init`, identità locale)           | ✅             |
-| **Clone da URL e da account** (4 provider)                       | ✅             |
-| **Benvenuto all'avvio** (nessun dialog automatico)               | ✅             |
-| **Azioni su file e cartella dal repository**                     | ✅             |
-| **Accesso dal browser (device flow OAuth)**                      | ✅             |
-| **«Accedi» con il token già presente** (`gh`, credential helper) | ✅             |
-| **Account scelto per repository** (chip nell'header)             | ✅             |
-| **Fork: riconoscimento e sync con l'originale**                  | ✅             |
-| **GitHub Actions**: esecuzioni, ri-esecuzione, annulla           | ✅             |
-| **File del repository** (elenco filtrabile, browser)             | ✅             |
-| **Esporta HEAD in uno zip**                                      | ✅             |
-| Storia con grafo a corsie, paginata (2.000/pagina)               | ✅             |
-| Rami, remoti, tag con ahead/behind                               | ✅             |
-| Staging per file, unstage, scarto                                | ✅             |
-| **Staging parziale per hunk e per riga**                         | ✅             |
-| Diff unified e **affiancato** con intra-riga                     | ✅             |
-| Commit (anche `-a`), checkout di ramo e commit, nuovo ramo       | ✅             |
-| Fetch                                                            | ✅             |
-| **Pull** (`--ff-only`) e **push** (mai con forza)                | ✅             |
-| **Stash** (salva, applica, pop, elimina)                         | ✅             |
-| **Merge, rebase, cherry-pick**, annulla operazione               | ✅             |
-| **Pull request / merge request**: elenco e creazione da due rami  | ✅             |
-| **Conflitti risolti nell'app** (per file e per hunk, «continua»)  | ✅             |
-| **Interfaccia in italiano e in inglese**                          | ✅             |
-| **Palette dei comandi** (`Ctrl+K`) e scorciatoie documentate      | ✅             |
-| **Submodule** (elenco e aggiornamento)                           | ✅             |
-| **Terminale integrato** (nel repository attivo)                  | ✅             |
-| **Più repository aperti insieme** (schede)                       | ✅             |
-| **Undo generale** (commit, checkout, scarto, merge)              | ✅             |
-| **File non tracciati recuperabili** (oggetti Git)                | ✅             |
+| Funzione                                                                                    | Stato          |
+| ------------------------------------------------------------------------------------------- | -------------- |
+| Apertura repository                                                                         | ✅             |
+| **Creazione repository** (`git init`, identità locale)                                      | ✅             |
+| **Clone da URL e da account** (4 provider)                                                  | ✅             |
+| **Benvenuto all'avvio** (nessun dialog automatico)                                          | ✅             |
+| **Azioni su file e cartella dal repository**                                                | ✅             |
+| **Accesso dal browser (device flow OAuth)**                                                 | ✅             |
+| **«Accedi» con il token già presente** (`gh`, credential helper)                            | ✅             |
+| **Account scelto per repository** (chip nell'header)                                        | ✅             |
+| **Fork: riconoscimento e sync con l'originale**                                             | ✅             |
+| **GitHub Actions**: esecuzioni, ri-esecuzione, annulla                                      | ✅             |
+| **File del repository** (elenco filtrabile, browser)                                        | ✅             |
+| **Esporta HEAD in uno zip**                                                                 | ✅             |
+| Storia con grafo a corsie, paginata (2.000/pagina)                                          | ✅             |
+| Rami, remoti, tag con ahead/behind                                                          | ✅             |
+| Staging per file, unstage, scarto                                                           | ✅             |
+| **Staging parziale per hunk e per riga**                                                    | ✅             |
+| Diff unified e **affiancato** con intra-riga                                                | ✅             |
+| Commit (anche `-a`), checkout di ramo e commit, nuovo ramo                                  | ✅             |
+| Fetch                                                                                       | ✅             |
+| **Pull** (`--ff-only`) e **push** (mai con forza)                                           | ✅             |
+| **Stash** (salva, applica, pop, elimina)                                                    | ✅             |
+| **Merge, rebase, cherry-pick**, annulla operazione                                          | ✅             |
+| **Pull request / merge request**: elenco e creazione da due rami                            | ✅             |
+| **Conflitti risolti nell'app** (per file e per hunk, «continua»)                            | ✅             |
+| **Interfaccia in italiano e in inglese**                                                    | ✅             |
+| **Palette dei comandi** (`Ctrl+K`) e scorciatoie documentate                                | ✅             |
+| **Submodule** (elenco e aggiornamento)                                                      | ✅             |
+| **Terminale integrato** (nel repository attivo)                                             | ✅             |
+| **Più repository aperti insieme** (schede)                                                  | ✅             |
+| **Undo generale** (commit, checkout, scarto, merge)                                         | ✅             |
+| **File non tracciati recuperabili** (oggetti Git)                                           | ✅             |
 | **Ricerca nella storia**: testo, `author:`, `file:`, `regex:`, `change:`, `diff:`, `lines:` | ✅             |
-| **Reflog** nell'app e «vai al commit» per SHA                    | ✅             |
-| **Controlli delle pull request** (esito e collegamenti)          | ✅             |
-| **Notifiche CI dalla barra di sistema**                          | ✅             |
-| **Aggiornamento automatico** (`--watch`)                         | ✅             |
-| **Blame nella UI** (pannello virtualizzato)                      | ✅             |
-| **Pannello ridimensionabile, a icona, in finestra**              | ✅             |
-| **Server MCP con permessi configurabili**                        | ✅             |
-| Syntax highlighting (CodeMirror 6)                               | ⏳ milestone 2 |
-| **`.deb`** (Electron incluso, `npm run deb`)                     | ✅             |
-| Profilo AppArmor nel pacchetto                                   | ⏳ milestone 4 |
+| **Reflog** nell'app e «vai al commit» per SHA                                               | ✅             |
+| **Controlli delle pull request** (esito e collegamenti)                                     | ✅             |
+| **Notifiche CI dalla barra di sistema**                                                     | ✅             |
+| **Temi** chiaro / scuro / OLED, densità e dimensione del testo                              | ✅             |
+| **Aggiornamento automatico** (`--watch`)                                                    | ✅             |
+| **Blame nella UI** (pannello virtualizzato)                                                 | ✅             |
+| **Pannello ridimensionabile, a icona, in finestra**                                         | ✅             |
+| **Server MCP con permessi configurabili**                                                   | ✅             |
+| Syntax highlighting (CodeMirror 6)                                                          | ⏳ milestone 2 |
+| **`.deb`** (Electron incluso, `npm run deb`)                                                | ✅             |
+| Profilo AppArmor nel pacchetto                                                              | ⏳ milestone 4 |
 
 ## Interfaccia
 
-La finestra segue la disposizione dei client Git desktop affermati, con un tema scuro proprio:
+La finestra segue la disposizione dei client Git desktop affermati, con tema chiaro, scuro o OLED
+(scuro o nero assoluto), densità comoda o compatta e tre dimensioni del testo, scelti nelle
+impostazioni:
 
 -   **Toolbar** con le azioni etichettate (Apri, Clona, Cartella, Fetch, Pull, Push, Stash, Submodule,
     Aggiorna, Annulla) e, al centro, repository e ramo corrente. Sopra la storia ci sono le schede dei repository
@@ -130,17 +133,17 @@ La finestra segue la disposizione dei client Git desktop affermati, con un tema 
 Ogni comando ha un nome e uno stesso punto di esecuzione: la palette (`Ctrl+K`) li cerca mentre si
 scrive, le scorciatoie chiamano le stesse funzioni. `?` apre l'elenco dentro l'app.
 
-| Tasto             | Cosa fa                                                    |
-| ----------------- | ---------------------------------------------------------- |
-| `Ctrl+K`          | Palette dei comandi, con ricerca a sottosequenza            |
-| `Ctrl+O`          | Apre un repository dal disco                               |
-| `Ctrl+F`          | Cerca nella storia                                         |
-| `Ctrl+R`, `F5`    | Rilegge il repository                                      |
-| `Ctrl+Z`          | Annulla l'ultima operazione                                |
-| `Ctrl+1` … `Ctrl+4` | Pannello: commit, file, blame, terminale                  |
-| `Ctrl+Invio`      | Crea il commit con il messaggio scritto                    |
-| `?`               | Elenco delle scorciatoie                                   |
-| `Esc`             | Chiude la finestra aperta o il menu                        |
+| Tasto               | Cosa fa                                          |
+| ------------------- | ------------------------------------------------ |
+| `Ctrl+K`            | Palette dei comandi, con ricerca a sottosequenza |
+| `Ctrl+O`            | Apre un repository dal disco                     |
+| `Ctrl+F`            | Cerca nella storia                               |
+| `Ctrl+R`, `F5`      | Rilegge il repository                            |
+| `Ctrl+Z`            | Annulla l'ultima operazione                      |
+| `Ctrl+1` … `Ctrl+4` | Pannello: commit, file, blame, terminale         |
+| `Ctrl+Invio`        | Crea il commit con il messaggio scritto          |
+| `?`                 | Elenco delle scorciatoie                         |
+| `Esc`               | Chiude la finestra aperta o il menu              |
 
 Nella palette le voci sono raggruppate (progetto, storia, rami e sincronizzazione, vista), si
 scorrono con `↑`/`↓` e si eseguono con `Invio`. Un comando che non ha senso in quel momento — per

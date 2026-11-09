@@ -2,6 +2,25 @@
 
 ## [Non rilasciato]
 
+### Temi e preferenze
+
+-   **Tema chiaro, scuro e OLED** (nero assoluto), scelto nelle impostazioni; «Automatico» segue il
+    sistema e si aggiorna quando il sistema cambia. Anche la finestra dei dettagli segue la scelta,
+    perché zoom, schema di colore nativo e sfondo della finestra li applica il processo principale.
+-   **Densità comoda o compatta**: la compatta riduce toolbar, schede e altezza delle righe; utile
+    sugli schermi piccoli.
+-   **Tre dimensioni del testo** (piccola, normale, grande) applicate all'intera finestra, non solo
+    al pannello.
+-   **CSS a variabili semantiche**: colori di superfici, stati, diff, ref, ombre e trasparenze sono
+    ora in `:root` e nei blocchi `html[data-theme="…"]`; nessun colore letterale resta nelle regole.
+    Il tema è applicato prima del primo disegno leggendo `localStorage["githandler.appearance"]`,
+    poi la copia autorevole arriva dalle impostazioni.
+-   **Anteprima dal vivo**: cambiare tema o densità nel dialog si vede subito; «Annulla» riporta
+    all'aspetto salvato. La dimensione del testo si applica al salvataggio, come proprietà di finestra.
+-   Nuovi campi in `Settings.appearance` (`theme`, `density`, `fontScale`) normalizzati campo per
+    campo: un valore ignoto non trascina gli altri.
+-   Test nuovo in `tests/settings.test.mts` (default, scelte valide, campi rotti indipendenti).
+
 ### Notifiche CI dalla barra di sistema
 
 -   **Icona nella barra di sistema** con «Mostra GitHandler», «Controlla adesso», l'interruttore delle

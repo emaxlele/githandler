@@ -142,6 +142,11 @@ test("la serializzazione si rilegge uguale", () => {
 	const settings = {
 		api: { mode: "custom" as const, tools: ["blame" as const] },
 		locale: "auto" as const,
+		appearance: {
+			theme: "dark" as const,
+			density: "compact" as const,
+			fontScale: "large" as const,
+		},
 		defaultRoot: null,
 		trash: {
 			enabled: false,
@@ -195,6 +200,11 @@ test("senza file valgono i default; salvare e rileggere conserva i valori", asyn
 	const custom = {
 		api: { mode: "custom" as const, tools: ["repo_status" as const] },
 		locale: "it" as const,
+		appearance: {
+			theme: "light" as const,
+			density: "comfortable" as const,
+			fontScale: "small" as const,
+		},
 		defaultRoot: "/tmp/progetti",
 		trash: {
 			enabled: false,
@@ -226,4 +236,31 @@ test("la lingua accetta solo le scelte previste", () => {
 	assert.equal(normalizeSettings({ locale: "auto" }).locale, "auto");
 	assert.equal(normalizeSettings({ locale: "fr" }).locale, "auto");
 	assert.equal(normalizeSettings({}).locale, "auto");
+});
+
+test("l'aspetto torna ai default campo per campo", () => {
+	const defaults = defaultSettings().appearance;
+	assert.deepEqual(normalizeSettings({}).appearance, defaults);
+	assert.deepEqual(normalizeSettings(null).appearance, defaults);
+
+	const chosen = normalizeSettings({
+		appearance: {
+			theme: "light",
+			density: "compact",
+			fontScale: "large",
+		},
+	});
+	assert.deepEqual(chosen.appearance, {
+		theme: "light",
+		density: "compact",
+		fontScale: "large",
+	});
+
+	// un campo rotto non trascina gli altri, e valori ignoti non passano
+	const mixed = normalizeSettings({
+		appearance: { theme: "sepia", density: "compact", fontScale: 3 },
+	});
+	assert.equal(mixed.appearance.theme, defaults.theme);
+	assert.equal(mixed.appearance.density, "compact");
+	assert.equal(mixed.appearance.fontScale, defaults.fontScale);
 });

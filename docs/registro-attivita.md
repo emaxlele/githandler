@@ -5,6 +5,24 @@
 
 ## 2026-11-09
 
+### Un aspetto scelto da chi usa l'app
+
+-   **Cosa**: nelle impostazioni c'è una nuova sezione **Aspetto** con il tema **chiaro**, **scuro** o
+    **OLED** (nero assoluto), la densità **comoda** o **compatta** e tre **dimensioni del testo**.
+    «Automatico» segue il tema del sistema e cambia da solo quando il sistema cambia.
+-   **Perché**: richiesta dell'utente — l'app si usa tutto il giorno, e chi lavora con lo schermo
+    chiaro o su un pannello OLED vuole che finestra e testi seguano le proprie preferenze invece di
+    un unico tema scuro.
+-   **Come**: i colori dell'interfaccia sono diventati variabili di tema, così le tre varianti non
+    duplicano regole; l'aspetto si applica anche alla finestra dei dettagli. La scelta si vede subito
+    nel dialog, «Annulla» la riporta indietro, e la dimensione del testo viene applicata dal processo
+    principale all'intera finestra.
+-   **Verifica**: typecheck, **213 test** verdi (1 nuovo sulle preferenze) e build; schermate
+    prodotte in tema chiaro e in tema OLED con densità compatta e testo grande, controllate per
+    leggibilità di toolbar, storia, modifiche e impostazioni.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Un avviso quando i controlli automatici falliscono
 
 -   **Cosa**: l'app ha ora un'icona nella **barra di sistema**, con «Mostra GitHandler», «Controlla

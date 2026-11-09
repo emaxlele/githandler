@@ -41,7 +41,7 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 -   ⏳ Network progress from `git` stderr during clone, fetch and push.
 -   ⏳ Partial stash, drag a file out of the window, lazy tree in the file view, syntax highlighting.
 -   ⏳ GPG-signed commits, commit message templates, hook output in the UI.
--   ⏳ Themes and preferences: light / dark / OLED, density, font.
+-   ✅ Themes and preferences: light / dark / OLED, density, text size.
 
 ## 5. Differentiators
 

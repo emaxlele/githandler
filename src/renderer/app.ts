@@ -3,11 +3,14 @@ import { buildPatch } from "../core/patch.ts";
 import { layoutGraph } from "../core/graph.ts";
 import { localNameForRemote } from "../core/ops.ts";
 import {
+	APPEARANCE_DEFAULTS,
 	API_TOOLS,
 	MEBIBYTE,
 	TRASH_DEFAULTS,
+	normalizeAppearance,
 	type ApiMode,
 	type ApiTool,
+	type AppearanceSettings,
 	type Settings,
 	type TrashUsage,
 } from "../core/settings.ts";
@@ -92,6 +95,42 @@ setLocale(
 	)
 );
 translateStatic();
+
+/** Appearance lives in localStorage too: the first paint must not flash the wrong theme. */
+const APPEARANCE_STORAGE_KEY = "githandler.appearance";
+
+function readStoredAppearance(): AppearanceSettings {
+	try {
+		const raw = localStorage.getItem(APPEARANCE_STORAGE_KEY);
+		return normalizeAppearance(raw ? JSON.parse(raw) : null);
+	} catch {
+		return { ...APPEARANCE_DEFAULTS };
+	}
+}
+
+let appearance = readStoredAppearance();
+const systemLight = window.matchMedia("(prefers-color-scheme: light)");
+
+function applyAppearance(next: AppearanceSettings): void {
+	appearance = next;
+	const theme =
+		next.theme === "auto"
+			? systemLight.matches
+				? "light"
+				: "dark"
+			: next.theme;
+	const root = document.documentElement;
+	root.dataset.theme = theme;
+	root.dataset.density = next.density;
+	root.style.colorScheme = theme === "light" ? "light" : "dark";
+}
+
+/** A system switch only matters while the preference is `auto`. */
+systemLight.addEventListener("change", () => {
+	if (appearance.theme === "auto") applyAppearance(appearance);
+});
+
+applyAppearance(appearance);
 
 declare global {
 	interface Window {
@@ -261,6 +300,9 @@ const ui = {
 	btnWelcomeAccount: byId<HTMLButtonElement>("btn-welcome-account"),
 	settingBase: byId<HTMLInputElement>("setting-base"),
 	settingLanguage: byId<HTMLSelectElement>("setting-language"),
+	settingTheme: byId<HTMLSelectElement>("setting-theme"),
+	settingDensity: byId<HTMLSelectElement>("setting-density"),
+	settingFontScale: byId<HTMLSelectElement>("setting-font-scale"),
 	btnChooseBase: byId<HTMLButtonElement>("btn-choose-base"),
 	createDialog: byId<HTMLDialogElement>("create-dialog"),
 	createForm: byId<HTMLFormElement>("create-form"),
@@ -1028,9 +1070,20 @@ function formatBytes(bytes: number): string {
  * altrimenti salvare le impostazioni le cancellerebbe.
  */
 let savedRepoAccounts: Record<string, string> = {};
+/** Appearance shown by the open dialog: cancel restores it, save replaces it. */
+let dialogAppearance: AppearanceSettings = { ...APPEARANCE_DEFAULTS };
+
+function readAppearanceFromForm(): AppearanceSettings {
+	return {
+		theme: ui.settingTheme.value as AppearanceSettings["theme"],
+		density: ui.settingDensity.value as AppearanceSettings["density"],
+		fontScale: ui.settingFontScale.value as AppearanceSettings["fontScale"],
+	};
+}
 
 function fillSettings(settings: Settings): void {
 	savedRepoAccounts = settings.repoAccounts;
+	dialogAppearance = settings.appearance;
 	for (const radio of ui.settingsForm.querySelectorAll<HTMLInputElement>(
 		"input[name=api-mode]"
 	)) {
@@ -1043,6 +1096,9 @@ function fillSettings(settings: Settings): void {
 	}
 	ui.settingBase.value = settings.defaultRoot ?? "";
 	ui.settingLanguage.value = settings.locale;
+	ui.settingTheme.value = settings.appearance.theme;
+	ui.settingDensity.value = settings.appearance.density;
+	ui.settingFontScale.value = settings.appearance.fontScale;
 	setBaseFolder(settings.defaultRoot);
 	ui.settingTrash.checked = settings.trash.enabled;
 	ui.settingTrashBytes.value = String(toMebibytes(settings.trash.maxBytes));
@@ -1069,6 +1125,7 @@ function collectSettings(): Settings {
 	return {
 		api: { mode, tools },
 		locale: ui.settingLanguage.value as Settings["locale"],
+		appearance: readAppearanceFromForm(),
 		defaultRoot: ui.settingBase.value.trim() || null,
 		repoAccounts: savedRepoAccounts,
 		trash: {
@@ -1690,6 +1747,11 @@ async function restoreSessions(): Promise<void> {
 }
 
 async function boot(): Promise<void> {
+	try {
+		applyAppearance((await api.settings()).appearance);
+	} catch (error) {
+		console.warn("aspetto delle impostazioni non disponibile:", error);
+	}
 	if (panelMode) {
 		if (!panelBootRoot) {
 			toast("Nessun repository indicato per il pannello dei dettagli.");
@@ -4391,17 +4453,26 @@ function renderPullItem(pull: PullRequest): void {
 	item.appendChild(checks);
 
 	const actions = el("div", "actions-actions");
-	const run = el("button", "btn btn-small", t("Controlli")) as HTMLButtonElement;
+	const run = el(
+		"button",
+		"btn btn-small",
+		t("Controlli")
+	) as HTMLButtonElement;
 	run.type = "button";
 	if (pull.headSha) {
-		run.title = t("Legge gli esiti dei controlli sul commit in testa alla richiesta.");
-		run.addEventListener("click", () =>
-			void loadPullChecks(pull, run, checks)
+		run.title = t(
+			"Legge gli esiti dei controlli sul commit in testa alla richiesta."
+		);
+		run.addEventListener(
+			"click",
+			() => void loadPullChecks(pull, run, checks)
 		);
 	} else {
 		// senza lo SHA del ramo non c'è un indirizzo da chiedere: meglio spento che in errore
 		run.disabled = true;
-		run.title = t("Il servizio non ha indicato il commit in testa a questa richiesta.");
+		run.title = t(
+			"Il servizio non ha indicato il commit in testa a questa richiesta."
+		);
 	}
 	actions.appendChild(run);
 
@@ -4450,18 +4521,22 @@ function renderCheckSummary(
 	if (summary.pending) parts.push(t(`${summary.pending} in corso`));
 	const headline = el(
 		"div",
-		`checks-summary ${checkStateClass(summary.state === "none" ? "neutral" : summary.state)}`,
+		`checks-summary ${checkStateClass(
+			summary.state === "none" ? "neutral" : summary.state
+		)}`,
 		parts.join(" · ") || t("Nessun controllo.")
 	);
 	container.appendChild(headline);
 
 	for (const run of summary.runs) {
 		const line = el("div", "check-line");
-		line.appendChild(
-			el("span", `check-dot ${checkStateClass(run.state)}`)
-		);
+		line.appendChild(el("span", `check-dot ${checkStateClass(run.state)}`));
 		if (run.url) {
-			const link = el("button", "check-name", run.name) as HTMLButtonElement;
+			const link = el(
+				"button",
+				"check-name",
+				run.name
+			) as HTMLButtonElement;
 			link.type = "button";
 			link.title = t("Apre il controllo nel browser.");
 			link.addEventListener(
@@ -4793,6 +4868,15 @@ ui.btnFetch.addEventListener("click", () => void fetchAll());
 ui.btnSettings.addEventListener("click", () => void openSettings());
 
 ui.settingsCancel.addEventListener("click", () => ui.settingsDialog.close());
+// Theme and density preview live; font scale is a window property and lands on save.
+for (const select of [ui.settingTheme, ui.settingDensity]) {
+	select.addEventListener("change", () =>
+		applyAppearance(readAppearanceFromForm())
+	);
+}
+ui.settingsDialog.addEventListener("close", () =>
+	applyAppearance(dialogAppearance)
+);
 for (const radio of ui.settingsForm.querySelectorAll<HTMLInputElement>(
 	"input[name=api-mode]"
 )) {
@@ -4810,6 +4894,11 @@ ui.settingsForm.addEventListener("submit", (event) => {
 		setBaseFolder(saved.defaultRoot);
 		await refreshTrashUsage(saved.trash.quotaBytes);
 		localStorage.setItem(LOCALE_STORAGE_KEY, saved.locale);
+		localStorage.setItem(
+			APPEARANCE_STORAGE_KEY,
+			JSON.stringify(saved.appearance)
+		);
+		applyAppearance(saved.appearance);
 		// Changing the language rebuilds the window: every view is rendered from the catalogue.
 		if (resolveLocale(saved.locale) !== currentLocale()) {
 			location.reload();

@@ -103,6 +103,9 @@ minmax(0, 1fr)`), non più contenuto tagliato
 -   [x] **Cartella di base** (`Settings.defaultRoot`): punto di partenza dei dialog e destinazione
         predefinita dei cloni
 -   [x] **Ultima scheda chiudibile**: `git:close` ferma watcher e backend, la finestra torna al benvenuto
+-   [x] **Preferenze e temi**: chiaro, scuro e OLED (nero assoluto), densità comoda o compatta,
+        tre dimensioni del testo; il tema «Automatico» segue il sistema e vale anche per la finestra
+        dei dettagli, perché zoom e schema di colore li applica il processo principale
 -   [x] **Progetto pubblicabile**: licenza **GPL-3.0-or-later**, CI GitHub Actions (typecheck, test,
         build, smoke del benchmark), `SECURITY.md`, `CONTRIBUTING.md`, `ROADMAP.md`, moduli per le issue,
         `AGENTS.md`, badge nel README
@@ -143,7 +146,9 @@ minmax(0, 1fr)`), non più contenuto tagliato
             verifica su macchina pulita
     -   [ ] AppImage e pacchetto `.rpm`
     -   [ ] Rebase interattivo e worktree
-    -   [ ] Preferenze e temi
+    -   [x] **Preferenze e temi**: chiaro, scuro, OLED (nero assoluto), densità comoda/compatta e
+            tre dimensioni del testo; l'aspetto si applica a tutte le finestre, il tema «Automatico»
+            segue il sistema
 -   [ ] Verificare la resa del testo su un diff da ~3.000 righe contro WebKitGTK (Tauri/Wails) e
         Avalonia: è la misura che ha motivato la scelta di Electron
 -   [ ] Decidere se e come pubblicare il repository

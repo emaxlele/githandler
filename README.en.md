@@ -31,54 +31,57 @@ Italiano: [README.md](README.md)
 
 ## Status (v0.10)
 
-| Feature                                                                       | Status         |
-| ----------------------------------------------------------------------------- | -------------- |
-| Open repository                                                               | ✅             |
-| **Create repository** (`git init`, local identity)                            | ✅             |
-| **Clone from URL and from account** (4 providers)                             | ✅             |
-| **Welcome on start** (no automatic dialog)                                    | ✅             |
-| **File and folder actions from the repository**                               | ✅             |
-| **Browser sign-in (OAuth device flow)**                                       | ✅             |
-| **“Sign in” with the token already on the machine** (`gh`, credential helper) | ✅             |
-| **Account chosen per repository** (header chip)                               | ✅             |
-| **Fork: detect the original and sync**                                        | ✅             |
-| **GitHub Actions**: runs, re-run, cancel                                      | ✅             |
-| **Repository files** (filterable list, browser)                               | ✅             |
-| **Export HEAD as a zip**                                                      | ✅             |
-| History with swimlane graph, paginated (2,000/page)                           | ✅             |
-| Branches, remotes, tags with ahead/behind                                     | ✅             |
-| File staging, unstage, discard                                                | ✅             |
-| **Partial staging by hunk and by line**                                       | ✅             |
-| Unified and **side-by-side** diff with intra-line changes                     | ✅             |
-| Commit (also `-a`), checkout of branch and commit, new branch                 | ✅             |
-| Fetch                                                                         | ✅             |
-| **Pull** (`--ff-only`) and **push** (never forced)                            | ✅             |
-| **Stash** (save, apply, pop, drop)                                            | ✅             |
-| **Merge, rebase, cherry-pick**, abort operation                               | ✅             |
-| **Pull request / merge request**: list and create from two branches            | ✅             |
-| **Conflicts resolved in the app** (per file and per hunk, "continue")         | ✅             |
-| **Interface in Italian and English**                                          | ✅             |
-| **Command palette** (`Ctrl+K`) and documented shortcuts                       | ✅             |
-| **Submodules** (list and update)                                              | ✅             |
-| **Integrated terminal** (in the active repository)                            | ✅             |
-| **Several repositories open at once** (tabs)                                  | ✅             |
-| **Global undo** (commit, checkout, discard, merge)                            | ✅             |
-| **Recoverable untracked files** (Git objects)                                 | ✅             |
+| Feature                                                                              | Status         |
+| ------------------------------------------------------------------------------------ | -------------- |
+| Open repository                                                                      | ✅             |
+| **Create repository** (`git init`, local identity)                                   | ✅             |
+| **Clone from URL and from account** (4 providers)                                    | ✅             |
+| **Welcome on start** (no automatic dialog)                                           | ✅             |
+| **File and folder actions from the repository**                                      | ✅             |
+| **Browser sign-in (OAuth device flow)**                                              | ✅             |
+| **“Sign in” with the token already on the machine** (`gh`, credential helper)        | ✅             |
+| **Account chosen per repository** (header chip)                                      | ✅             |
+| **Fork: detect the original and sync**                                               | ✅             |
+| **GitHub Actions**: runs, re-run, cancel                                             | ✅             |
+| **Repository files** (filterable list, browser)                                      | ✅             |
+| **Export HEAD as a zip**                                                             | ✅             |
+| History with swimlane graph, paginated (2,000/page)                                  | ✅             |
+| Branches, remotes, tags with ahead/behind                                            | ✅             |
+| File staging, unstage, discard                                                       | ✅             |
+| **Partial staging by hunk and by line**                                              | ✅             |
+| Unified and **side-by-side** diff with intra-line changes                            | ✅             |
+| Commit (also `-a`), checkout of branch and commit, new branch                        | ✅             |
+| Fetch                                                                                | ✅             |
+| **Pull** (`--ff-only`) and **push** (never forced)                                   | ✅             |
+| **Stash** (save, apply, pop, drop)                                                   | ✅             |
+| **Merge, rebase, cherry-pick**, abort operation                                      | ✅             |
+| **Pull request / merge request**: list and create from two branches                  | ✅             |
+| **Conflicts resolved in the app** (per file and per hunk, "continue")                | ✅             |
+| **Interface in Italian and English**                                                 | ✅             |
+| **Command palette** (`Ctrl+K`) and documented shortcuts                              | ✅             |
+| **Submodules** (list and update)                                                     | ✅             |
+| **Integrated terminal** (in the active repository)                                   | ✅             |
+| **Several repositories open at once** (tabs)                                         | ✅             |
+| **Global undo** (commit, checkout, discard, merge)                                   | ✅             |
+| **Recoverable untracked files** (Git objects)                                        | ✅             |
 | **History search**: text, `author:`, `file:`, `regex:`, `change:`, `diff:`, `lines:` | ✅             |
-| **Reflog** in the app and "go to commit" by SHA                               | ✅             |
-| **Pull request checks** (result and links)                                    | ✅             |
-| **CI notifications from the system tray**                                     | ✅             |
-| **Automatic refresh** (`--watch`)                                             | ✅             |
-| **Blame in the UI** (virtualized panel)                                       | ✅             |
-| **Resizable, collapsible, detachable panel**                                  | ✅             |
-| **MCP server with configurable permissions**                                  | ✅             |
-| Syntax highlighting (CodeMirror 6)                                            | ⏳ milestone 2 |
-| **`.deb`** (Electron included, `npm run deb`)                                 | ✅             |
-| AppArmor profile in the package                                               | ⏳ milestone 4 |
+| **Reflog** in the app and "go to commit" by SHA                                      | ✅             |
+| **Pull request checks** (result and links)                                           | ✅             |
+| **CI notifications from the system tray**                                            | ✅             |
+| **Themes** light / dark / OLED, density and text size                                | ✅             |
+| **Automatic refresh** (`--watch`)                                                    | ✅             |
+| **Blame in the UI** (virtualized panel)                                              | ✅             |
+| **Resizable, collapsible, detachable panel**                                         | ✅             |
+| **MCP server with configurable permissions**                                         | ✅             |
+| Syntax highlighting (CodeMirror 6)                                                   | ⏳ milestone 2 |
+| **`.deb`** (Electron included, `npm run deb`)                                        | ✅             |
+| AppArmor profile in the package                                                      | ⏳ milestone 4 |
 
 ## Interface
 
-The window follows the layout of established desktop Git clients, with its own dark theme:
+The window follows the layout of established desktop Git clients, with light, dark or OLED
+(dark or true black) themes, comfortable or compact density and three text sizes, chosen in
+settings:
 
 -   **Toolbar** with labelled actions (Open, Clone, Folder, Fetch, Pull, Push, Stash, Submodule,
     Refresh, Undo) and, in the middle, the repository and current branch. Above the history are the
@@ -128,17 +131,17 @@ The window follows the layout of established desktop Git clients, with its own d
 Every command has a name and a single place where it runs: the palette (`Ctrl+K`) searches them as
 you type, the shortcuts call the same functions. `?` opens the list inside the app.
 
-| Key                | What it does                                              |
-| ------------------ | --------------------------------------------------------- |
-| `Ctrl+K`           | Command palette, with subsequence search                  |
-| `Ctrl+O`           | Opens a repository from disk                              |
-| `Ctrl+F`           | Searches the history                                      |
-| `Ctrl+R`, `F5`     | Re-reads the repository                                   |
-| `Ctrl+Z`           | Undoes the last operation                                 |
-| `Ctrl+1` … `Ctrl+4` | Panel: commit, files, blame, terminal                    |
-| `Ctrl+Enter`       | Creates the commit with the written message               |
-| `?`                | List of shortcuts                                         |
-| `Esc`              | Closes the open window or menu                            |
+| Key                 | What it does                                |
+| ------------------- | ------------------------------------------- |
+| `Ctrl+K`            | Command palette, with subsequence search    |
+| `Ctrl+O`            | Opens a repository from disk                |
+| `Ctrl+F`            | Searches the history                        |
+| `Ctrl+R`, `F5`      | Re-reads the repository                     |
+| `Ctrl+Z`            | Undoes the last operation                   |
+| `Ctrl+1` … `Ctrl+4` | Panel: commit, files, blame, terminal       |
+| `Ctrl+Enter`        | Creates the commit with the written message |
+| `?`                 | List of shortcuts                           |
+| `Esc`               | Closes the open window or menu              |
 
 In the palette the entries are grouped (project, history, branches and sync, view), scroll with
 `↑`/`↓` and run with `Enter`. A command that makes no sense right now — "Undo" with nothing to undo,
