@@ -30,6 +30,7 @@ import {
 	refsArgs,
 } from "../core/log.ts";
 import { hostFromUrl } from "../core/providers.ts";
+import type { NetworkProgress } from "../core/network.ts";
 import { parseStatus, statusArgs } from "../core/status.ts";
 import { patchTargetsOnly, type PatchMode } from "../core/patch.ts";
 import { reflogArgs, parseReflog, type ReflogEntry } from "../core/reflog.ts";
@@ -83,7 +84,7 @@ import type {
 	StashEntry,
 	SubmoduleInfo,
 } from "../core/types.ts";
-import { GitError, runGit } from "./git.ts";
+import { GitError, runGit, runGitStreaming } from "./git.ts";
 import {
 	pruneTrash,
 	removeTrash,
@@ -115,6 +116,9 @@ export interface BackendOptions {
  * richiederanno, arriverà una `Libgit2Backend` dietro questa stessa interfaccia — non un refactor
  * dell'app.
  */
+/** Callback opzionale per l'avanzamento di rete: la UI non deve aspettare la fine del comando. */
+export type ProgressListener = (progress: NetworkProgress) => void;
+
 export interface GitBackend {
 	open(dir: string): Promise<Snapshot>;
 	refresh(): Promise<Snapshot>;
@@ -131,11 +135,11 @@ export interface GitBackend {
 	commit(message: string, all: boolean): Promise<Snapshot>;
 	checkout(branch: string): Promise<Snapshot>;
 	createBranch(name: string): Promise<Snapshot>;
-	fetch(): Promise<Snapshot>;
+	fetch(onProgress?: ProgressListener): Promise<Snapshot>;
 	/** `git pull --ff-only`: un ramo divergente si ferma con il messaggio di Git. */
-	pull(): Promise<Snapshot>;
+	pull(onProgress?: ProgressListener): Promise<Snapshot>;
 	/** Push senza forza; senza upstream crea il tracking su `origin`. */
-	push(): Promise<Snapshot>;
+	push(onProgress?: ProgressListener): Promise<Snapshot>;
 	stashList(): Promise<StashEntry[]>;
 	stashSave(message: string): Promise<Snapshot>;
 	/** Applica (`pop` falso) o applica ed elimina (`pop` vero) lo stash indicato. */
@@ -588,25 +592,35 @@ export class CliGitBackend implements GitBackend {
 		return this.refresh();
 	}
 
-	async fetch(): Promise<Snapshot> {
+	async fetch(onProgress?: ProgressListener): Promise<Snapshot> {
 		const info = this.#requireInfo();
-		await runGit(info.root, ["fetch", "--all", "--prune"], {
-			timeoutMs: 120_000,
-			env: await this.#networkEnv(info),
-		});
+		await runGitStreaming(
+			info.root,
+			["fetch", "--all", "--prune", "--progress"],
+			{
+				timeoutMs: 120_000,
+				env: await this.#networkEnv(info),
+			},
+			onProgress
+		);
 		return this.refresh();
 	}
 
-	async pull(): Promise<Snapshot> {
+	async pull(onProgress?: ProgressListener): Promise<Snapshot> {
 		const info = this.#requireInfo();
-		await runGit(info.root, pullArgs(), {
-			timeoutMs: 180_000,
-			env: await this.#networkEnv(info),
-		});
+		await runGitStreaming(
+			info.root,
+			pullArgs(),
+			{
+				timeoutMs: 180_000,
+				env: await this.#networkEnv(info),
+			},
+			onProgress
+		);
 		return this.refresh();
 	}
 
-	async push(): Promise<Snapshot> {
+	async push(onProgress?: ProgressListener): Promise<Snapshot> {
 		const info = this.#requireInfo();
 		// `@{u}` esiste solo con il tracking: senza, il primo push lo crea su origin.
 		const upstream = await runGit(
@@ -616,10 +630,15 @@ export class CliGitBackend implements GitBackend {
 		);
 		const hasUpstream =
 			upstream.code === 0 && upstream.stdout.trim() !== "";
-		await runGit(info.root, pushArgs(info.branch, hasUpstream), {
-			timeoutMs: 180_000,
-			env: await this.#networkEnv(info),
-		});
+		await runGitStreaming(
+			info.root,
+			pushArgs(info.branch, hasUpstream),
+			{
+				timeoutMs: 180_000,
+				env: await this.#networkEnv(info),
+			},
+			onProgress
+		);
 		return this.refresh();
 	}
 
@@ -809,12 +828,11 @@ export class CliGitBackend implements GitBackend {
 			runGit(info.root, ["ls-files", "-u", "-z"], { allowFailure: true }),
 			this.conflicts(),
 		]);
-		const stages =
-			parseUnmergedStages(tree.stdout).get(path) ?? {
-				base: false,
-				ours: false,
-				theirs: false,
-			};
+		const stages = parseUnmergedStages(tree.stdout).get(path) ?? {
+			base: false,
+			ours: false,
+			theirs: false,
+		};
 		const [base, ours, theirs, working] = await Promise.all([
 			this.#stageText(path, 1),
 			this.#stageText(path, 2),
@@ -823,8 +841,7 @@ export class CliGitBackend implements GitBackend {
 		]);
 		return {
 			path,
-			index:
-				present.find((file) => file.path === path)?.index ?? "U",
+			index: present.find((file) => file.path === path)?.index ?? "U",
 			worktree:
 				present.find((file) => file.path === path)?.worktree ?? "U",
 			stages,
@@ -872,8 +889,7 @@ export class CliGitBackend implements GitBackend {
 	async markResolved(paths: string[]): Promise<Snapshot> {
 		const info = this.#requireInfo();
 		for (const path of paths) assertSafePath(path);
-		if (paths.length > 0)
-			await runGit(info.root, ["add", "--", ...paths]);
+		if (paths.length > 0) await runGit(info.root, ["add", "--", ...paths]);
 		return this.refresh();
 	}
 

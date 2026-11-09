@@ -188,6 +188,8 @@ export interface GitApi {
 	terminalKill(id: string): Promise<void>;
 	/** Si iscrive all'output del terminale; restituisce la funzione per disiscriversi. */
 	onTerminal(listener: (event: TerminalEvent) => void): () => void;
+	/** Avanzamento di clone, fetch, pull e push; restituisce la funzione per disiscriversi. */
+	onNetwork(listener: (event: NetworkEvent) => void): () => void;
 	/** Apre il pannello dei dettagli in una finestra separata. */
 	detachPanel(): Promise<boolean>;
 	/** Pubblica la selezione corrente: la finestra del pannello la segue. */
@@ -358,6 +360,20 @@ export const PANEL_STATE_CHANNEL = "panel:state";
 
 /** Canale di solo invio: apertura e chiusura della finestra del pannello. */
 export const PANEL_DETACHED_CHANNEL = "panel:detached";
+
+/** Canale di solo invio: avanzamento delle operazioni di rete letto da `stderr` di Git. */
+export const NETWORK_CHANNEL = "net:progress";
+
+export type NetworkScope = "clone" | "fetch" | "pull" | "push";
+
+/** Un aggiornamento di rete: `root` nullo per il clone, che avviene prima di aprire il repository. */
+export interface NetworkEvent {
+	root: string | null;
+	scope: NetworkScope;
+	phase: string;
+	percent: number;
+	detail: string;
+}
 
 export type TerminalEvent =
 	| { kind: "data"; id: string; text: string }

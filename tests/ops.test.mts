@@ -46,17 +46,18 @@ test("assertRefName rifiuta opzioni, spazi e sequenze riservate", () => {
 });
 
 test("pull è solo fast-forward", () => {
-	assert.deepEqual(pullArgs(), ["pull", "--ff-only"]);
+	assert.deepEqual(pullArgs(), ["pull", "--ff-only", "--progress"]);
 });
 
 test("push senza upstream crea il tracking su origin", () => {
 	assert.deepEqual(pushArgs("main", false), [
 		"push",
+		"--progress",
 		"--set-upstream",
 		"origin",
 		"main",
 	]);
-	assert.deepEqual(pushArgs("main", true), ["push"]);
+	assert.deepEqual(pushArgs("main", true), ["push", "--progress"]);
 	assert.throws(() => pushArgs(null, false), /HEAD staccato/);
 });
 

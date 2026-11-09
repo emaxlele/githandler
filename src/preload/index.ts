@@ -3,10 +3,12 @@ import { contextBridge, ipcRenderer } from "electron";
 import type { GitApi } from "../shared/api.ts";
 import {
 	CHANGED_CHANNEL,
+	NETWORK_CHANNEL,
 	OAUTH_CHANNEL,
 	PANEL_DETACHED_CHANNEL,
 	PANEL_STATE_CHANNEL,
 	TERMINAL_CHANNEL,
+	type NetworkEvent,
 	type OAuthEvent,
 	type PanelState,
 	type RepoChangeEvent,
@@ -28,7 +30,11 @@ function invokeRepo<T>(channel: string, ...args: unknown[]): Promise<T> {
 
 const api: GitApi = {
 	open: async (path, interactive = true) => {
-		const snapshot = await ipcRenderer.invoke("git:open", path, interactive);
+		const snapshot = await ipcRenderer.invoke(
+			"git:open",
+			path,
+			interactive
+		);
 		if (snapshot) currentRoot = snapshot.info.root;
 		return snapshot;
 	},
@@ -87,8 +93,7 @@ const api: GitApi = {
 	saveAccount: (account, token) =>
 		ipcRenderer.invoke("accounts:save", account, token),
 	removeAccount: (id) => ipcRenderer.invoke("accounts:remove", id),
-	accountRepos: (id, page) =>
-		ipcRenderer.invoke("accounts:repos", id, page),
+	accountRepos: (id, page) => ipcRenderer.invoke("accounts:repos", id, page),
 	claimAccount: (input) => ipcRenderer.invoke("accounts:claim", input),
 	repoAccount: () => invokeRepo("repo:account"),
 	setRepoAccount: (id) => invokeRepo("repo:account:set", id),
@@ -170,6 +175,16 @@ const api: GitApi = {
 		ipcRenderer.on(TERMINAL_CHANNEL, handler);
 		return () => {
 			ipcRenderer.removeListener(TERMINAL_CHANNEL, handler);
+		};
+	},
+	onNetwork: (listener) => {
+		const handler = (
+			_event: Electron.IpcRendererEvent,
+			event: NetworkEvent
+		): void => listener(event);
+		ipcRenderer.on(NETWORK_CHANNEL, handler);
+		return () => {
+			ipcRenderer.removeListener(NETWORK_CHANNEL, handler);
 		};
 	},
 	detachPanel: () => invokeRepo("panel:detach"),

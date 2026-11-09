@@ -158,7 +158,9 @@ export function normalizeAccount(value: unknown): Account | null {
 	const label = typeof record.label === "string" ? record.label.trim() : "";
 	// il Client ID è pubblico ma finisce in un corpo HTTP: una sola riga stampabile, o niente
 	const oauthRaw =
-		typeof record.oauthClientId === "string" ? record.oauthClientId.trim() : "";
+		typeof record.oauthClientId === "string"
+			? record.oauthClientId.trim()
+			: "";
 	const oauthClientId = oauthRaw && LINE_SAFE.test(oauthRaw) ? oauthRaw : "";
 	return {
 		id: accountId(provider, host, username),
@@ -404,13 +406,14 @@ export function remoteWeb(remote: string): RemoteWeb | null {
 		.replace(/\.git$/i, "");
 	if (!host || path.split("/").filter(Boolean).length < 2) return null;
 	const lower = host.toLowerCase();
-	const kind: RemoteKind = lower === "github.com"
-		? "github"
-		: lower === "bitbucket.org"
+	const kind: RemoteKind =
+		lower === "github.com"
+			? "github"
+			: lower === "bitbucket.org"
 			? "bitbucket"
 			: lower.includes("gitlab")
-				? "gitlab"
-				: "other";
+			? "gitlab"
+			: "other";
 	return { host: lower, base: `https://${lower}/${path}`, kind };
 }
 
@@ -541,10 +544,22 @@ export function remoteIdentity(remote: string): RemoteIdentity | null {
 	const name = path[path.length - 1]!;
 	const namespace = path.slice(0, -1).join("/");
 	const owner = path[0]!;
-	return { host: web.host, namespace, owner, name, base: web.base, kind: web.kind };
+	return {
+		host: web.host,
+		namespace,
+		owner,
+		name,
+		base: web.base,
+		kind: web.kind,
+	};
 }
 
-export type AccountChoiceReason = "saved" | "owner" | "single" | "first" | "none";
+export type AccountChoiceReason =
+	| "saved"
+	| "owner"
+	| "single"
+	| "first"
+	| "none";
 
 export interface AccountChoice {
 	account: Account | null;
@@ -578,7 +593,9 @@ export function chooseRepoAccount(
 	const identity = remote ? remoteIdentity(remote) : null;
 	const host = identity?.host ?? null;
 	const candidates = host
-		? accounts.filter((item) => item.host.toLowerCase() === host.toLowerCase())
+		? accounts.filter(
+				(item) => item.host.toLowerCase() === host.toLowerCase()
+		  )
 		: [];
 	const saved = savedId
 		? candidates.find((item) => item.id === savedId) ?? null
@@ -607,7 +624,7 @@ export function cloneArgs(url: string, dest: string): string[] {
 	if (!url.trim()) throw new Error("URL del repository mancante.");
 	if (!dest.startsWith("/"))
 		throw new Error(`Destinazione non assoluta: ${dest}`);
-	return ["clone", "--", url, dest];
+	return ["clone", "--progress", "--", url, dest];
 }
 
 export function initArgs(dest: string): string[] {

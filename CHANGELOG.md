@@ -2,6 +2,24 @@
 
 ## [Non rilasciato]
 
+### Avanzamento delle operazioni di rete
+
+-   **Barra nella toolbar** per clone, fetch, pull e push: la fase di Git (ricezione, risoluzione,
+    invio…), una barra e la percentuale, aggiornate mentre il comando lavora. Il dettaglio (oggetti,
+    velocità) compare come tooltip.
+-   **Lettura in streaming**: `runGitStreaming` avvia `git` con le pipe e passa i pezzi di `stderr` a
+    un lettore puro; `execFile` restituiva `stderr` solo alla fine e la barra sarebbe comparsa a lavoro
+    concluso. Il limite di output resta 64 MiB e il timeout è quello dell'operazione.
+-   **Parser tollerante**: righe divise fra due letture, aggiornamenti con `\r`, prefisso `remote:`,
+    codici colore ANSI e percentuali fuori intervallo; le righe senza percentuale non producono eventi.
+-   **`--progress` esplicito** su clone, fetch, pull e push, così Git scrive l'avanzamento anche
+    quando `stderr` non è un terminale. Gli argomenti restano verificati dai test di `ops` e
+    `providers`.
+-   **Un evento per repository**: ogni aggiornamento porta il root; il renderer ignora quello di
+    un'altra scheda. Il clone, che avviene prima di aprire il repository, ha `root: null`.
+-   Test nuovi in `tests/network.test.mts` (parser e lettore) e `tests/network-progress.test.mts`
+    (clone reale da `file://` con eventi fino al 100%).
+
 ### Temi e preferenze
 
 -   **Tema chiaro, scuro e OLED** (nero assoluto), scelto nelle impostazioni; «Automatico» segue il

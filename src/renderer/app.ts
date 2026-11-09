@@ -288,6 +288,10 @@ const ui = {
 	repoWatch: byId("repo-watch"),
 	repoAccount: byId<HTMLButtonElement>("repo-account"),
 	repoSync: byId("repo-sync"),
+	networkStatus: byId("network-status"),
+	networkPhase: byId("network-phase"),
+	networkFill: byId("network-fill"),
+	networkPct: byId("network-pct"),
 	btnOpen: byId<HTMLButtonElement>("btn-open"),
 	btnNewTab: byId<HTMLButtonElement>("btn-new-tab"),
 	btnClone: byId<HTMLButtonElement>("btn-clone"),
@@ -2123,9 +2127,51 @@ async function checkout(branch: string): Promise<void> {
 	if (snapshot) applySnapshot(snapshot);
 }
 
+// ── avanzamento delle operazioni di rete ─────────────────────────────────────
+
+/** I passi di Git sono in inglese; la UI usa l'italiano come lingua sorgente. */
+const NETWORK_PHASES: Record<string, string> = {
+	"Enumerating objects": "Enumerazione oggetti",
+	"Counting objects": "Conteggio oggetti",
+	"Compressing objects": "Compressione oggetti",
+	"Writing objects": "Scrittura oggetti",
+	"Receiving objects": "Ricezione oggetti",
+	"Resolving deltas": "Risoluzione delta",
+	"Updating files": "Aggiornamento file",
+	"Checking out files": "Checkout file",
+	"Unpacking objects": "Estrazione oggetti",
+};
+
+function showNetworkPhase(label: string): void {
+	ui.networkPhase.textContent = t(label);
+	ui.networkPct.textContent = "";
+	ui.networkFill.style.width = "0%";
+	ui.networkStatus.title = t(label);
+	ui.networkStatus.classList.remove("hidden");
+}
+
+function hideNetwork(): void {
+	ui.networkStatus.classList.add("hidden");
+}
+
+api.onNetwork((event) => {
+	// un'operazione di un'altra scheda non deve comparire sopra questa
+	if (event.root && event.root !== state.root) return;
+	const label = NETWORK_PHASES[event.phase] ?? "Rete";
+	ui.networkPhase.textContent = t(label);
+	ui.networkPct.textContent = `${event.percent}%`;
+	ui.networkFill.style.width = `${event.percent}%`;
+	ui.networkStatus.title = event.detail
+		? `${t(label)}: ${event.detail}`
+		: t(label);
+	ui.networkStatus.classList.remove("hidden");
+});
+
 async function fetchAll(): Promise<void> {
 	toast("Fetch in corso…", "ok");
+	showNetworkPhase("Rete");
 	const snapshot = await guard("Fetch", () => api.fetch());
+	hideNetwork();
 	if (snapshot) {
 		applySnapshot(snapshot);
 		toast("Fetch completato.", "ok");
@@ -2541,7 +2587,9 @@ async function resetTo(
 
 async function pullChanges(): Promise<void> {
 	toast("Pull in corso…", "ok");
+	showNetworkPhase("Rete");
 	const snapshot = await guard("Pull", () => api.pull());
+	hideNetwork();
 	if (!snapshot) return;
 	applySnapshot(snapshot);
 	toast("Pull completato.", "ok");
@@ -2549,7 +2597,9 @@ async function pullChanges(): Promise<void> {
 
 async function pushChanges(): Promise<void> {
 	toast("Push in corso…", "ok");
+	showNetworkPhase("Rete");
 	const snapshot = await guard("Push", () => api.push());
+	hideNetwork();
 	if (!snapshot) return;
 	applySnapshot(snapshot);
 	toast("Push completato.", "ok");
@@ -3577,9 +3627,11 @@ async function cloneFromUrl(): Promise<void> {
 
 	ui.cloneDialog.close();
 	toast("Clone in corso…", "ok");
+	showNetworkPhase("Rete");
 	const snapshot = await guard("Clone", () =>
 		api.cloneRepo(url, joinPath(parent, name))
 	);
+	hideNetwork();
 	if (!snapshot) return;
 	adoptSnapshot(snapshot);
 	toast("Repository clonato.", "ok");
@@ -4065,9 +4117,11 @@ async function cloneRemoteRepo(repo: RemoteRepo): Promise<void> {
 	if (!askConfirm(`Clonare ${repo.fullName} in ${dest}?`)) return;
 	ui.accountDialog.close();
 	toast("Clone in corso…", "ok");
+	showNetworkPhase("Rete");
 	const snapshot = await guard("Clone", () =>
 		api.cloneRepo(repo.cloneUrl, dest)
 	);
+	hideNetwork();
 	if (!snapshot) return;
 	adoptSnapshot(snapshot);
 	toast("Repository clonato.", "ok");

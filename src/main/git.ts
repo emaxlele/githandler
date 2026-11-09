@@ -1,4 +1,6 @@
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
+
+import { ProgressReader, type NetworkProgress } from "../core/network.ts";
 
 export interface GitResult {
 	code: number;
@@ -101,6 +103,113 @@ export function runGit(
 }
 
 /**
+ * Come `runGit`, ma legge `stderr` man mano che arriva e ne ricava l'avanzamento.
+ *
+ * `execFile` restituisce `stderr` solo alla fine: per una rete lenta sarebbe una barra che compare
+ * quando il lavoro è già finito. Qui il processo è avviato con le pipe, l'output è accumulato per
+ * l'errore finale e le righe di avanzamento vengono passate a `onProgress` senza attendere l'uscita.
+ */
+export function runGitStreaming(
+	cwd: string,
+	args: string[],
+	options: RunOptions = {},
+	onProgress?: (progress: NetworkProgress) => void
+): Promise<GitResult> {
+	const argv = ["-c", "core.quotepath=false", ...args];
+	const limit = 64 * 1024 * 1024;
+
+	return new Promise((resolve, reject) => {
+		const child = spawn("git", argv, {
+			cwd,
+			env: gitEnv(options.env),
+			stdio: ["pipe", "pipe", "pipe"],
+		});
+		const reader = onProgress ? new ProgressReader(onProgress) : null;
+		let stdout = "";
+		let stderr = "";
+		let bytes = 0;
+		let settled = false;
+
+		const timer = setTimeout(() => {
+			if (settled) return;
+			child.kill("SIGTERM");
+			finish(
+				new GitError(
+					`git ${args[0] ?? ""}: tempo scaduto`,
+					args,
+					null,
+					stderr
+				)
+			);
+		}, options.timeoutMs ?? 30_000);
+
+		const finish = (error: Error | null, result?: GitResult): void => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timer);
+			reader?.end();
+			if (error) reject(error);
+			else resolve(result!);
+		};
+
+		const overflow = (): void => {
+			child.kill("SIGTERM");
+			finish(
+				new GitError(
+					`git ${args[0] ?? ""}: output troppo grande`,
+					args,
+					null,
+					stderr
+				)
+			);
+		};
+
+		child.stdout?.setEncoding("utf8");
+		child.stdout?.on("data", (chunk: string) => {
+			stdout += chunk;
+			bytes += chunk.length;
+			if (bytes > limit) overflow();
+		});
+		child.stderr?.setEncoding("utf8");
+		child.stderr?.on("data", (chunk: string) => {
+			stderr += chunk;
+			bytes += chunk.length;
+			reader?.push(chunk);
+			if (bytes > limit) overflow();
+		});
+		child.on("error", (error) => {
+			finish(
+				new GitError(
+					`git ${args[0] ?? ""}: ${error.message}`,
+					args,
+					null,
+					stderr
+				)
+			);
+		});
+		child.on("close", (code) => {
+			if (code !== 0 && !options.allowFailure) {
+				const detail =
+					stderr.trim() || stdout.trim() || "errore sconosciuto";
+				finish(
+					new GitError(
+						`git ${args[0] ?? ""}: ${detail}`,
+						args,
+						code,
+						stderr
+					)
+				);
+				return;
+			}
+			finish(null, { code: code ?? 1, stdout, stderr });
+		});
+
+		if (options.input !== undefined) child.stdin?.end(options.input);
+		else child.stdin?.end();
+	});
+}
+
+/**
  * Come `runGit`, ma restituisce i byte: serve a leggere un file da un commit senza passare dal testo
  * (immagini, archivi, qualunque cosa non sia UTF-8). Il limite è lo stesso di `runGit`.
  */
@@ -123,7 +232,9 @@ export function runGitBytes(
 				env: gitEnv(options.env),
 			},
 			(error, stdout, stderr) => {
-				const bytes = Buffer.isBuffer(stdout) ? stdout : Buffer.from(stdout ?? "");
+				const bytes = Buffer.isBuffer(stdout)
+					? stdout
+					: Buffer.from(stdout ?? "");
 				const err = Buffer.isBuffer(stderr)
 					? stderr.toString("utf8")
 					: String(stderr ?? "");
@@ -132,7 +243,9 @@ export function runGitBytes(
 					reject(
 						new GitError(
 							`git ${args[0] ?? ""}: ${
-								err.trim() || error?.message || "errore sconosciuto"
+								err.trim() ||
+								error?.message ||
+								"errore sconosciuto"
 							}`,
 							args,
 							code,

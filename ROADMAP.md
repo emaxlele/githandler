@@ -38,7 +38,7 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
     (`log -L`), while free text stays literal.
 -   ⏳ Content search across the working tree (`git grep`), as a separate tool.
 -   ✅ Reflog panel and "go to commit by SHA"; the undo history is visible instead of implicit.
--   ⏳ Network progress from `git` stderr during clone, fetch and push.
+-   ✅ Network progress from `git` stderr during clone, fetch, pull and push.
 -   ⏳ Partial stash, drag a file out of the window, lazy tree in the file view, syntax highlighting.
 -   ⏳ GPG-signed commits, commit message templates, hook output in the UI.
 -   ✅ Themes and preferences: light / dark / OLED, density, text size.

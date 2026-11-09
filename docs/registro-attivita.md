@@ -5,6 +5,23 @@
 
 ## 2026-11-09
 
+### Si vede quando il trasferimento è in corso
+
+-   **Cosa**: durante clone, fetch, pull e push la barra in alto mostra cosa sta facendo Git
+    (ricezione oggetti, risoluzione, invio), una barra di avanzamento e la percentuale. Passando il
+    mouse si legge anche il conteggio degli oggetti e la velocità.
+-   **Perché**: richiesta dell'utente — su un repository grande o una rete lenta l'app sembrava
+    ferma: si vedeva solo il risultato finale, o un errore.
+-   **Come**: l'app legge l'output di avanzamento di Git mentre arriva, invece di aspettare la fine
+    del comando; le righe sono interpretate da un modulo separato, che gestisce anche gli
+    aggiornamenti sulla stessa riga e i messaggi che non contengono una percentuale. L'avanzamento
+    di un'altra scheda non compare sopra quella attiva.
+-   **Verifica**: typecheck, **219 test** verdi (5 nuovi sul testo di avanzamento e 1 su un clone
+    reale da disco, fino al 100%) e build.
+-   **Stato**: completato. La resa su una rete reale lenta non è riproducibile in laboratorio, ma la
+    stessa lettura è stata provata su un clone vero.
+-   **Riferimento**: commit di questa sessione.
+
 ### Un aspetto scelto da chi usa l'app
 
 -   **Cosa**: nelle impostazioni c'è una nuova sezione **Aspetto** con il tema **chiaro**, **scuro** o

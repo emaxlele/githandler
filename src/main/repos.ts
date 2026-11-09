@@ -2,7 +2,8 @@ import { access, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import { cloneArgs, initArgs, repoNameFromUrl } from "../core/providers.ts";
-import { runGit } from "./git.ts";
+import type { NetworkProgress } from "../core/network.ts";
+import { runGit, runGitStreaming } from "./git.ts";
 
 /**
  * Le due operazioni che partono da una cartella che **non** è ancora un repository: creare e
@@ -56,12 +57,18 @@ export function cloneDestination(parent: string, url: string): string {
 export async function cloneRepository(
 	url: string,
 	dest: string,
-	env: Record<string, string> | null
+	env: Record<string, string> | null,
+	onProgress?: (progress: NetworkProgress) => void
 ): Promise<void> {
 	if (await exists(dest)) throw new Error(`La cartella esiste già: ${dest}`);
 	await mkdir(dirname(dest), { recursive: true });
-	await runGit(dirname(dest), cloneArgs(url, dest), {
-		timeoutMs: 600_000,
-		env: env ?? {},
-	});
+	await runGitStreaming(
+		dirname(dest),
+		cloneArgs(url, dest),
+		{
+			timeoutMs: 600_000,
+			env: env ?? {},
+		},
+		onProgress
+	);
 }

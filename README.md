@@ -68,6 +68,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Reflog** nell'app e «vai al commit» per SHA                                               | ✅             |
 | **Controlli delle pull request** (esito e collegamenti)                                     | ✅             |
 | **Notifiche CI dalla barra di sistema**                                                     | ✅             |
+| **Avanzamento di rete** (clone, fetch, pull, push)                                          | ✅             |
 | **Temi** chiaro / scuro / OLED, densità e dimensione del testo                              | ✅             |
 | **Aggiornamento automatico** (`--watch`)                                                    | ✅             |
 | **Blame nella UI** (pannello virtualizzato)                                                 | ✅             |
@@ -106,6 +107,10 @@ impostazioni:
     reset, rebase) con selettore, SHA abbreviato e data; «Vai al commit» apre quel commit nel
     pannello. «Vai al commit per SHA…», dalla palette, raggiunge qualsiasi commit anche fuori dalla
     pagina di storia caricata. Nessuna delle due cambia il repository.
+-   **Avanzamento delle operazioni di rete**: clone, fetch, pull e push leggono `stderr` di Git
+    mentre lavorano e mostrano nella toolbar la fase (ricezione, risoluzione, invio), una barra e la
+    percentuale; senza rete lenta la barra non serve, ma con un repository grande si vede che qualcosa
+    sta succedendo.
 -   **Ricerca con un linguaggio minimo**: il testo libero è letterale e non guarda le maiuscole;
     `author:` e `file:` filtrano autore e percorso; `regex:` cerca un'espressione regolare nel
     messaggio, `change:` i commit in cui cambia il numero di occorrenze di un testo (`-S`), `diff:` i

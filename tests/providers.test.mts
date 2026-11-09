@@ -449,6 +449,7 @@ test("le pagine dell'elenco repository hanno la taglia del provider", () => {
 test("clone e init non trasformano l'URL o il path in opzioni", () => {
 	assert.deepEqual(cloneArgs("https://host/a/b.git", "/tmp/b"), [
 		"clone",
+		"--progress",
 		"--",
 		"https://host/a/b.git",
 		"/tmp/b",

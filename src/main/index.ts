@@ -14,6 +14,7 @@ import { basename, join } from "node:path";
 
 import {
 	CHANGED_CHANNEL,
+	NETWORK_CHANNEL,
 	OAUTH_CHANNEL,
 	PANEL_DETACHED_CHANNEL,
 	PANEL_STATE_CHANNEL,
@@ -298,7 +299,13 @@ function registerIpc(): void {
 		await cloneRepository(
 			url,
 			dest,
-			await credentialEnvFor(hostFromUrl(url))
+			await credentialEnvFor(hostFromUrl(url)),
+			(progress) =>
+				broadcast(NETWORK_CHANNEL, {
+					root: null,
+					scope: "clone",
+					...progress,
+				})
 		);
 		return openBackend(dest);
 	});
@@ -353,9 +360,21 @@ function registerIpc(): void {
 	handle("git:createBranch", (root: string, name: string) =>
 		backendFor(root).createBranch(name)
 	);
-	handle("git:fetch", (root: string) => backendFor(root).fetch());
-	handle("git:pull", (root: string) => backendFor(root).pull());
-	handle("git:push", (root: string) => backendFor(root).push());
+	handle("git:fetch", (root: string) =>
+		backendFor(root).fetch((progress) =>
+			broadcast(NETWORK_CHANNEL, { root, scope: "fetch", ...progress })
+		)
+	);
+	handle("git:pull", (root: string) =>
+		backendFor(root).pull((progress) =>
+			broadcast(NETWORK_CHANNEL, { root, scope: "pull", ...progress })
+		)
+	);
+	handle("git:push", (root: string) =>
+		backendFor(root).push((progress) =>
+			broadcast(NETWORK_CHANNEL, { root, scope: "push", ...progress })
+		)
+	);
 	handle("git:stashList", (root: string) => backendFor(root).stashList());
 	handle("git:stashSave", (root: string, message: string) =>
 		backendFor(root).stashSave(message)

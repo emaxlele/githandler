@@ -68,6 +68,7 @@ Italiano: [README.md](README.md)
 | **Reflog** in the app and "go to commit" by SHA                                      | ✅             |
 | **Pull request checks** (result and links)                                           | ✅             |
 | **CI notifications from the system tray**                                            | ✅             |
+| **Network progress** (clone, fetch, pull, push)                                      | ✅             |
 | **Themes** light / dark / OLED, density and text size                                | ✅             |
 | **Automatic refresh** (`--watch`)                                                    | ✅             |
 | **Blame in the UI** (virtualized panel)                                              | ✅             |
@@ -105,6 +106,10 @@ settings:
     reset, rebase) with selector, abbreviated SHA and date; "Go to the commit" opens that commit in
     the panel. "Go to commit by SHA…", from the palette, reaches any commit even outside the loaded
     history page. Neither changes the repository.
+-   **Network progress**: clone, fetch, pull and push read Git `stderr` while they work and show in
+    the toolbar the phase (receiving, resolving, sending), a bar and the percentage; on a fast
+    connection the bar is not needed, but with a large repository you can see that something is
+    happening.
 -   **Search with a small language**: free text is literal and case-insensitive; `author:` and
     `file:` filter author and path; `regex:` searches the message with an extended regular
     expression, `change:` the commits where the number of occurrences of a text changed (`-S`),

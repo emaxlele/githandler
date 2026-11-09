@@ -27,7 +27,7 @@ export function assertRefName(name: string): void {
  * invece di creare un merge che l'utente non ha chiesto.
  */
 export function pullArgs(): string[] {
-	return ["pull", "--ff-only"];
+	return ["pull", "--ff-only", "--progress"];
 }
 
 /**
@@ -38,18 +38,19 @@ export function pushArgs(
 	branch: string | null,
 	hasUpstream: boolean
 ): string[] {
-	if (hasUpstream) return ["push"];
+	if (hasUpstream) return ["push", "--progress"];
 	if (!branch)
 		throw new Error(
 			"HEAD staccato: fai checkout di un ramo prima di pushare."
 		);
 	assertRefName(branch);
-	return ["push", "--set-upstream", "origin", branch];
+	return ["push", "--progress", "--set-upstream", "origin", branch];
 }
 
 /** SHA di commit: solo esadecimale, così non può diventare un'opzione della riga di comando. */
 export function assertSha(sha: string): void {
-	if (!/^[0-9a-f]{7,64}$/.test(sha)) throw new Error(`SHA non valido: ${sha}`);
+	if (!/^[0-9a-f]{7,64}$/.test(sha))
+		throw new Error(`SHA non valido: ${sha}`);
 }
 
 export function mergeArgs(branch: string): string[] {

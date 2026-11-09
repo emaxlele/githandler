@@ -103,6 +103,10 @@ minmax(0, 1fr)`), non più contenuto tagliato
 -   [x] **Cartella di base** (`Settings.defaultRoot`): punto di partenza dei dialog e destinazione
         predefinita dei cloni
 -   [x] **Ultima scheda chiudibile**: `git:close` ferma watcher e backend, la finestra torna al benvenuto
+-   [x] **Avanzamento delle operazioni di rete**: clone, fetch, pull e push leggono `stderr` di Git
+        a pezzi (`spawn`, non `execFile`) e mostrano nella toolbar fase, barra e percentuale; il
+        parser (`src/core/network.ts`) gestisce `\r`, il prefisso `remote:` e le righe senza
+        percentuale. Le operazioni usano `--progress` e timeout più lunghi.
 -   [x] **Preferenze e temi**: chiaro, scuro e OLED (nero assoluto), densità comoda o compatta,
         tre dimensioni del testo; il tema «Automatico» segue il sistema e vale anche per la finestra
         dei dettagli, perché zoom e schema di colore li applica il processo principale
@@ -164,8 +168,6 @@ minmax(0, 1fr)`), non più contenuto tagliato
         si sono ricevuti prima del merge invece che solo dopo
 -   [ ] Actions: `rerun-failed-jobs` (oggi `rerun` ripete tutti i job) e i workflow con input;
         l'annullamento è offerto solo alle esecuzioni non concluse
--   [ ] Clone e operazioni di rete senza avanzamento: oggi si vede solo l'esito. Un `--progress` letto
-        da `stderr` (pipe, non `execFile` buffer) darebbe una barra
 -   [ ] Pannello staccato: quando la finestra principale cambia repository, la finestra dei dettagli
         dovrebbe riaprire l'ultimo commit guardato in quel repository invece del primo della storia
         (oggi segue il repository e aspetta la pubblicazione successiva)
