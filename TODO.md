@@ -28,23 +28,23 @@ Stato al 2026-11-09 (v0.10.0). Le voci spuntate sono in `CHANGELOG.md`.
         `~/.local/bin/githandler`, voce nel menu applicazioni e icona SVG, senza sudo
 -   [x] **Interfaccia sul modello dei client Git desktop**: toolbar etichettata, scheda del repository,
         barra laterale Changes / All Commits, storia a cinque colonne, pannello
-        Commit / Changes / File Tree / Blame
+        Commit / File Tree / Blame / Terminale
 -   [x] **Dettaglio commit con autore e committer separati** (`git show -s`, canale
         `git:commitDetails`), SHA e parents nel pannello
 -   [x] **Pull, push, stash, submodule, merge/rebase/cherry-pick**: argomenti e parser in
         `src/core/ops.ts` con validazione dei nomi di ref; pull solo `--ff-only`, push senza forza e
         con tracking al primo invio; undo che copre anche merge, rebase e cherry-pick
 -   [x] **Terminale integrato**: `bash -lc` nella cartella del repository attivo, output in streaming,
-        pulsante *Interrompi* (nessuna dipendenza nuova, niente `node-pty`)
+        pulsante _Interrompi_ (nessuna dipendenza nuova, niente `node-pty`)
 -   [x] **Più repository aperti insieme**: backend per root e sessione per scheda, root come primo
         argomento di ogni canale IPC, watcher sulla scheda attiva
--   [x] **File e cartella dal repository**: pulsante *Cartella*, menu della scheda (cartella, percorso,
-    repository nel browser), menu del file (apri con l'app, mostra nella cartella, salva una copia, copia
-    percorso, doppio clic che apre), menu del commit con l'URL web; copie lette byte per byte dal working
-    tree o da `git show <sha>:<path>`, percorsi verificati nel main
+-   [x] **File e cartella dal repository**: pulsante _Cartella_, menu della scheda (cartella, percorso,
+        repository nel browser), menu del file (apri con l'app, mostra nella cartella, salva una copia, copia
+        percorso, doppio clic che apre), menu del commit con l'URL web; copie lette byte per byte dal working
+        tree o da `git show <sha>:<path>`, percorsi verificati nel main
 -   [x] **Token dal browser**: device flow OAuth per GitHub e GitLab (anche self-hosted) con Client ID
-    pubblico salvato nell'account, codice mostrato e pagina aperta, token che resta nel main; pagina dei
-    token per Gitea e Bitbucket
+        pubblico salvato nell'account, codice mostrato e pagina aperta, token che resta nel main; pagina dei
+        token per Gitea e Bitbucket
 -   [x] **«Accedi» senza Client ID**: token già presente sulla macchina (`gh auth token`, poi
         `git credential fill`), verificato con `GET /user`; il device flow resta la seconda strada
 -   [x] **Account per repository**: `chooseRepoAccount` (scelta salvata → proprietario del remoto →
@@ -57,7 +57,7 @@ Stato al 2026-11-09 (v0.10.0). Le voci spuntate sono in `CHANGELOG.md`.
 -   [x] **Elenco dei file tracciati** (`git ls-tree -r -z`, `ls-files` senza HEAD) filtrabile, con
         apertura dal sistema o nel browser; link web ai file anche per Gitea (`/src/branch/<ref>/…`)
 -   [x] **Esporta HEAD in uno zip** con `git archive`, senza dipendenze nuove
--   [x] **Paginazione dell'elenco repository** (*Carica altri*), una pagina per volta e senza duplicati
+-   [x] **Paginazione dell'elenco repository** (_Carica altri_), una pagina per volta e senza duplicati
 -   [x] **Changes a tutta area**: la voce della barra laterale porta il pannello delle modifiche
         nell'area principale, senza storia né pannello inferiore
 -   [x] **Clic sul ref = cursore sul commit** e **menu contestuale** su rami e commit (checkout, merge,
@@ -71,8 +71,11 @@ Stato al 2026-11-09 (v0.10.0). Le voci spuntate sono in `CHANGELOG.md`.
         `panel`, selezione pubblicata dalla finestra principale su `panel:sync` e ridiffusa su
         `panel:state`; alla chiusura il pannello rientra al suo posto
 -   [x] **Scroll del diff e dell'albero**: `.panes` con altezza vincolata (`grid-template-rows:
-        minmax(0, 1fr)`), non più contenuto tagliato
--   [x] **Scheda *Changes* del pannello distinta dalla voce della barra laterale**
+minmax(0, 1fr)`), non più contenuto tagliato
+-   [x] **Una sola vista delle modifiche**: la scheda _Changes_ del pannello inferiore è sparita (era la
+        stessa vista della voce della barra laterale, mostrata due volte); il contatore accanto a
+        _Changes_ si nasconde a zero ed è verde quando c'è solo da committare, ambra quando resta
+        qualcosa fuori dallo stage
 -   [x] **Menu del commit completo**: ramo dal commit, merge, rebase, reset soft/mixed/hard (con
         conferma), cherry-pick, copia; `assertSha` sugli SHA e undo del reset tramite `target`
 -   [x] **Benvenuto all'avvio** (`body.is-empty`): senza `--repo` nessun dialog di sistema, quattro

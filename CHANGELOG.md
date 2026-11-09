@@ -77,21 +77,37 @@
     schede, benvenuto). Le voci dei menu contestuali hanno un `hint` (`MenuEntry.hint`) che spiega cosa
     fa ciascuna senza doverla provare.
 
+### Una sola vista delle modifiche, un commit che si legge come una scheda
+
+-   La scheda **Changes** del pannello inferiore è stata **rimossa**: mostrava la stessa vista della voce
+    della barra laterale (era un unico elemento spostato da un contenitore all'altro). Le modifiche si
+    aprono solo da _Changes_, a tutta area.
+-   Il contatore accanto a _Changes_ ora è un indicatore: **sparisce a zero**, diventa **verde** quando
+    tutto è in stage (resta solo da committare) e **ambra** quando qualcosa è ancora fuori. Il passaggio
+    del mouse dice quanti file sono in stage e quanti fuori.
+-   Il pannello **Commit** non è più un elenco di percorsi accanto al diff, che sembrava un _File Tree_
+    più povero: ora è una **scheda** con autore (e committer quando è un altro), oggetto, data, SHA (un
+    clic lo copia), numero di genitori e di file, il corpo del messaggio su due righe e i file toccati
+    come **pastiglie** orizzontali con stato e cartella. Il diff prende tutta la larghezza e _File Tree_
+    resta l'unica vista ad albero.
+-   `PanelState` perde il campo `side` e la scheda `changes` (la finestra staccata non li usava): il
+    protocollo del pannello resta allineato alle schede che esistono davvero.
+
 ## [0.9.0] — 2026-11-08
 
 ### Arrivare al file, e alla cartella, dal repository
 
 -   Pulsante **Cartella** in toolbar: apre nel gestore file la cartella del repository attivo, e resta
     spento quando non c'è un repository.
--   Menu del tasto destro sulla **scheda del repository**: *Apri la cartella*, *Copia percorso*, *Apri il
-    repository nel browser* (dall'URL di `origin`), *Chiudi la scheda*.
--   Menu del tasto destro su un **file** — nel File Tree e nell'elenco dei file di un commit: *Apri con
-    l'applicazione associata*, *Mostra nella cartella*, *Salva una copia…*, *Copia percorso*. Il doppio
+-   Menu del tasto destro sulla **scheda del repository**: _Apri la cartella_, _Copia percorso_, _Apri il
+    repository nel browser_ (dall'URL di `origin`), _Chiudi la scheda_.
+-   Menu del tasto destro su un **file** — nel File Tree e nell'elenco dei file di un commit: _Apri con
+    l'applicazione associata_, _Mostra nella cartella_, _Salva una copia…_, _Copia percorso_. Il doppio
     clic apre il file con l'app di sistema.
 -   **Salva una copia** legge i byte veri: dal working tree per i file modificati, da
     `git show <sha>:<path>` per un file di un commit (quindi la versione di allora, anche se il file oggi
     non c'è più o è un binario). Oltre 64 MiB si ferma con un messaggio invece di troncare.
--   In un commit il menu si limita a *Salva una copia* e *Copia percorso*: promettere di aprire dal disco
+-   In un commit il menu si limita a _Salva una copia_ e _Copia percorso_: promettere di aprire dal disco
     un file che in quel commit esisteva e oggi no sarebbe una bugia.
 -   Voce **Apri il commit nel browser** nel menu della storia, con l'URL giusto per GitHub, GitLab e
     Bitbucket (`/commit/`, `/-/commit/`, `/commits/`). Per Gitea e per i remoti che non sono un sito web
@@ -102,10 +118,10 @@
 
 ### Il token si prende dal browser
 
--   **Accedi con il browser** nel dialogo account: OAuth *device flow* per GitHub e per GitLab (anche
+-   **Accedi con il browser** nel dialogo account: OAuth _device flow_ per GitHub e per GitLab (anche
     self-hosted). Il codice da inserire compare nel dialogo, la pagina di verifica si apre da sola e
     l'esito arriva quando l'autorizzazione è data — senza copiare token a mano.
--   Il campo **Client ID OAuth**, con il pulsante *Crea…* che apre la pagina giusta del provider. Il
+-   Il campo **Client ID OAuth**, con il pulsante _Crea…_ che apre la pagina giusta del provider. Il
     Client ID è **pubblico** (viaggia nell'URL di autorizzazione), non è un segreto, e da v0.9 si salva
     accanto agli altri dati dell'account.
 -   **Il token del device flow non passa mai dalla finestra**: il main interroga il provider, legge
@@ -130,8 +146,8 @@
 
 ### Si parte dal benvenuto, non da una finestra di sistema
 
--   All'avvio, se non c'è `--repo`, la finestra mostra il **benvenuto** con quattro scelte — *Apri un
-    repository*, *Crea un repository*, *Clona da URL*, *Clona da un account* — e non apre più da sola il
+-   All'avvio, se non c'è `--repo`, la finestra mostra il **benvenuto** con quattro scelte — _Apri un
+    repository_, _Crea un repository_, _Clona da URL_, _Clona da un account_ — e non apre più da sola il
     dialog di sistema. Il dialog si apre solo da un pulsante, e annullarlo lascia il benvenuto dov'è.
 -   Il **`+` delle schede** apre lo stesso menu invece di saltare al dialog, e ora è **centrato**
     sull'altezza delle schede (prima stava in basso a sinistra).
@@ -144,7 +160,7 @@
 ### Checkout di un commit, oltre che di un ramo
 
 -   Menu del commit → **«Checkout di questo commit (HEAD staccato)»**, con conferma. Il ramo non si
-    sposta: si guarda o si prova quel punto della storia, e *Annulla* riporta al ramo di prima.
+    sposta: si guarda o si prova quel punto della storia, e _Annulla_ riporta al ramo di prima.
 -   L'intestazione non mente più dopo un checkout staccato: il ramo (e lo stato staccato) vengono
     riletti a ogni aggiornamento da `symbolic-ref`, non ricordati dall'apertura.
 
@@ -161,7 +177,7 @@
 -   Dialogo **Clona**: URL HTTPS, SSH o percorso locale; il nome della cartella è l'ultima parte
     dell'URL e la destinazione si vede prima di confermare. Cartella genitore scelta a mano, dal
     dialogo o dalla cartella di base.
--   **Clona da un account**: elenco dei repository dell'utente con filtro e badge *privato*, e clone
+-   **Clona da un account**: elenco dei repository dell'utente con filtro e badge _privato_, e clone
     nella cartella indicata. Un clic, una cartella, una scheda.
 -   Timeout di 10 minuti sul clone, pulsanti disabilitati mentre l'operazione è in corso, e nessun
     output parziale spacciato per successo: o finisce, o l'errore arriva.
@@ -224,7 +240,7 @@
 -   **Il diff e l'albero non scorrevano.** Il contenitore dei pannelli cresceva con il contenuto e
     veniva tagliato dal riquadro: ora ha un'altezza vincolata e le due aree scorrono davvero, anche con
     un diff da migliaia di righe.
--   La scheda scelta non viene più sovrascritta quando si torna da *All Commits*.
+-   La scheda scelta non viene più sovrascritta quando si torna da _All Commits_.
 
 ### Menu del commit completo
 
@@ -259,7 +275,7 @@
 -   **Merge, rebase e cherry-pick** dal menu contestuale. Se Git si ferma su un conflitto compare un
     chip «Merge in corso · annulla» (o rebase / cherry-pick) che esegue `--abort`.
 -   **Terminale integrato**, senza dipendenze nuove: `bash -lc` nella cartella del repository attivo,
-    output in streaming a pezzi, pulsante *Interrompi*. Anche qui `GIT_TERMINAL_PROMPT=0`: un comando
+    output in streaming a pezzi, pulsante _Interrompi_. Anche qui `GIT_TERMINAL_PROMPT=0`: un comando
     che chiede credenziali fallisce invece di restare appeso. Niente stdin interattivo, è dichiarato.
 -   **Più repository aperti insieme**: un backend per root (`Map<root, CliGitBackend>`) e una sessione
     per scheda nel renderer. Ogni canale IPC porta il root come primo argomento, quindi una risposta in
@@ -270,9 +286,9 @@
 
 ### Navigazione
 
--   **Changes a tutta area**: clic su *Changes* nella barra laterale e il pannello delle modifiche
+-   **Changes a tutta area**: clic su _Changes_ nella barra laterale e il pannello delle modifiche
     prende l'area principale — niente storia e niente pannello inferiore, perché in quella modalità i
-    commit non servono. *All Commits* riporta la storia e ricorda l'ultima scheda scelta.
+    commit non servono. _All Commits_ riporta la storia e ricorda l'ultima scheda scelta.
 -   **Clic su un ramo o un tag**: il cursore va al commit corrispondente nella storia, senza toccare il
     working tree. Se il commit è oltre la prima pagina la storia continua a caricare finché non compare.
 -   **Tasto destro su un ramo**: checkout, merge, rebase, rinomina, elimina, copia nome e SHA; su un ref
@@ -293,6 +309,7 @@
 
 -   108 test automatici (erano 99): 9 nuovi sulle operazioni (`src/core/ops.ts`), con i nomi di ref
     ostili (`--upload-pack=…`, spazi, `..`) che devono restare nomi e non opzioni.
+
 ## [0.5.0] — 2026-11-08
 
 ### Nome

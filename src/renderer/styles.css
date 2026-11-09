@@ -812,6 +812,21 @@ body {
 	color: var(--text-dim);
 }
 
+/* il contatore delle modifiche: verde quando c'è solo da committare, ambra se resta lavoro */
+.badge[data-tone="dirty"] {
+	background: rgba(255, 166, 87, 0.16);
+	color: var(--tag);
+}
+
+.badge[data-tone="ready"] {
+	background: rgba(126, 231, 135, 0.14);
+	color: var(--add-fg);
+}
+
+.badge.is-zero {
+	display: none;
+}
+
 /* Senza altezza vincolata i pannelli crescono col contenuto e il diff non scorre. */
 .panes {
 	display: grid;
@@ -853,8 +868,10 @@ body {
 	color: var(--text-dim);
 }
 
-#panel-commit .files {
-	grid-template-rows: minmax(0, auto) minmax(0, 1fr);
+#panel-commit {
+	/* intestazione a tutta larghezza, poi il diff: la gerarchia opposta all'albero dei file */
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: auto minmax(0, 1fr);
 }
 
 #panel-tree .files {
@@ -1275,116 +1292,162 @@ body {
 	cursor: pointer;
 }
 
-.commit-meta {
-	padding: 8px 12px;
+/* ── intestazione del commit ────────────────────────────────────────────── */
+
+.commit-head {
 	border-bottom: 1px solid var(--border);
+	background: var(--panel);
 	font-size: 12px;
 	color: var(--text-dim);
-	overflow: auto;
-	max-height: 100%;
 }
 
-.meta-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 14px;
+/* senza commit selezionato il diff dice già cosa manca: niente intestazione vuota */
+.commit-head:empty {
+	display: none;
 }
 
-.meta-label {
-	font-size: 10px;
-	font-weight: 600;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	color: var(--text-faint);
-	margin-bottom: 5px;
-}
-
-.meta-person {
+.commit-line {
 	display: flex;
+	align-items: center;
 	gap: 8px;
-	align-items: flex-start;
+	padding: 7px 10px 6px;
 	min-width: 0;
 }
 
-.meta-person .avatar {
-	width: 28px;
-	height: 28px;
-	border-radius: 6px;
-	font-size: 11px;
-}
-
-.meta-person .who {
-	min-width: 0;
-}
-
-.meta-person .who strong {
-	display: block;
-	color: var(--text);
-	font-size: 12.5px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.meta-person .who span {
-	font-size: 11.5px;
-	color: var(--text-faint);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	display: block;
-	white-space: nowrap;
-}
-
-.meta-ids {
-	margin-top: 12px;
-	display: grid;
-	gap: 3px;
-}
-
-.meta-ids .line {
-	display: flex;
-	gap: 10px;
-	align-items: baseline;
-}
-
-.meta-ids .key {
-	width: 62px;
+.commit-line .avatar {
+	width: 20px;
+	height: 20px;
+	border-radius: 5px;
 	font-size: 10px;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	color: var(--text-faint);
 }
 
-.meta-ids .value {
-	font-family: var(--mono);
-	font-size: 11px;
-	color: var(--accent);
-	overflow-wrap: anywhere;
-}
-
-.meta-message {
-	margin: 10px 0 0;
-	padding-top: 8px;
-	border-top: 1px solid var(--border);
-}
-
-.meta-message .subject {
+.commit-subject {
+	flex: 1 1 auto;
+	min-width: 0;
 	color: var(--text);
 	font-size: 13px;
 	font-weight: 600;
-	line-height: 1.35;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-.meta-message .body {
-	margin-top: 6px;
-	color: var(--text-dim);
-	white-space: pre-wrap;
-	font-size: 12px;
-}
-
-.meta-empty {
-	font-size: 12px;
+.commit-facts {
+	flex: 0 1 auto;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	font-size: 11.5px;
 	color: var(--text-faint);
+}
+
+.commit-facts .sep {
+	color: var(--border-strong);
+}
+
+.commit-facts .commit-author {
+	color: var(--text-dim);
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.commit-facts .commit-committer {
+	color: var(--text-faint);
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.commit-sha {
+	appearance: none;
+	background: transparent;
+	border: none;
+	padding: 0;
+	font: inherit;
+	font-family: var(--mono);
+	font-size: 11px;
+	color: var(--accent);
+	cursor: pointer;
+}
+
+.commit-sha:hover {
+	text-decoration: underline;
+}
+
+.commit-body {
+	margin: 0 10px 7px;
+	padding-left: 28px;
+	color: var(--text-dim);
+	font-size: 12px;
+	white-space: pre-wrap;
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+.commit-chips {
+	display: flex;
+	gap: 4px;
+	padding: 0 10px 8px;
+	overflow-x: auto;
+	overflow-y: hidden;
+	white-space: nowrap;
+}
+
+.commit-chips::-webkit-scrollbar {
+	height: 6px;
+}
+
+.commit-chip {
+	appearance: none;
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	flex: 0 0 auto;
+	max-width: 320px;
+	padding: 2px 8px 2px 6px;
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	background: var(--panel-2);
+	color: var(--text-dim);
+	font: inherit;
+	font-size: 11.5px;
+	cursor: pointer;
+}
+
+.commit-chip:hover {
+	border-color: var(--border-strong);
+	color: var(--text);
+}
+
+.commit-chip.is-selected {
+	border-color: rgba(106, 169, 255, 0.5);
+	background: rgba(106, 169, 255, 0.12);
+	color: var(--text);
+}
+
+.commit-chip .st {
+	font-family: var(--mono);
+	font-size: 10.5px;
+	width: 10px;
+	text-align: center;
+	flex: 0 0 auto;
+}
+
+.commit-chip .chip-dir {
+	flex: 0 1 auto;
+	min-width: 0;
+	color: var(--text-faint);
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.commit-chip .chip-name {
+	flex: 0 0 auto;
+	color: var(--text);
 }
 
 /* ── toast ──────────────────────────────────────────────────────────────── */
@@ -1984,7 +2047,6 @@ body {
 	grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1fr);
 }
 
-
 /* ── pannello dei dettagli: maniglia, riduzione, finestra separata ─────────── */
 
 .splitter {
@@ -2073,7 +2135,6 @@ body {
 .panel-only .changes-main {
 	display: none;
 }
-
 
 /* ── benvenuto, creazione, clone, account ───────────────────────────────── */
 

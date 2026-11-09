@@ -58,11 +58,7 @@
 					</svg>
 					<span>Fetch</span>
 				</button>
-				<button
-					class="tool"
-					id="btn-pull"
-					title="git pull --ff-only"
-				>
+				<button class="tool" id="btn-pull" title="git pull --ff-only">
 					<svg viewBox="0 0 20 20" aria-hidden="true">
 						<path d="M10 3v10" />
 						<path d="M6 9l4 4 4-4" />
@@ -70,7 +66,11 @@
 					</svg>
 					<span>Pull</span>
 				</button>
-				<button class="tool" id="btn-push" title="git push (mai con forza)">
+				<button
+					class="tool"
+					id="btn-push"
+					title="git push (mai con forza)"
+				>
 					<svg viewBox="0 0 20 20" aria-hidden="true">
 						<path d="M10 15V5" />
 						<path d="M6 9l4-4 4 4" />
@@ -78,7 +78,11 @@
 					</svg>
 					<span>Push</span>
 				</button>
-				<button class="tool" id="btn-stash" title="Stash: salva e riprendi">
+				<button
+					class="tool"
+					id="btn-stash"
+					title="Stash: salva e riprendi"
+				>
 					<svg viewBox="0 0 20 20" aria-hidden="true">
 						<path d="M3.5 7h13v8.5h-13z" />
 						<path d="M5.5 7 6.8 3.5h6.4L14.5 7" />
@@ -194,7 +198,7 @@
 						<path d="M11 3.5v4h4" />
 					</svg>
 					<span>Changes</span>
-					<span class="badge" id="changes-count">0</span>
+					<span class="badge is-zero" id="changes-count">0</span>
 				</button>
 				<button
 					class="side-entry"
@@ -295,7 +299,67 @@
 					</div>
 				</div>
 
-				<div class="changes-main" id="changes-main"></div>
+				<div class="changes-main" id="changes-main">
+					<div class="panel is-active" id="panel-changes">
+						<div class="files">
+							<div class="files-head">
+								<span class="files-title">Staged</span>
+								<button
+									class="btn btn-small"
+									id="btn-unstage-all"
+									title="Toglie dallo staging tutti i file, senza perdere le modifiche"
+								>
+									Unstage
+								</button>
+							</div>
+							<ul class="file-list" id="changes-list-staged"></ul>
+							<div class="files-head">
+								<span class="files-title">Unstaged</span>
+								<button
+									class="btn btn-small"
+									id="btn-stage-all"
+									title="Aggiunge allo staging tutte le modifiche tracciate"
+								>
+									Stage
+								</button>
+							</div>
+							<ul
+								class="file-list"
+								id="changes-list-unstaged"
+							></ul>
+						</div>
+						<div class="diff-area">
+							<div class="diff-body" id="changes-diff">
+								<div class="empty-small">
+									Seleziona un file.
+								</div>
+							</div>
+							<div class="commit-box">
+								<textarea
+									id="commit-message"
+									rows="3"
+									placeholder="Messaggio di commit (Ctrl+Invio per confermare)"
+								></textarea>
+								<div class="commit-actions">
+									<label class="check">
+										<input
+											type="checkbox"
+											id="commit-all"
+										/>
+										<span>includi non staged (-a)</span>
+									</label>
+									<button
+										class="btn btn-primary"
+										id="btn-commit"
+										title="Crea il commit con i file in staging e il messaggio scritto"
+									>
+										Commit
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
 
 				<div
 					class="splitter"
@@ -312,14 +376,6 @@
 							title="Dettagli e modifiche del commit selezionato"
 						>
 							Commit
-						</button>
-						<button
-							class="tab"
-							data-tab="changes"
-							id="tab-changes"
-							title="File modificati nel working tree"
-						>
-							Changes
 						</button>
 						<button
 							class="tab"
@@ -383,152 +439,93 @@
 					</nav>
 
 					<div class="panes" id="panes">
-					<div class="panel is-active" id="panel-commit">
-						<div class="files">
-							<div class="commit-meta" id="commit-meta"></div>
-							<ul class="file-list" id="commit-files"></ul>
-						</div>
-						<div class="diff-area">
-							<div class="diff-body" id="commit-diff">
-								<div class="empty-small">
-									Seleziona un commit.
+						<div class="panel is-active" id="panel-commit">
+							<div class="commit-head" id="commit-head"></div>
+							<div class="diff-area">
+								<div class="diff-body" id="commit-diff">
+									<div class="empty-small">
+										Seleziona un commit.
+									</div>
 								</div>
 							</div>
 						</div>
-					</div>
 
-					<div class="panel" id="panel-changes">
-						<div class="files">
-							<div class="files-head">
-								<span class="files-title">Staged</span>
-								<button
-									class="btn btn-small"
-									id="btn-unstage-all"
-									title="Toglie dallo staging tutti i file, senza perdere le modifiche"
-								>
-									Unstage
-								</button>
-							</div>
-							<ul class="file-list" id="changes-list-staged"></ul>
-							<div class="files-head">
-								<span class="files-title">Unstaged</span>
-								<button
-									class="btn btn-small"
-									id="btn-stage-all"
-									title="Aggiunge allo staging tutte le modifiche tracciate"
-								>
-									Stage
-								</button>
-							</div>
-							<ul
-								class="file-list"
-								id="changes-list-unstaged"
-							></ul>
-						</div>
-						<div class="diff-area">
-							<div class="diff-body" id="changes-diff">
-								<div class="empty-small">
-									Seleziona un file.
-								</div>
-							</div>
-							<div class="commit-box">
-								<textarea
-									id="commit-message"
-									rows="3"
-									placeholder="Messaggio di commit (Ctrl+Invio per confermare)"
-								></textarea>
-								<div class="commit-actions">
-									<label class="check">
-										<input
-											type="checkbox"
-											id="commit-all"
-										/>
-										<span>includi non staged (-a)</span>
-									</label>
-									<button
-										class="btn btn-primary"
-										id="btn-commit"
-										title="Crea il commit con i file in staging e il messaggio scritto"
+						<div class="panel" id="panel-tree">
+							<div class="files">
+								<div class="files-head">
+									<span class="files-title" id="tree-title"
+										>File tree</span
 									>
-										Commit
+									<button
+										class="btn btn-small"
+										id="btn-tree-toggle"
+										title="Comprime o espande tutte le cartelle dell'albero"
+									>
+										Comprimi
 									</button>
 								</div>
+								<ul class="tree-list" id="tree-list"></ul>
 							</div>
-						</div>
-					</div>
-
-					<div class="panel" id="panel-tree">
-						<div class="files">
-							<div class="files-head">
-								<span class="files-title" id="tree-title"
-									>File tree</span
-								>
-								<button
-									class="btn btn-small"
-									id="btn-tree-toggle"
-									title="Comprime o espande tutte le cartelle dell'albero"
-								>
-									Comprimi
-								</button>
-							</div>
-							<ul class="tree-list" id="tree-list"></ul>
-						</div>
-						<div class="diff-area">
-							<div class="diff-body" id="tree-diff">
-								<div class="empty-small">
-									Seleziona un file dall'albero.
+							<div class="diff-area">
+								<div class="diff-body" id="tree-diff">
+									<div class="empty-small">
+										Seleziona un file dall'albero.
+									</div>
 								</div>
 							</div>
 						</div>
-					</div>
 
-					<div class="panel" id="panel-blame">
-						<div class="blame-pane">
-							<div class="blame-head">
-								<span class="blame-path" id="blame-path"></span>
-								<span class="muted"
-									>chi ha scritto ogni riga, dal più
-									recente</span
-								>
-							</div>
-							<div class="blame" id="blame-scroll">
-								<div
-									class="blame-spacer"
-									id="blame-spacer"
-								></div>
-								<div
-									class="blame-window"
-									id="blame-window"
-								></div>
-								<div class="empty" id="blame-empty">
-									Seleziona un file da Changes o da un commit.
+						<div class="panel" id="panel-blame">
+							<div class="blame-pane">
+								<div class="blame-head">
+									<span
+										class="blame-path"
+										id="blame-path"
+									></span>
+									<span class="muted"
+										>chi ha scritto ogni riga, dal più
+										recente</span
+									>
+								</div>
+								<div class="blame" id="blame-scroll">
+									<div
+										class="blame-spacer"
+										id="blame-spacer"
+									></div>
+									<div
+										class="blame-window"
+										id="blame-window"
+									></div>
+									<div class="empty" id="blame-empty">
+										Seleziona un file da Changes o da un
+										commit.
+									</div>
 								</div>
 							</div>
 						</div>
-					</div>
 
-					<div class="panel" id="panel-term">
-						<div class="terminal">
-							<pre class="term-output" id="term-output"></pre>
-							<form class="term-line" id="term-form">
-								<span class="term-prompt">$</span>
-								<input
-									id="term-input"
-									autocomplete="off"
-									spellcheck="false"
-									placeholder="comando nella cartella del repository"
-								/>
-								<button
-									type="button"
-									class="btn btn-small"
-									id="term-stop"
-									title="Interrompi il comando"
-								>
-									Interrompi
-								</button>
-							</form>
+						<div class="panel" id="panel-term">
+							<div class="terminal">
+								<pre class="term-output" id="term-output"></pre>
+								<form class="term-line" id="term-form">
+									<span class="term-prompt">$</span>
+									<input
+										id="term-input"
+										autocomplete="off"
+										spellcheck="false"
+										placeholder="comando nella cartella del repository"
+									/>
+									<button
+										type="button"
+										class="btn btn-small"
+										id="term-stop"
+										title="Interrompi il comando"
+									>
+										Interrompi
+									</button>
+								</form>
+							</div>
 						</div>
-					</div>
 					</div>
 				</div>
 			</main>
@@ -568,8 +565,8 @@
 						</button>
 					</div>
 					<p class="hint">
-						La cartella di base è <code id="welcome-base">—</code>: da
-						lì partono i dialog e i cloni, poi si naviga dove
+						La cartella di base è <code id="welcome-base">—</code>:
+						da lì partono i dialog e i cloni, poi si naviga dove
 						serve. Si cambia nelle impostazioni.
 					</p>
 				</div>
@@ -795,8 +792,8 @@
 				<h2>Submodule</h2>
 				<p class="hint">
 					«Aggiorna» esegue
-					<code>git submodule update --init --recursive</code>: scarica
-					e allinea i submodule al commit registrato.
+					<code>git submodule update --init --recursive</code>:
+					scarica e allinea i submodule al commit registrato.
 				</p>
 				<ul class="submodule-list" id="submodule-list"></ul>
 				<div class="dialog-actions">
@@ -831,7 +828,11 @@
 				<label class="field">
 					<span>Cartella genitore</span>
 					<div class="field-row">
-						<input id="create-parent" autocomplete="off" spellcheck="false" />
+						<input
+							id="create-parent"
+							autocomplete="off"
+							spellcheck="false"
+						/>
 						<button
 							type="button"
 							class="btn"
@@ -844,7 +845,11 @@
 				</label>
 				<label class="field">
 					<span>Nome del repository</span>
-					<input id="create-name" placeholder="nuovo-progetto" autocomplete="off" />
+					<input
+						id="create-name"
+						placeholder="nuovo-progetto"
+						autocomplete="off"
+					/>
 				</label>
 				<div class="field-grid">
 					<label class="field">
@@ -896,7 +901,11 @@
 				<label class="field">
 					<span>Cartella genitore</span>
 					<div class="field-row">
-						<input id="clone-parent" autocomplete="off" spellcheck="false" />
+						<input
+							id="clone-parent"
+							autocomplete="off"
+							spellcheck="false"
+						/>
 						<button
 							type="button"
 							class="btn"
@@ -932,14 +941,15 @@
 			<form id="account-form">
 				<h2>Account collegati</h2>
 				<p class="hint">
-					Il token serve per elencare i repository e per clonare quelli
-					privati; GitHandler non lo scrive su disco. Tre strade, dalla
-					più semplice: <strong>Accedi con il token del computer</strong>
-					usa un token che hai già (GitHub CLI o credential helper di
-					Git); <strong>Accedi con il browser</strong> apre il browser e
-					richiede un Client ID OAuth registrato; <strong>Crea un token
-					sul sito…</strong> apre la pagina dei token e poi lo incolli
-					qui sotto.
+					Il token serve per elencare i repository e per clonare
+					quelli privati; GitHandler non lo scrive su disco. Tre
+					strade, dalla più semplice:
+					<strong>Accedi con il token del computer</strong> usa un
+					token che hai già (GitHub CLI o credential helper di Git);
+					<strong>Accedi con il browser</strong> apre il browser e
+					richiede un Client ID OAuth registrato;
+					<strong>Crea un token sul sito…</strong> apre la pagina dei
+					token e poi lo incolli qui sotto.
 				</p>
 				<div class="account-layout">
 					<div class="account-side">
@@ -971,19 +981,34 @@
 						<div class="field-grid">
 							<label class="field">
 								<span>Host</span>
-								<input id="account-host" autocomplete="off" spellcheck="false" />
+								<input
+									id="account-host"
+									autocomplete="off"
+									spellcheck="false"
+								/>
 							</label>
 							<label class="field">
 								<span>Utente</span>
-								<input id="account-username" autocomplete="off" spellcheck="false" />
+								<input
+									id="account-username"
+									autocomplete="off"
+									spellcheck="false"
+								/>
 							</label>
 						</div>
 						<label class="field" id="account-api-field">
 							<span>Indirizzo API</span>
-							<input id="account-api-base" autocomplete="off" spellcheck="false" />
+							<input
+								id="account-api-base"
+								autocomplete="off"
+								spellcheck="false"
+							/>
 						</label>
 						<label class="field" id="account-oauth-client-field">
-							<span>Client ID OAuth (per l'accesso dal browser)</span>
+							<span
+								>Client ID OAuth (per l'accesso dal
+								browser)</span
+							>
 							<div class="field-row">
 								<input
 									id="account-oauth-client"
@@ -1036,7 +1061,10 @@
 							>
 								Crea un token sul sito e incollalo…
 							</button>
-							<span class="account-status" id="account-oauth-status"></span>
+							<span
+								class="account-status"
+								id="account-oauth-status"
+							></span>
 						</div>
 						<label class="field">
 							<span>Etichetta (facoltativa)</span>
@@ -1051,7 +1079,10 @@
 							>
 								Salva account
 							</button>
-							<span class="account-status" id="account-status"></span>
+							<span
+								class="account-status"
+								id="account-status"
+							></span>
 						</div>
 					</div>
 				</div>
@@ -1087,7 +1118,11 @@
 					</button>
 					<div class="field-row">
 						<span class="muted">Clona in</span>
-						<input id="account-dest" autocomplete="off" spellcheck="false" />
+						<input
+							id="account-dest"
+							autocomplete="off"
+							spellcheck="false"
+						/>
 						<button
 							type="button"
 							class="btn btn-small"

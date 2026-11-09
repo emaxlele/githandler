@@ -20,42 +20,42 @@ icona o asset preso da prodotti esistenti.
 
 ## Stato (v0.10)
 
-| Funzione                                            | Stato         |
-| --------------------------------------------------- | ------------- |
-| Apertura repository                                 | ✅             |
-| **Creazione repository** (`git init`, identità locale) | ✅          |
-| **Clone da URL e da account** (4 provider)          | ✅             |
-| **Benvenuto all'avvio** (nessun dialog automatico)  | ✅             |
-| **Azioni su file e cartella dal repository**        | ✅             |
-| **Accesso dal browser (device flow OAuth)**         | ✅             |
-| **«Accedi» con il token già presente** (`gh`, credential helper) | ✅ |
-| **Account scelto per repository** (chip nell'header) | ✅             |
-| **Fork: riconoscimento e sync con l'originale**      | ✅             |
-| **GitHub Actions**: esecuzioni, ri-esecuzione, annulla | ✅           |
-| **File del repository** (elenco filtrabile, browser) | ✅             |
-| **Esporta HEAD in uno zip**                          | ✅             |
-| Storia con grafo a corsie, paginata (2.000/pagina)  | ✅             |
-| Rami, remoti, tag con ahead/behind                  | ✅             |
-| Staging per file, unstage, scarto                   | ✅             |
-| **Staging parziale per hunk e per riga**            | ✅             |
-| Diff unified e **affiancato** con intra-riga        | ✅             |
-| Commit (anche `-a`), checkout di ramo e commit, nuovo ramo | ✅         |
-| Fetch                                               | ✅             |
-| **Pull** (`--ff-only`) e **push** (mai con forza)   | ✅             |
-| **Stash** (salva, applica, pop, elimina)            | ✅             |
-| **Merge, rebase, cherry-pick**, annulla conflitto   | ✅             |
-| **Submodule** (elenco e aggiornamento)              | ✅             |
-| **Terminale integrato** (nel repository attivo)     | ✅             |
-| **Più repository aperti insieme** (schede)          | ✅             |
-| **Undo generale** (commit, checkout, scarto, merge) | ✅             |
-| **File non tracciati recuperabili** (oggetti Git)   | ✅             |
-| **Ricerca nella storia** (`author:`, `file:`)       | ✅             |
-| **Aggiornamento automatico** (`--watch`)            | ✅             |
-| **Blame nella UI** (pannello virtualizzato)         | ✅             |
-| **Pannello ridimensionabile, a icona, in finestra** | ✅             |
-| **Server MCP con permessi configurabili**           | ✅             |
-| Syntax highlighting (CodeMirror 6)                  | ⏳ milestone 2 |
-| `.deb` con profilo AppArmor                         | ⏳ milestone 4 |
+| Funzione                                                         | Stato          |
+| ---------------------------------------------------------------- | -------------- |
+| Apertura repository                                              | ✅             |
+| **Creazione repository** (`git init`, identità locale)           | ✅             |
+| **Clone da URL e da account** (4 provider)                       | ✅             |
+| **Benvenuto all'avvio** (nessun dialog automatico)               | ✅             |
+| **Azioni su file e cartella dal repository**                     | ✅             |
+| **Accesso dal browser (device flow OAuth)**                      | ✅             |
+| **«Accedi» con il token già presente** (`gh`, credential helper) | ✅             |
+| **Account scelto per repository** (chip nell'header)             | ✅             |
+| **Fork: riconoscimento e sync con l'originale**                  | ✅             |
+| **GitHub Actions**: esecuzioni, ri-esecuzione, annulla           | ✅             |
+| **File del repository** (elenco filtrabile, browser)             | ✅             |
+| **Esporta HEAD in uno zip**                                      | ✅             |
+| Storia con grafo a corsie, paginata (2.000/pagina)               | ✅             |
+| Rami, remoti, tag con ahead/behind                               | ✅             |
+| Staging per file, unstage, scarto                                | ✅             |
+| **Staging parziale per hunk e per riga**                         | ✅             |
+| Diff unified e **affiancato** con intra-riga                     | ✅             |
+| Commit (anche `-a`), checkout di ramo e commit, nuovo ramo       | ✅             |
+| Fetch                                                            | ✅             |
+| **Pull** (`--ff-only`) e **push** (mai con forza)                | ✅             |
+| **Stash** (salva, applica, pop, elimina)                         | ✅             |
+| **Merge, rebase, cherry-pick**, annulla conflitto                | ✅             |
+| **Submodule** (elenco e aggiornamento)                           | ✅             |
+| **Terminale integrato** (nel repository attivo)                  | ✅             |
+| **Più repository aperti insieme** (schede)                       | ✅             |
+| **Undo generale** (commit, checkout, scarto, merge)              | ✅             |
+| **File non tracciati recuperabili** (oggetti Git)                | ✅             |
+| **Ricerca nella storia** (`author:`, `file:`)                    | ✅             |
+| **Aggiornamento automatico** (`--watch`)                         | ✅             |
+| **Blame nella UI** (pannello virtualizzato)                      | ✅             |
+| **Pannello ridimensionabile, a icona, in finestra**              | ✅             |
+| **Server MCP con permessi configurabili**                        | ✅             |
+| Syntax highlighting (CodeMirror 6)                               | ⏳ milestone 2 |
+| `.deb` con profilo AppArmor                                      | ⏳ milestone 4 |
 
 ## Interfaccia
 
@@ -63,26 +63,28 @@ La finestra segue la disposizione dei client Git desktop affermati, con un tema 
 
 -   **Toolbar** con le azioni etichettate (Apri, Clona, Cartella, Fetch, Pull, Push, Stash, Submodule,
     Aggiorna, Annulla) e, al centro, repository e ramo corrente. Sopra la storia ci sono le schede dei repository
-    aperti, con la × per chiuderle e il `+` che apre la scelta *Apri / Crea / Clona da URL / Clona da un
-    account*.
+    aperti, con la × per chiuderle e il `+` che apre la scelta _Apri / Crea / Clona da URL / Clona da un
+    account_.
 -   **Benvenuto senza repository**: all'avvio la finestra non apre nessun dialog di sistema, mostra le
     quattro scelte e la cartella di base da cui partono i dialog e i cloni. Chiudendo l'ultima scheda si
     torna lì.
--   **Barra laterale**: nome del repository, *Changes* con il conteggio, *All Commits*, filtro di
-    ricerca e i ref divisi in Branches / Remotes / Tags.
--   **Due viste per le modifiche**: la scheda *Changes* del pannello le mostra dentro il riquadro
-    inferiore, con la storia ancora sopra; la voce *Changes* della barra laterale le porta a tutta
-    area, senza storia né pannello inferiore. *All Commits* riporta la storia.
+-   **Barra laterale**: nome del repository, _Changes_ con il conteggio, _All Commits_, filtro di
+    ricerca e i ref divisi in Branches / Remotes / Tags. Il conteggio si nasconde a zero, è verde quando
+    tutto è in stage e ambra quando resta qualcosa fuori.
+-   **Una vista sola per le modifiche**: la voce _Changes_ della barra laterale le porta a tutta area,
+    senza storia né pannello inferiore: le liste Staged e Unstaged, il diff e il riquadro del commit.
+    _All Commits_ riporta la storia.
 -   **Storia** in cinque colonne: grafo a corsie, messaggio con i badge dei ref, autore con avatar a
     iniziali, SHA breve, data. Clic su un ramo o tag: il cursore va al suo commit. Tasto destro su un
     ramo: checkout, merge, rebase, rinomina, elimina, copia; su un commit: ramo nuovo da quel punto,
     merge, rebase, reset soft / mixed / hard, cherry-pick, copia di SHA e messaggio.
--   **Pannello inferiore** con cinque schede: `Commit` (AUTHOR e COMMITTER separati, SHA, PARENTS,
-    messaggio e file toccati), `Changes` (Staged e Unstaged divisi, diff, riquadro del commit),
-    `File Tree` (albero dei file del commit o del working tree, diff a destra), `Blame` e `Terminale`.
-    La maniglia sopra il pannello lo ridimensiona, `▾` lo riduce alla sola riga delle schede e `⧉` lo
-    apre in una finestra separata: chiusa quella, il pannello torna al suo posto. Diff e albero
-    scorrono, con la loro altezza vincolata al riquadro.
+-   **Pannello inferiore** con quattro schede: `Commit` (una scheda con autore — e committer, quando è
+    un altro — oggetto, data, SHA copiabile, genitori e numero di file, il corpo del messaggio e i file
+    toccati come pastiglie, poi il diff a tutta larghezza), `File Tree` (albero dei file del commit o
+    del working tree, diff a destra), `Blame` e `Terminale`. La maniglia sopra il pannello lo
+    ridimensiona, `▾` lo riduce alla sola riga delle schede e `⧉` lo apre in una finestra separata:
+    chiusa quella, il pannello torna al suo posto. Diff e albero scorrono, con la loro altezza
+    vincolata al riquadro.
 
 ### Dal repository al file
 
@@ -93,7 +95,7 @@ La finestra segue la disposizione dei client Git desktop affermati, con un tema 
     l'applicazione associata, mostra nella cartella, **salva una copia** fuori dal repository, copia il
     percorso. Da un commit la copia è la versione di allora, letta con `git show <sha>:<path>`: byte per
     byte, anche per i binari, con un tetto di 64 MiB oltre il quale l'app lo dice invece di troncare.
--   Tasto destro su un **commit**: *Apri il commit nel browser*, con l'URL del servizio (GitHub, GitLab,
+-   Tasto destro su un **commit**: _Apri il commit nel browser_, con l'URL del servizio (GitHub, GitLab,
     Bitbucket). Se il remoto non è un sito web il comando lo dice invece di aprire un indirizzo
     inventato.
 -   I percorsi mandati dalla finestra sono verificati nel main: nessun `..`, nessun percorso assoluto,
@@ -199,12 +201,12 @@ indirizzo dell'API.
 
 -   **Accedi con il token del computer** è un clic: l'app cerca un token già presente sulla macchina —
     `gh auth token --hostname <host>` (GitHub CLI), poi il credential helper di Git (`git credential
-    fill`) — lo verifica con `GET /user` e salva l'account. Nessun Client ID da incollare.
--   Se un token non c'è, resta **Accedi con il browser (serve il Client ID)**: il *device flow* OAuth di
+fill`) — lo verifica con `GET /user` e salva l'account. Nessun Client ID da incollare.
+-   Se un token non c'è, resta **Accedi con il browser (serve il Client ID)**: il _device flow_ OAuth di
     GitHub e GitLab
     (anche installazioni proprie). Il device flow **richiede un Client ID registrato** — non esiste un
     flusso anonimo — e l'app lo mostra per quello che è: un dato pubblico, salvato accanto agli altri
-    dati dell'account. Il pulsante *Crea…* apre la pagina dove registrarlo; per GitHub il device flow va
+    dati dell'account. Il pulsante _Crea…_ apre la pagina dove registrarlo; per GitHub il device flow va
     abilitato su quell'applicazione.
 -   In entrambi i casi il token lo riceve il main, che legge il nome dell'utente e salva l'account; alla
     finestra tornano solo l'esito e l'id dell'account.
@@ -232,8 +234,8 @@ Dal menu del tasto destro sulla scheda del repository:
     originale, crea il remoto `upstream` la prima volta, poi `fetch` e `merge`/`rebase` del ramo
     predefinito. Niente forza: un conflitto resta annullabile. Con HEAD staccato il sync si ferma e lo
     dice.
--   **GitHub Actions…**: ultime esecuzioni con workflow, stato, ramo ed evento; *Ri-esegui* (i job
-    falliti di un'esecuzione conclusa), *Annulla* (una in corso), *Apri* nel browser. Solo GitHub.
+-   **GitHub Actions…**: ultime esecuzioni con workflow, stato, ramo ed evento; _Ri-esegui_ (i job
+    falliti di un'esecuzione conclusa), _Annulla_ (una in corso), _Apri_ nel browser. Solo GitHub.
 -   **Apri un file del repository…**: elenco filtrabile dei file tracciati in HEAD, apertura dal sistema
     o nel browser (Gitea compreso).
 -   **Esporta HEAD in un archivio zip…**: `git archive`, quindi `export-ignore` e i filtri del

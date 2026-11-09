@@ -41,6 +41,7 @@ import type {
 	GitApi,
 	PanelState,
 	PanelStateInput,
+	PanelTab,
 } from "../shared/api.ts";
 import { BlameView } from "./blame-view.ts";
 import { pickKey, renderDiff, type DiffLayout } from "./diff-view.ts";
@@ -64,10 +65,11 @@ const panelMode = query.get("panel") === "1";
 const panelBootRoot = query.get("root");
 if (panelMode) document.body.classList.add("panel-only");
 
-type Tab = "changes" | "commit" | "tree" | "blame" | "term";
-
 /** La barra laterale decide cosa occupa l'area principale. */
 type Side = "changes" | "commits";
+
+/** La scheda del pannello inferiore: la stessa che riceve la finestra staccata. */
+type Tab = PanelTab;
 
 interface State {
 	/** root del repository: identifica la sessione */
@@ -193,7 +195,9 @@ const ui = {
 	accountToken: byId<HTMLInputElement>("account-token"),
 	accountOauthClientField: byId("account-oauth-client-field"),
 	accountOauthClient: byId<HTMLInputElement>("account-oauth-client"),
-	accountOauthClientHelp: byId<HTMLButtonElement>("account-oauth-client-help"),
+	accountOauthClientHelp: byId<HTMLButtonElement>(
+		"account-oauth-client-help"
+	),
 	accountClaim: byId<HTMLButtonElement>("account-claim"),
 	accountOauthStart: byId<HTMLButtonElement>("account-oauth-start"),
 	accountTokenPage: byId<HTMLButtonElement>("account-token-page"),
@@ -240,15 +244,12 @@ const ui = {
 	newBranchName: byId<HTMLInputElement>("new-branch-name"),
 	btnNewBranch: byId<HTMLButtonElement>("btn-new-branch"),
 	commitCount: byId("commit-count"),
-	tabChanges: byId<HTMLButtonElement>("tab-changes"),
 	tabCommit: byId<HTMLButtonElement>("tab-commit"),
 	tabTree: byId<HTMLButtonElement>("tab-tree"),
 	tabBlame: byId<HTMLButtonElement>("tab-blame"),
 	tabTerm: byId<HTMLButtonElement>("tab-term"),
 	main: byId("main"),
-	changesMain: byId("changes-main"),
 	panes: byId("panes"),
-	panelChanges: byId("panel-changes"),
 	panelTerm: byId("panel-term"),
 	panelCommit: byId("panel-commit"),
 	panelTree: byId("panel-tree"),
@@ -262,9 +263,8 @@ const ui = {
 	changesListStaged: byId("changes-list-staged"),
 	changesListUnstaged: byId("changes-list-unstaged"),
 	changesDiff: byId("changes-diff"),
-	commitFilesList: byId("commit-files"),
+	commitHead: byId("commit-head"),
 	commitDiff: byId("commit-diff"),
-	commitMeta: byId("commit-meta"),
 	commitMessage: byId<HTMLTextAreaElement>("commit-message"),
 	commitAll: byId<HTMLInputElement>("commit-all"),
 	btnCommit: byId<HTMLButtonElement>("btn-commit"),
@@ -429,7 +429,6 @@ let panelPublishTimer: number | undefined;
 function panelSnapshot(): PanelStateInput {
 	return {
 		tab: state.tab,
-		side: state.side,
 		selectedCommit: state.selectedCommit,
 		commitPath: state.commitPath,
 		changePath: state.changePath,
@@ -465,7 +464,10 @@ async function applyPanelState(payload: PanelState): Promise<void> {
 	}
 
 	const token = ++panelApplyToken;
-	if (payload.selectedCommit && payload.selectedCommit !== state.selectedCommit) {
+	if (
+		payload.selectedCommit &&
+		payload.selectedCommit !== state.selectedCommit
+	) {
 		await selectCommit(payload.selectedCommit);
 		if (token !== panelApplyToken) return;
 	}
@@ -661,7 +663,9 @@ function renderRepoAccount(): void {
 	chip.textContent = account ? accountLabel(account) : "nessun account";
 	chip.classList.toggle("is-guess", cached.reason === "first");
 	chip.title = account
-		? `${accountLabel(account)} — ${accountReasonText(cached)}. Clic per cambiare.`
+		? `${accountLabel(account)} — ${accountReasonText(
+				cached
+		  )}. Clic per cambiare.`
 		: `Nessun account per questo repository: ${accountReasonText(cached)}.`;
 }
 
@@ -777,7 +781,7 @@ function renderSession(): void {
 	void loadLog();
 	if (state.selectedCommit) logView.select(state.selectedCommit);
 	updateCommitCount();
-	renderCommitFiles();
+	renderCommitHead();
 	if (state.tab === "tree") renderTree(snapshot);
 	setSide(state.side);
 	if (state.side === "commits") {
@@ -1080,16 +1084,38 @@ function renderRefs(snapshot: Snapshot): void {
 /** Un file è nello stage quando l'indice è cambiato; può comparire in entrambe le liste. */
 function renderChanges(snapshot: Snapshot): void {
 	const entries = snapshot.status.entries;
-	ui.changesCount.textContent = String(entries.length);
-
 	const staged = entries.filter((entry) => entry.index !== ".");
 	const unstaged = entries.filter(
 		(entry) => entry.kind === "untracked" || entry.worktree !== "."
 	);
 
+	renderChangesBadge(entries.length, staged.length, unstaged.length);
 	fillChangeList(ui.changesListStaged, staged, true);
 	fillChangeList(ui.changesListUnstaged, unstaged, false);
 	renderTree(snapshot);
+}
+
+/**
+ * Il contatore dice a colpo d'occhio se c'è lavoro da fare: sparisce a zero, è verde quando tutto
+ * è in stage (basta il commit) e ambra quando qualcosa è ancora fuori.
+ */
+function renderChangesBadge(
+	total: number,
+	staged: number,
+	unstaged: number
+): void {
+	const badge = ui.changesCount;
+	badge.textContent = String(total);
+	badge.classList.toggle("is-zero", total === 0);
+	badge.dataset.tone = unstaged === 0 ? "ready" : "dirty";
+	badge.title =
+		total === 0
+			? "Nessuna modifica nel working tree"
+			: `${total} file con modifiche · ${staged} in stage, ${unstaged} fuori`;
+	ui.sideChanges.title =
+		total === 0
+			? "Changes — nessuna modifica nel working tree"
+			: `Changes — ${total} file con modifiche (${staged} in stage, ${unstaged} fuori)`;
 }
 
 function fillChangeList(
@@ -1269,121 +1295,153 @@ function renderTree(snapshot: Snapshot): void {
 	ui.treeList.appendChild(fragment);
 }
 
-function renderCommitMeta(): void {
-	clear(ui.commitMeta);
+/**
+ * Intestazione del commit: autore, oggetto e file toccati in una riga, poi il diff a tutta
+ * larghezza. La gerarchia è l'opposto di quella dell'albero dei file, che resta a due colonne.
+ */
+function renderCommitHead(): void {
+	clear(ui.commitHead);
 	const commit = state.commits.find((c) => c.sha === state.selectedCommit);
-	if (!commit) {
-		ui.commitMeta.appendChild(
-			el("div", "meta-empty", "Seleziona un commit dalla storia.")
-		);
-		return;
-	}
+	// senza commit il solo messaggio del diff basta: un'intestazione vuota occuperebbe spazio
+	if (!commit) return;
 
 	const details = state.commitDetails;
 	const author = details?.author;
-	const committer = details?.committer;
+	const name = author?.name ?? commit.author;
+	const email = author?.email ?? commit.email;
+	const iso = author?.date ?? new Date(commit.timestamp * 1000).toISOString();
+	const when = new Date(iso).getTime();
 
-	const person = (
-		label: string,
-		name: string,
-		email: string,
-		date: string | null
-	): HTMLElement => {
-		const wrap = el("div");
-		wrap.appendChild(el("div", "meta-label", label));
-		const line = el("div", "meta-person");
-		const avatar = el("span", "avatar", initials(name));
-		avatar.style.background = avatarColor(name);
-		const who = el("div", "who");
-		who.appendChild(el("strong", undefined, name));
-		if (date) {
-			const when = new Date(date);
-			who.appendChild(
-				el(
-					"span",
-					undefined,
-					Number.isNaN(when.getTime())
-						? date
-						: shortDate(when.getTime())
-				)
-			);
-		}
-		who.appendChild(el("span", undefined, email));
-		line.append(avatar, who);
-		wrap.appendChild(line);
-		return wrap;
-	};
+	const line = el("div", "commit-line");
+	const avatar = el("span", "avatar", initials(name));
+	avatar.style.background = avatarColor(name);
+	line.appendChild(avatar);
 
-	const grid = el("div", "meta-grid");
-	grid.appendChild(
-		person(
-			"Author",
-			author?.name ?? commit.author,
-			author?.email ?? commit.email,
-			author?.date ?? new Date(commit.timestamp * 1000).toISOString()
-		)
+	const subject = el(
+		"div",
+		"commit-subject",
+		details?.subject ?? commit.subject
 	);
-	if (committer) {
-		grid.appendChild(
-			person("Committer", committer.name, committer.email, committer.date)
+	subject.title = details?.body
+		? `${details.subject}\n\n${details.body}`
+		: details?.subject ?? commit.subject;
+	line.appendChild(subject);
+
+	const facts = el("div", "commit-facts");
+	const fact = (
+		className: string,
+		text: string,
+		title?: string
+	): HTMLElement => {
+		const node = el("span", className, text);
+		if (title) node.title = title;
+		return node;
+	};
+	const sep = (): HTMLElement => el("span", "sep", "·");
+
+	facts.appendChild(fact("commit-author", name, email));
+	facts.appendChild(sep());
+	facts.appendChild(
+		fact("", Number.isNaN(when) ? iso : shortDate(when), iso)
+	);
+
+	const sha = el("button", "commit-sha", commit.sha.slice(0, 7));
+	sha.title = `Copia lo SHA completo (${commit.sha})`;
+	sha.addEventListener("click", () => void copyText(commit.sha));
+	facts.appendChild(sep());
+	facts.appendChild(sha);
+
+	// rebase, cherry-pick e patch applicate da terzi hanno un committer diverso dall'autore
+	const committer = details?.committer;
+	if (committer && (committer.name !== name || committer.email !== email)) {
+		const stamp = new Date(committer.date).getTime();
+		facts.appendChild(sep());
+		facts.appendChild(
+			fact(
+				"commit-committer",
+				`committer ${committer.name}`,
+				`Committer: ${committer.name} <${committer.email}> · ${
+					Number.isNaN(stamp) ? committer.date : shortDate(stamp)
+				}`
+			)
 		);
 	}
-	ui.commitMeta.appendChild(grid);
 
-	const ids = el("div", "meta-ids");
-	const idLine = (key: string, value: string): HTMLElement => {
-		const line = el("div", "line");
-		line.appendChild(el("span", "key", key));
-		const text = el("span", "value", value);
-		text.title = value;
-		line.appendChild(text);
-		return line;
-	};
-	ids.appendChild(idLine("SHA", commit.sha));
-	ids.appendChild(
-		idLine(
-			"Parents",
-			(details?.parents ?? commit.parents)
-				.map((p) => p.slice(0, 8))
-				.join(" ") || "—"
+	const parents = details?.parents ?? commit.parents;
+	facts.appendChild(sep());
+	facts.appendChild(
+		fact(
+			"",
+			parents.length === 0
+				? "iniziale"
+				: parents.length === 1
+				? "1 genitore"
+				: `${parents.length} genitori`,
+			parents.length === 0
+				? "Commit iniziale, senza genitori"
+				: `Parent: ${parents.map((p) => p.slice(0, 8)).join(" ")}`
 		)
 	);
-	ui.commitMeta.appendChild(ids);
 
-	const message = el("div", "meta-message");
-	message.appendChild(
-		el("div", "subject", details?.subject ?? commit.subject)
+	facts.appendChild(sep());
+	const count = state.commitFiles.length;
+	facts.appendChild(
+		fact(
+			"",
+			count === 0
+				? "nessun file"
+				: count === 1
+				? "1 file"
+				: `${count} file`,
+			"File toccati dal commit"
+		)
 	);
-	if (details?.body) message.appendChild(el("div", "body", details.body));
-	ui.commitMeta.appendChild(message);
-}
+	line.appendChild(facts);
+	ui.commitHead.appendChild(line);
 
-function renderCommitFiles(): void {
-	clear(ui.commitFilesList);
-	renderCommitMeta();
-
-	if (state.commitFiles.length === 0) {
-		ui.commitFilesList.appendChild(el("li", "muted", "Nessun file."));
-		return;
+	if (details?.body) {
+		const body = el("div", "commit-body", details.body);
+		body.title = details.body;
+		ui.commitHead.appendChild(body);
 	}
 
+	// senza file il diff dice già che il commit non tocca niente: l'intestazione si ferma qui
+	if (state.commitFiles.length === 0) return;
+
+	const chips = el("div", "commit-chips");
 	for (const file of state.commitFiles) {
-		const item = el("li");
-		item.dataset.path = file.path;
-		if (file.path === state.commitPath) item.classList.add("is-selected");
-		const code = file.status === "?" ? "?" : file.status;
-		item.appendChild(
+		const chip = el("button", "commit-chip");
+		chip.dataset.path = file.path;
+		chip.title = file.oldPath
+			? `${file.oldPath} → ${file.path}`
+			: file.path;
+		if (file.path === state.commitPath) chip.classList.add("is-selected");
+
+		const code = file.status;
+		chip.appendChild(
 			el(
 				"span",
 				`st ${code === "?" ? "st-a" : `st-${code.toLowerCase()}`}`,
 				code
 			)
 		);
-		item.appendChild(el("span", "name", file.path));
-		ui.commitFilesList.appendChild(item);
+		const slash = file.path.lastIndexOf("/");
+		if (slash > 0) {
+			chip.appendChild(
+				el("span", "chip-dir", file.path.slice(0, slash + 1))
+			);
+		}
+		chip.appendChild(
+			el(
+				"span",
+				"chip-name",
+				slash > 0 ? file.path.slice(slash + 1) : file.path
+			)
+		);
+		chips.appendChild(chip);
 	}
+	ui.commitHead.appendChild(chips);
 }
-
 // ── azioni ───────────────────────────────────────────────────────────────────
 
 async function boot(): Promise<void> {
@@ -1426,7 +1484,7 @@ async function selectCommit(sha: string): Promise<void> {
 	if (!files || !isActive(root)) return;
 	state.commitDetails = details;
 	state.commitFiles = files;
-	renderCommitFiles();
+	renderCommitHead();
 	if (state.snapshot) renderTree(state.snapshot);
 
 	const first = files[0];
@@ -1441,7 +1499,7 @@ async function selectCommitFile(path: string): Promise<void> {
 	if (!sha) return;
 	state.commitPath = path;
 	state.treePath = path;
-	renderCommitFiles();
+	renderCommitHead();
 	if (state.snapshot) renderTree(state.snapshot);
 	const file = await guard("Diff", () => api.commitPatch(sha, path));
 	if (file && isActive(root)) {
@@ -1461,7 +1519,7 @@ async function selectTreeFile(path: string): Promise<void> {
 	if (state.selectedCommit) {
 		const sha = state.selectedCommit;
 		state.commitPath = path;
-		renderCommitFiles();
+		renderCommitHead();
 		const file = await guard("Diff", () => api.commitPatch(sha, path));
 		if (file && isActive(root)) {
 			renderDiff(ui.treeDiff, file, "Nessuna differenza.", {
@@ -1585,10 +1643,9 @@ async function reloadOpenDiff(): Promise<void> {
 	}
 }
 
-/** Un solo pannello inferiore attivo alla volta. */
+/** Un solo pannello inferiore attivo alla volta: le modifiche non ne fanno parte. */
 function syncPanels(): void {
 	const panels: Array<[Tab, HTMLElement, HTMLElement]> = [
-		["changes", ui.tabChanges, ui.panelChanges],
 		["commit", ui.tabCommit, ui.panelCommit],
 		["tree", ui.tabTree, ui.panelTree],
 		["blame", ui.tabBlame, ui.panelBlame],
@@ -1609,32 +1666,14 @@ function setSide(side: Side): void {
 	ui.sideChanges.classList.toggle("is-active", side === "changes");
 	ui.sideCommits.classList.toggle("is-active", side === "commits");
 	ui.main.classList.toggle("is-changes", side === "changes");
-
-	if (side === "changes") {
-		if (ui.panelChanges.parentElement !== ui.changesMain) {
-			ui.changesMain.appendChild(ui.panelChanges);
-		}
-		// il pannello inferiore è nascosto: resta attivo quello scelto per quando si torna
-		ui.panelChanges.classList.add("in-main", "is-active");
-	} else {
-		if (ui.panelChanges.parentElement !== ui.panes) {
-			ui.panes.appendChild(ui.panelChanges);
-		}
-		ui.panelChanges.classList.remove("in-main");
-		syncPanels();
-	}
 	publishPanel();
 }
 
 function setTab(tab: Tab): void {
-	if (state.side === "changes" && tab !== "changes") {
-		// dalla modalità modifiche si torna alla storia, con il pannello scelto
-		state.tab = tab;
-		setSide("commits");
-	} else {
-		state.tab = tab;
-		syncPanels();
-	}
+	// le schede sono nascoste in modalità modifiche: sceglierne una riporta la storia
+	if (state.side === "changes") setSide("commits");
+	state.tab = tab;
+	syncPanels();
 	if (tab === "blame") void loadBlame();
 	if (tab === "tree" && state.snapshot) renderTree(state.snapshot);
 	if (tab === "term") renderTerminal();
@@ -2123,11 +2162,7 @@ async function resetTo(
 			: mode === "soft"
 			? "I commit successivi escono dal ramo, le modifiche restano in stage."
 			: "I commit successivi escono dal ramo, le modifiche restano nel working tree.";
-	if (
-		!window.confirm(
-			`Reset ${mode} di ${branch} a ${short}?\n\n${detail}`
-		)
-	)
+	if (!window.confirm(`Reset ${mode} di ${branch} a ${short}?\n\n${detail}`))
 		return;
 	const snapshot = await guard(`Reset ${mode}`, () => api.reset(sha, mode));
 	if (!snapshot) return;
@@ -2818,7 +2853,9 @@ async function openCreate(): Promise<void> {
 async function createRepository(): Promise<void> {
 	const name = ui.createName.value.trim();
 	if (!validRepoName(name)) {
-		toast("Nome del repository non valido: niente barre o caratteri di controllo.");
+		toast(
+			"Nome del repository non valido: niente barre o caratteri di controllo."
+		);
 		return;
 	}
 	const parent = await ensureParent(
@@ -2830,7 +2867,9 @@ async function createRepository(): Promise<void> {
 	const userName = ui.createUserName.value.trim();
 	const email = ui.createUserEmail.value.trim();
 	if ((userName && !email) || (!userName && email)) {
-		toast("Nome ed email dell'identità vanno insieme, oppure tutti e due vuoti.");
+		toast(
+			"Nome ed email dell'identità vanno insieme, oppure tutti e due vuoti."
+		);
 		return;
 	}
 
@@ -2888,7 +2927,10 @@ async function cloneFromUrl(): Promise<void> {
 		toast(readableError(error));
 		return;
 	}
-	const parent = await ensureParent(ui.cloneParent, "Dove clonare il repository");
+	const parent = await ensureParent(
+		ui.cloneParent,
+		"Dove clonare il repository"
+	);
 	if (!parent) return;
 
 	ui.cloneDialog.close();
@@ -3059,7 +3101,8 @@ async function claimAccountFromForm(): Promise<void> {
 	if (!input) return;
 	ui.accountClaim.disabled = true;
 	ui.accountOauthStatus.classList.remove("is-error");
-	ui.accountOauthStatus.textContent = "Cerco un token già presente sulla macchina…";
+	ui.accountOauthStatus.textContent =
+		"Cerco un token già presente sulla macchina…";
 	try {
 		const result = await api.claimAccount(input);
 		ui.accountOauthStatus.textContent =
@@ -3068,7 +3111,11 @@ async function claimAccountFromForm(): Promise<void> {
 				: "Token trovato nel credential helper di Git.";
 		await refreshAccountsAfterOauth(
 			result.accountId,
-			`Account collegato senza Client ID (${result.source === "github-cli" ? "GitHub CLI" : "credential helper"}).`
+			`Account collegato senza Client ID (${
+				result.source === "github-cli"
+					? "GitHub CLI"
+					: "credential helper"
+			}).`
 		);
 	} catch (error) {
 		ui.accountOauthStatus.classList.add("is-error");
@@ -3089,7 +3136,8 @@ async function refreshAccountsAfterOauth(
 	if (!info) return;
 	accountsCache = info;
 	selectedAccount =
-		accountIdValue && info.accounts.some((item) => item.id === accountIdValue)
+		accountIdValue &&
+		info.accounts.some((item) => item.id === accountIdValue)
 			? accountIdValue
 			: info.accounts[0]?.id ?? null;
 	renderAccountList(selectedAccount);
@@ -3127,13 +3175,16 @@ function renderAccountList(activeId: string | null): void {
 		item.dataset.id = account.id;
 		if (account.id === activeId) item.classList.add("is-active");
 		item.appendChild(el("span", "account-name", accountLabel(account)));
-		const token =
-			accountsCache?.tokens.includes(account.id) ? " · token" : "";
+		const token = accountsCache?.tokens.includes(account.id)
+			? " · token"
+			: "";
 		item.appendChild(
 			el(
 				"span",
 				"account-sub",
-				`${providerInfo(account.provider).label} · ${account.host}${token}`
+				`${providerInfo(account.provider).label} · ${
+					account.host
+				}${token}`
 			)
 		);
 		item.addEventListener("click", () => selectAccount(account.id));
@@ -3195,7 +3246,8 @@ async function openAccounts(): Promise<void> {
 	const info = await guard("Account", () => api.accounts());
 	if (!info) return;
 	accountsCache = info;
-	if (!selectedAccount && info.accounts[0]) selectedAccount = info.accounts[0].id;
+	if (!selectedAccount && info.accounts[0])
+		selectedAccount = info.accounts[0].id;
 	const account = info.accounts.find((item) => item.id === selectedAccount);
 	renderAccountList(selectedAccount);
 	if (account) fillAccountFields(account);
@@ -3221,7 +3273,9 @@ async function saveAccountFromForm(): Promise<void> {
 	const nextId = accountId(input.provider, input.host, input.username);
 	// cambiare utente o host produce un id nuovo: la voce di prima non deve restare orfana
 	if (previous && previous !== nextId) {
-		latest = (await guard("Account", () => api.removeAccount(previous))) ?? latest;
+		latest =
+			(await guard("Account", () => api.removeAccount(previous))) ??
+			latest;
 	}
 	accountsCache = latest;
 	selectedAccount = nextId;
@@ -3250,7 +3304,9 @@ async function removeSelectedAccount(): Promise<void> {
 	if (!account) return;
 	if (
 		!window.confirm(
-			`Rimuovere l'account ${accountLabel(account)}? Il token resta nel credential helper di Git, se ne hai uno.`
+			`Rimuovere l'account ${accountLabel(
+				account
+			)}? Il token resta nel credential helper di Git, se ne hai uno.`
 		)
 	)
 		return;
@@ -3280,16 +3336,21 @@ async function loadRemoteRepos(more = false): Promise<void> {
 	ui.btnLoadRepos.disabled = true;
 	ui.btnMoreRepos.disabled = true;
 	try {
-		const repos = await guard("Repository", () => api.accountRepos(id, page));
+		const repos = await guard("Repository", () =>
+			api.accountRepos(id, page)
+		);
 		if (!repos) {
-			ui.accountStatus.textContent = "Elenco non disponibile: leggi il messaggio.";
+			ui.accountStatus.textContent =
+				"Elenco non disponibile: leggi il messaggio.";
 			ui.accountStatus.classList.add("is-error");
 			return;
 		}
 		if (page === 1) {
 			remoteReposCache = repos;
 		} else {
-			const known = new Set(remoteReposCache.map((repo) => repo.fullName));
+			const known = new Set(
+				remoteReposCache.map((repo) => repo.fullName)
+			);
 			remoteReposCache = [
 				...remoteReposCache,
 				...repos.filter((repo) => !known.has(repo.fullName)),
@@ -3297,7 +3358,8 @@ async function loadRemoteRepos(more = false): Promise<void> {
 		}
 		remoteReposPage = page;
 		renderRemoteRepos();
-		const full = repos.length >= (account ? reposPageSize(account.provider) : 100);
+		const full =
+			repos.length >= (account ? reposPageSize(account.provider) : 100);
 		ui.btnMoreRepos.classList.toggle("hidden", !full);
 		ui.accountStatus.textContent = `${remoteReposCache.length} repository.`;
 		ui.accountStatus.classList.remove("is-error");
@@ -3313,7 +3375,7 @@ function renderRemoteRepos(): void {
 	const repos = query
 		? remoteReposCache.filter((repo) =>
 				repo.fullName.toLowerCase().includes(query)
-			)
+		  )
 		: remoteReposCache;
 	if (repos.length === 0) {
 		ui.remoteRepos.appendChild(
@@ -3332,7 +3394,11 @@ function renderRemoteRepos(): void {
 		item.dataset.name = repo.fullName;
 		item.appendChild(el("span", "repo-name", repo.fullName));
 		if (repo.private) item.appendChild(el("span", "repo-badge", "privato"));
-		const button = el("button", "btn btn-small", "Clona") as HTMLButtonElement;
+		const button = el(
+			"button",
+			"btn btn-small",
+			"Clona"
+		) as HTMLButtonElement;
 		button.type = "button";
 		button.addEventListener("click", () => void cloneRemoteRepo(repo));
 		item.appendChild(button);
@@ -3344,7 +3410,10 @@ async function cloneRemoteRepo(repo: RemoteRepo): Promise<void> {
 	let parent = ui.accountDest.value.trim() || baseFolder;
 	if (!parent) {
 		const chosen = await guard("Destinazione", () =>
-			api.chooseFolder("Dove clonare il repository", baseFolder || undefined)
+			api.chooseFolder(
+				"Dove clonare il repository",
+				baseFolder || undefined
+			)
 		);
 		if (!chosen) return;
 		ui.accountDest.value = chosen;
@@ -3354,7 +3423,9 @@ async function cloneRemoteRepo(repo: RemoteRepo): Promise<void> {
 	if (!window.confirm(`Clonare ${repo.fullName} in ${dest}?`)) return;
 	ui.accountDialog.close();
 	toast("Clone in corso…", "ok");
-	const snapshot = await guard("Clone", () => api.cloneRepo(repo.cloneUrl, dest));
+	const snapshot = await guard("Clone", () =>
+		api.cloneRepo(repo.cloneUrl, dest)
+	);
 	if (!snapshot) return;
 	adoptSnapshot(snapshot);
 	toast("Repository clonato.", "ok");
@@ -3425,7 +3496,8 @@ async function openFilePicker(): Promise<void> {
 	if (!ui.fileDialog.open) ui.fileDialog.showModal();
 	const list = await guard("File del repository", () => api.listRepoFiles());
 	if (!list) {
-		ui.fileStatus.textContent = "Elenco non disponibile: leggi il messaggio.";
+		ui.fileStatus.textContent =
+			"Elenco non disponibile: leggi il messaggio.";
 		ui.fileStatus.classList.add("is-error");
 		return;
 	}
@@ -3460,7 +3532,8 @@ function renderFileList(): void {
 	for (const path of shown) {
 		const item = el("li");
 		item.dataset.path = path;
-		item.title = "Doppio clic per aprirlo dal disco; tasto destro per le altre azioni.";
+		item.title =
+			"Doppio clic per aprirlo dal disco; tasto destro per le altre azioni.";
 		if (path === fileSelectedPath) item.classList.add("is-selected");
 		item.appendChild(el("span", "repo-name", path));
 		item.addEventListener("click", () => selectFile(path));
@@ -3576,8 +3649,9 @@ function renderWorkflowRuns(): void {
 			) as HTMLButtonElement;
 			cancel.type = "button";
 			cancel.title = "Annulla l'esecuzione in corso su GitHub.";
-			cancel.addEventListener("click", () =>
-				void workflowAction(run.id, "cancel")
+			cancel.addEventListener(
+				"click",
+				() => void workflowAction(run.id, "cancel")
 			);
 			actions.appendChild(cancel);
 		} else {
@@ -3587,18 +3661,25 @@ function renderWorkflowRuns(): void {
 				"Ri-esegui"
 			) as HTMLButtonElement;
 			rerun.type = "button";
-			rerun.title = "Avvia di nuovo questo workflow con gli stessi parametri.";
-			rerun.addEventListener("click", () =>
-				void workflowAction(run.id, "rerun")
+			rerun.title =
+				"Avvia di nuovo questo workflow con gli stessi parametri.";
+			rerun.addEventListener(
+				"click",
+				() => void workflowAction(run.id, "rerun")
 			);
 			actions.appendChild(rerun);
 		}
 		if (run.url) {
-			const open = el("button", "btn btn-small", "Apri") as HTMLButtonElement;
+			const open = el(
+				"button",
+				"btn btn-small",
+				"Apri"
+			) as HTMLButtonElement;
 			open.type = "button";
 			open.title = "Apre l'esecuzione su GitHub nel browser.";
-			open.addEventListener("click", () =>
-				void guard("Browser", () => api.openExternal(run.url))
+			open.addEventListener(
+				"click",
+				() => void guard("Browser", () => api.openExternal(run.url))
 			);
 			actions.appendChild(open);
 		}
@@ -3619,7 +3700,9 @@ async function workflowAction(
 	);
 	if (done === null) return;
 	toast(
-		action === "cancel" ? "Esecuzione annullata." : "Esecuzione ri-avviata.",
+		action === "cancel"
+			? "Esecuzione annullata."
+			: "Esecuzione ri-avviata.",
 		"ok"
 	);
 	await loadWorkflowRuns();
@@ -3645,7 +3728,10 @@ ui.createCancel.addEventListener("click", () => ui.createDialog.close());
 ui.createBrowse.addEventListener("click", () => {
 	void (async () => {
 		const chosen = await guard("Cartella", () =>
-			api.chooseFolder("Dove creare il repository", baseFolder || undefined)
+			api.chooseFolder(
+				"Dove creare il repository",
+				baseFolder || undefined
+			)
 		);
 		if (chosen) ui.createParent.value = chosen;
 	})();
@@ -3664,7 +3750,10 @@ ui.cloneParent.addEventListener("input", updateCloneTarget);
 ui.cloneBrowse.addEventListener("click", () => {
 	void (async () => {
 		const chosen = await guard("Cartella", () =>
-			api.chooseFolder("Dove clonare il repository", baseFolder || undefined)
+			api.chooseFolder(
+				"Dove clonare il repository",
+				baseFolder || undefined
+			)
 		);
 		if (chosen) {
 			ui.cloneParent.value = chosen;
@@ -3731,7 +3820,10 @@ ui.accountFilter.addEventListener("input", () => renderRemoteRepos());
 ui.accountDestBrowse.addEventListener("click", () => {
 	void (async () => {
 		const chosen = await guard("Cartella", () =>
-			api.chooseFolder("Dove clonare il repository", baseFolder || undefined)
+			api.chooseFolder(
+				"Dove clonare il repository",
+				baseFolder || undefined
+			)
 		);
 		if (chosen) ui.accountDest.value = chosen;
 	})();
@@ -3742,7 +3834,10 @@ ui.accountForm.addEventListener("submit", (event) => event.preventDefault());
 ui.btnChooseBase.addEventListener("click", () => {
 	void (async () => {
 		const chosen = await guard("Cartella", () =>
-			api.chooseFolder("Cartella di base", ui.settingBase.value.trim() || undefined)
+			api.chooseFolder(
+				"Cartella di base",
+				ui.settingBase.value.trim() || undefined
+			)
 		);
 		if (chosen) ui.settingBase.value = chosen;
 	})();
@@ -3817,7 +3912,6 @@ ui.settingsForm.addEventListener("submit", (event) => {
 
 // Il tab del pannello mostra le modifiche dentro la finestra; la voce della barra laterale le porta
 // a tutta area: sono due modi diversi, e devono restare diversi.
-ui.tabChanges.addEventListener("click", () => setTab("changes"));
 ui.tabCommit.addEventListener("click", () => setTab("commit"));
 ui.tabTree.addEventListener("click", () => setTab("tree"));
 ui.tabBlame.addEventListener("click", () => setTab("blame"));
@@ -3979,17 +4073,19 @@ ui.changesDiff.addEventListener("click", (event) => {
 	togglePick(Number(hunk), Number(line.dataset.line));
 });
 
-ui.commitFilesList.addEventListener("contextmenu", (event) => {
-	const path = (event.target as HTMLElement).closest<HTMLElement>("li")
-		?.dataset.path;
+ui.commitHead.addEventListener("contextmenu", (event) => {
+	const path = (event.target as HTMLElement).closest<HTMLElement>(
+		"[data-path]"
+	)?.dataset.path;
 	if (!path) return;
 	event.preventDefault();
 	openMenu(event.clientX, event.clientY, fileMenuEntries(path));
 });
 
-ui.commitFilesList.addEventListener("click", (event) => {
-	const path = (event.target as HTMLElement).closest<HTMLElement>("li")
-		?.dataset.path;
+ui.commitHead.addEventListener("click", (event) => {
+	const path = (event.target as HTMLElement).closest<HTMLElement>(
+		"[data-path]"
+	)?.dataset.path;
 	if (path) void selectCommitFile(path);
 });
 

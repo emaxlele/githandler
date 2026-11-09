@@ -62,16 +62,44 @@
 -   **Stato**: completato.
 -   **Riferimento**: commit del repository `~/Projects/githandler`.
 
+### Una sola schermata per le modifiche, e il commit raccontato come una scheda
+
+-   **Cosa**: la scheda **Changes** del pannello in basso è stata **tolta**. Le modifiche si vedono solo
+    dalla voce _Changes_ della barra laterale, che apre la vista a tutta area. Il **numero accanto a
+    _Changes_** ora si comporta da spia: sparisce quando non c'è niente da fare, è verde quando basta
+    il commit e ambra quando qualcosa non è ancora in stage; al passaggio del mouse dice quanti file sono
+    in stage e quanti fuori. La sezione **Commit** del pannello in basso è stata **ridisegnata**: prima
+    era un elenco di percorsi accanto al diff, cioè la stessa cosa del _File Tree_ ma più povera; ora è
+    una scheda con autore, oggetto, data, SHA (un clic lo copia), quanti genitori e quanti file, il
+    corpo del messaggio e i file toccati come pastiglie orizzontali, con il diff a tutta larghezza.
+-   **Perché**: era la richiesta dell'utente — «changes qui non serve a nulla visto che abbiamo l'altro
+    sul pannello laterale», «bisogna fare un contatore che faccia capire a colpo d'occhio se ci sono
+    modifiche», «va fatta diversa questa visualizzazione della sezione commit perché così com'è è come
+    ripetere la sezione File tree ma in modo brutto».
+-   **Come**: la causa della duplicazione era un unico pannello spostato tra l'area principale e quella
+    inferiore: ora vive solo nell'area principale e la scheda inferiore non esiste più. Il contatore
+    nasce dal confronto tra file in stage e file fuori; la scheda del commit separa l'identità (una
+    riga), il messaggio (due righe al massimo) e i file (pastiglie che scorrono in orizzontale), lasciando
+    l'albero solo a _File Tree_. Il protocollo della finestra staccata è stato allineato alle schede
+    rimaste.
+-   **Verifica**: tipi e build puliti, 140 test automatici verdi. Prova reale con l'app su un repository
+    di prova: contatore assente a zero e verde/ambra nei due casi, nessuna scheda _Changes_ nel pannello,
+    passaggio da modifiche alla storia con un clic su una scheda, scheda del commit con corpo del
+    messaggio, commit di merge («2 genitori») e cinque file, _File Tree_ ancora a due colonne, pannello
+    in finestra separata che segue scheda e commit. Screenshot a 1440 e 940 pixel di larghezza.
+-   **Stato**: completato.
+-   **Riferimento**: commit del repository `~/Projects/githandler`.
+
 ## 2026-11-08
 
 ### Dal repository al file, e il token preso dal browser
 
--   **Cosa**: dal repository ora si arriva al **file** e alla **cartella**. C'è un pulsante *Cartella*
+-   **Cosa**: dal repository ora si arriva al **file** e alla **cartella**. C'è un pulsante _Cartella_
     che apre la posizione del progetto; il tasto destro sulla scheda del repository apre la cartella,
     copia il percorso o apre il repository nel browser; il tasto destro su un file (e il doppio clic) lo
     apre con il programma associato, lo mostra nella cartella, ne **salva una copia** fuori dal
-    repository o ne copia il percorso; il tasto destro su un commit aggiunge *Apri il commit nel
-    browser*. Inoltre il **token si può prendere dal browser**: si sceglie *Accedi con il browser*, si
+    repository o ne copia il percorso; il tasto destro su un commit aggiunge _Apri il commit nel
+    browser_. Inoltre il **token si può prendere dal browser**: si sceglie _Accedi con il browser_, si
     inserisce il codice mostrato nella pagina che si apre da sola e l'account risulta collegato, senza
     copiare token a mano.
 -   **Perché**: era la richiesta dell'utente — «aprire la posizione del repo, aprire un file, scaricare
@@ -127,7 +155,7 @@
     i comandi che hanno bisogno di un repository sono spenti quando non ce n'è uno aperto. Dopo un
     checkout su un commit l'intestazione mostra lo stato reale invece del ramo di prima.
 -   **Verifica**: 120 test automatici verdi (10 nuovi), build riuscita. Prova reale: repository creato da
-    zero, clone da un repository locale, checkout di un commit e ritorno al ramo con *Annulla*, account
+    zero, clone da un repository locale, checkout di un commit e ritorno al ramo con _Annulla_, account
     di prova con elenco di due repository e clone da lì, token sbagliato che produce un messaggio chiaro,
     file degli account con permessi `0600` e senza token.
 -   **Stato**: completato.
@@ -143,8 +171,8 @@
     veniva tagliato e non c'era modo di leggere il resto.
 -   **Perché**: erano le richieste della revisione dell'interfaccia — con un diff lungo non si poteva
     leggere nulla, e chi lavora su due monitor vuole i dettagli di là e la storia di qua. In più i due
-    modi di vedere le modifiche erano confusi: ora la scheda *Changes* del riquadro le mostra lì dentro,
-    mentre la voce *Changes* della barra laterale continua a portarle a tutta area.
+    modi di vedere le modifiche erano confusi: ora la scheda _Changes_ del riquadro le mostra lì dentro,
+    mentre la voce _Changes_ della barra laterale continua a portarle a tutta area.
 -   **Come**: la maniglia si trascina fra il 18% e il 78% dell'altezza e la misura resta al riavvio; il
     pannello ridotto occupa la sola riga delle schede. La finestra separata usa lo stesso programma in
     modalità «solo pannello»; è la finestra principale a decidere cosa si sta guardando e a comunicarlo,
@@ -152,7 +180,7 @@
     dettagli lo segue.
 -   **In più**: il menu del tasto destro su un commit ora ha **crea ramo da qui, merge, rebase e reset**
     (soft, mixed, hard, quest'ultimo in rosso con conferma), oltre a cherry-pick e copia. Il reset si può
-    annullare con *Annulla*: si torna al punto di prima lasciando le modifiche da rivedere.
+    annullare con _Annulla_: si torna al punto di prima lasciando le modifiche da rivedere.
 -   **Verifica**: 110 test automatici verdi (2 nuovi), build riuscita. Prova reale con un repository di
     dimostrazione: diff da oltre 5.000 righe che scorre, albero che scorre, pannello ridotto e riaperto,
     pannello staccato e rientrato, selezione sincronizzata fra le due finestre, ramo creato dal menu,

@@ -1,11 +1,7 @@
 import type { BlameFile } from "../core/blame.ts";
 import type { WorkflowRun } from "../core/actions.ts";
 import type { ForkInfo, ForkSyncResult } from "../core/fork.ts";
-import type {
-	Account,
-	AccountChoice,
-	RemoteRepo,
-} from "../core/providers.ts";
+import type { Account, AccountChoice, RemoteRepo } from "../core/providers.ts";
 import type { PatchMode } from "../core/patch.ts";
 import type { ResetMode } from "../core/ops.ts";
 import type { Settings, TrashUsage } from "../core/settings.ts";
@@ -99,10 +95,7 @@ export interface GitApi {
 	/** Ultime esecuzioni delle GitHub Actions del repository. */
 	workflowRuns(): Promise<WorkflowRun[]>;
 	/** Ri-esegue o annulla un'esecuzione (`rerun` solo se è finita). */
-	workflowRunAction(
-		id: string,
-		action: "rerun" | "cancel"
-	): Promise<void>;
+	workflowRunAction(id: string, action: "rerun" | "cancel"): Promise<void>;
 	/** File tracciati nel ref indicato (o in HEAD); serve al selettore dei file. */
 	listRepoFiles(ref?: string | null): Promise<RepoFileList>;
 	/** Salva il contenuto di HEAD in un archivio zip scelto dall'utente. */
@@ -116,7 +109,11 @@ export interface GitApi {
 	/** Mostra un file nella sua cartella. */
 	revealFile(root: string, path: string): Promise<void>;
 	/** Salva fuori dal repository una copia del file (dal working tree o da un commit). */
-	saveCopy(root: string, path: string, sha: string | null): Promise<string | null>;
+	saveCopy(
+		root: string,
+		path: string,
+		sha: string | null
+	): Promise<string | null>;
 	/** Apre nel browser il repository del remoto `origin`. */
 	openInBrowser(root: string): Promise<void>;
 	/** Apre nel browser il commit indicato. */
@@ -217,14 +214,12 @@ export interface OAuthEvent {
 	accountId?: string;
 }
 
-export type PanelTab = "changes" | "commit" | "tree" | "blame" | "term";
-export type PanelSide = "changes" | "commits";
+export type PanelTab = "commit" | "tree" | "blame" | "term";
 
 /** Quello che il pannello sta mostrando: la finestra staccata lo riceve e si allinea. */
 export interface PanelState {
 	root: string;
 	tab: PanelTab;
-	side: PanelSide;
 	selectedCommit: string | null;
 	commitPath: string | null;
 	changePath: string | null;

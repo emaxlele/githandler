@@ -105,12 +105,15 @@ let refreshPending = false;
 function newBackend(rootRef: { root: string | null }): CliGitBackend {
 	return new CliGitBackend({
 		settings: loadSettings,
-		credentials: (host) => credentialEnvFor(host, rootRef.root ?? undefined),
+		credentials: (host) =>
+			credentialEnvFor(host, rootRef.root ?? undefined),
 	});
 }
 
 /** Apre un repository già sul disco: backend, mappa per root, watcher sulla scheda attiva. */
-async function openBackend(target: string): Promise<Awaited<ReturnType<CliGitBackend["open"]>>> {
+async function openBackend(
+	target: string
+): Promise<Awaited<ReturnType<CliGitBackend["open"]>>> {
 	const rootRef: { root: string | null } = { root: null };
 	const backend = newBackend(rootRef);
 	const snapshot = await backend.open(target);
@@ -227,7 +230,11 @@ function registerIpc(): void {
 	});
 
 	handle("repo:clone", async (url: string, dest: string) => {
-		await cloneRepository(url, dest, await credentialEnvFor(hostFromUrl(url)));
+		await cloneRepository(
+			url,
+			dest,
+			await credentialEnvFor(hostFromUrl(url))
+		);
 		return openBackend(dest);
 	});
 
@@ -255,8 +262,12 @@ function registerIpc(): void {
 	);
 	handle(
 		"git:applyPatch",
-		(root: string, path: string, patch: string, mode: "stage" | "unstage") =>
-			backendFor(root).applyPatch(path, patch, mode)
+		(
+			root: string,
+			path: string,
+			patch: string,
+			mode: "stage" | "unstage"
+		) => backendFor(root).applyPatch(path, patch, mode)
 	);
 	handle("git:unstage", (root: string, paths: string[]) =>
 		backendFor(root).unstage(paths)
@@ -305,8 +316,10 @@ function registerIpc(): void {
 	handle("git:checkoutCommit", (root: string, sha: string) =>
 		backendFor(root).checkoutCommit(sha)
 	);
-	handle("git:reset", (root: string, sha: string, mode: "soft" | "mixed" | "hard") =>
-		backendFor(root).reset(sha, mode)
+	handle(
+		"git:reset",
+		(root: string, sha: string, mode: "soft" | "mixed" | "hard") =>
+			backendFor(root).reset(sha, mode)
 	);
 	handle("git:renameBranch", (root: string, from: string, to: string) =>
 		backendFor(root).renameBranch(from, to)
@@ -326,8 +339,10 @@ function registerIpc(): void {
 	handle("git:moreCommits", (root: string, skip: number) =>
 		backendFor(root).historyPage(skip)
 	);
-	handle("git:blame", (root: string, path: string, start?: number, end?: number) =>
-		backendFor(root).blame(path, start, end)
+	handle(
+		"git:blame",
+		(root: string, path: string, start?: number, end?: number) =>
+			backendFor(root).blame(path, start, end)
 	);
 	handle("git:undo", (root: string) => backendFor(root).undo());
 	handle("app:watching", async () => watchEnabled && stopWatching !== null);
@@ -499,7 +514,9 @@ function registerIpc(): void {
 			throw new Error(`Indirizzo non valido: ${url}`);
 		}
 		if (parsed.protocol !== "https:" && parsed.protocol !== "http:")
-			throw new Error(`Si possono aprire solo indirizzi http o https: ${url}`);
+			throw new Error(
+				`Si possono aprire solo indirizzi http o https: ${url}`
+			);
 		await shell.openExternal(parsed.toString());
 	});
 
@@ -710,10 +727,7 @@ async function runShots(): Promise<void> {
 			})()`,
 			target.replace(/\.png$/, "-account.png"),
 		],
-		[
-			`document.getElementById("account-dialog")?.close()`,
-			null,
-		],
+		[`document.getElementById("account-dialog")?.close()`, null],
 	];
 
 	const steps: Array<[string, string]> = [
@@ -722,7 +736,7 @@ async function runShots(): Promise<void> {
 			target.replace(/\.png$/, "-commit.png"),
 		],
 		[
-			`document.getElementById("tab-changes")?.click();
+			`document.getElementById("side-changes")?.click();
 			 document.querySelector("#changes-list-unstaged li")?.click();`,
 			target.replace(/\.png$/, "-changes.png"),
 		],
@@ -742,10 +756,6 @@ async function runShots(): Promise<void> {
 				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
 			})()`,
 			target.replace(/\.png$/, "-search.png"),
-		],
-		[
-			`document.getElementById("side-changes")?.click()`,
-			target.replace(/\.png$/, "-changes-main.png"),
 		],
 		[
 			`document.querySelector("#list-branches li")?.click()`,
@@ -790,7 +800,10 @@ async function runShots(): Promise<void> {
 
 	try {
 		await wait(1500);
-		const shoot = async (script: string, file: string | null): Promise<void> => {
+		const shoot = async (
+			script: string,
+			file: string | null
+		): Promise<void> => {
 			if (script !== "undefined")
 				await window!.webContents
 					.executeJavaScript(script)
