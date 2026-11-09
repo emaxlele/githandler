@@ -5,6 +5,29 @@
 
 ## 2026-11-09
 
+### Le schede dei repository si riaprono da sole
+
+-   **Cosa**: chiudendo e riaprendo l'applicazione i repository dell'ultima volta tornano aperti, nello
+    stesso ordine di schede, e la finestra si ferma su quello che si stava guardando. Prima ogni riavvio
+    ripartiva dalla schermata di benvenuto e i progetti andavano riaperti uno per uno. Un percorso
+    sparito non blocca l'avvio: quella scheda semplicemente non torna.
+-   **Perché**: era la lamentela dell'utente — «perché ogni volta che faccio una modifica e riapro
+    l'applicazione mi ritrovo a dover riconfigurare tutto, anche i progetti che avevo aperto?». Le
+    impostazioni e gli account erano già salvati su disco: erano le schede a vivere solo in memoria.
+-   **Come**: l'elenco dei repository aperti (e quale era attivo) viene scritto in
+    `localStorage["githandler.sessions"]` a ogni apertura, chiusura e cambio scheda; all'avvio viene
+    riletto e ogni repository viene riaperto, saltando quelli che non esistono più. `--repo` si aggiunge
+    alle schede riaperte invece di essere consumato dal ripristino. Il file delle preferenze resta
+    `~/.config/githandler/settings.json` (verificato che si scrive), gli account restano in
+    `accounts.json`; il token continua a **non** essere scritto su disco per scelta: senza un credential
+    helper di Git va rifatto «Accedi» (con `gh` installato basta un clic).
+-   **Verifica**: tipi e build puliti. Prova con l'app su due repository di prova e un profilo separato:
+    prima apertura, riavvio senza argomenti con due schede e quella attiva giusta, percorso inesistente
+    saltato e lista riscritta, chiusura della scheda attiva con lo stato salvato aggiornato, terzo avvio
+    con `--repo` che si aggiunge alle schede esistenti.
+-   **Stato**: completato.
+-   **Riferimento**: commit del repository `~/Projects/githandler`.
+
 ### La sezione Commit racconta il commit, non ripete l'elenco dei file
 
 -   **Cosa**: la sezione **Commit** del pannello in basso non mostra più i file come pastiglie (erano la

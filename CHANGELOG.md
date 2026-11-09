@@ -77,6 +77,18 @@
     schede, benvenuto). Le voci dei menu contestuali hanno un `hint` (`MenuEntry.hint`) che spiega cosa
     fa ciascuna senza doverla provare.
 
+### Le schede si riaprono da sole
+
+-   All'avvio la finestra **riprende i repository dell'ultima sessione**, nello stesso ordine di schede, e
+    torna su quello attivo. Prima ogni riavvio ripartiva dal benvenuto e i progetti andavano riaperti uno
+    per uno: `sessions` esisteva solo in memoria. La lista sta in `localStorage["githandler.sessions"]`
+    (`{ roots, active }`) e si aggiorna a ogni apertura, chiusura e cambio scheda; è una vista della
+    finestra, non una preferenza del repository, quindi non finisce in `settings.json`.
+-   Un percorso sparito o non più repository viene **saltato** senza fermare gli altri e la lista salvata
+    si riscrive senza; una lista illeggibile riparte dal benvenuto senza bloccare l'avvio.
+-   `--repo <path>` ora si aggiunge alle schede riaperte e diventa quello attivo, invece di essere
+    consumato dalla prima apertura di ripristino.
+
 ### Una sola vista delle modifiche, un commit che si legge come una scheda
 
 -   La scheda **Changes** del pannello inferiore è stata **rimossa**: mostrava la stessa vista della voce

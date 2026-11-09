@@ -65,9 +65,13 @@ La finestra segue la disposizione dei client Git desktop affermati, con un tema 
     Aggiorna, Annulla) e, al centro, repository e ramo corrente. Sopra la storia ci sono le schede dei repository
     aperti, con la × per chiuderle e il `+` che apre la scelta _Apri / Crea / Clona da URL / Clona da un
     account_.
--   **Benvenuto senza repository**: all'avvio la finestra non apre nessun dialog di sistema, mostra le
-    quattro scelte e la cartella di base da cui partono i dialog e i cloni. Chiudendo l'ultima scheda si
-    torna lì.
+-   **Le schede si riaprono da sole**: all'avvio la finestra riprende i repository dell'ultima sessione,
+    nello stesso ordine, e torna su quello che era attivo (`localStorage["githandler.sessions"]`). Un
+    percorso sparito viene saltato senza fermare gli altri. `--repo <path>` apre quel repository in più e
+    lo rende attivo.
+-   **Benvenuto senza repository**: senza schede salvate la finestra non apre nessun dialog di sistema,
+    mostra le quattro scelte e la cartella di base da cui partono i dialog e i cloni. Chiudendo l'ultima
+    scheda si torna lì.
 -   **Barra laterale**: nome del repository, _Changes_ con il conteggio, _All Commits_, filtro di
     ricerca e i ref divisi in Branches / Remotes / Tags. Il conteggio si nasconde a zero, è verde quando
     tutto è in stage e ambra quando resta qualcosa fuori.

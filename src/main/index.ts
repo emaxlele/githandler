@@ -196,8 +196,12 @@ function handle<T>(
 
 function registerIpc(): void {
 	handle("git:open", async (path?: string, interactive = true) => {
-		let target = path ?? pendingRepo ?? undefined;
-		pendingRepo = null;
+		// `--repo` vale per la prima apertura senza percorso: le schede riaperte all'avvio non lo consumano
+		let target = path;
+		if (!target && pendingRepo) {
+			target = pendingRepo;
+			pendingRepo = null;
+		}
 
 		if (!target) {
 			if (shotsMode || !window || !interactive) return null;

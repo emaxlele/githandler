@@ -142,6 +142,61 @@ function emptyState(root = ""): State {
 const sessions = new Map<string, State>();
 let state: State = emptyState();
 
+/**
+ * Le schede aperte sopravvivono alla chiusura della finestra: senza, ogni riavvio ripartiva dal
+ * benvenuto e i repository andavano riaperti uno per uno. La lista sta in `localStorage` perché è
+ * una vista della finestra, non una preferenza del repository.
+ */
+const SESSIONS_KEY = "githandler.sessions";
+/** Finché l'avvio non ha finito, le aperture parziali non devono sovrascrivere la lista salvata. */
+let sessionsReady = false;
+
+interface SavedSessions {
+	roots: string[];
+	active: string | null;
+}
+
+function readSavedSessions(): SavedSessions {
+	try {
+		const raw = localStorage.getItem(SESSIONS_KEY);
+		if (!raw) return { roots: [], active: null };
+		const parsed = JSON.parse(raw) as { roots?: unknown; active?: unknown };
+		const roots = Array.isArray(parsed.roots)
+			? [
+					...new Set(
+						parsed.roots.filter(
+							(root): root is string =>
+								typeof root === "string" && root !== ""
+						)
+					),
+			  ]
+			: [];
+		return {
+			roots,
+			active: typeof parsed.active === "string" ? parsed.active : null,
+		};
+	} catch (error) {
+		// una lista illeggibile non deve impedire l'avvio: si riparte dal benvenuto
+		console.warn("schede salvate non leggibili:", error);
+		return { roots: [], active: null };
+	}
+}
+
+function saveSessions(): void {
+	if (!sessionsReady || panelMode) return;
+	try {
+		localStorage.setItem(
+			SESSIONS_KEY,
+			JSON.stringify({
+				roots: [...sessions.keys()],
+				active: state.root || null,
+			})
+		);
+	} catch (error) {
+		console.warn("schede non salvate:", error);
+	}
+}
+
 const ui = {
 	repoName: byId("repo-name"),
 	repoBranch: byId("repo-branch"),
@@ -1498,6 +1553,35 @@ function renderCommitAnalysis(): HTMLElement {
 }
 // ── azioni ───────────────────────────────────────────────────────────────────
 
+/**
+ * Riapre i repository dell'ultima sessione, nello stesso ordine di schede, e torna su quello che
+ * era attivo. Un percorso sparito o non più repository non ferma gli altri: si salta e la scheda
+ * non torna (la lista salvata si riscrive subito dopo, senza quel percorso).
+ */
+async function restoreSessions(): Promise<void> {
+	if (panelMode) return;
+	const saved = readSavedSessions();
+	for (const root of saved.roots) {
+		try {
+			const snapshot = await api.open(root, false);
+			if (snapshot) adoptSnapshot(snapshot);
+		} catch (error) {
+			console.warn(`repository non riaperto: ${root}`, error);
+		}
+	}
+	const active = saved.active ? sessions.get(saved.active) : undefined;
+	if (!active) return;
+	state = active;
+	try {
+		await api.use(active.root);
+	} catch (error) {
+		console.warn(
+			`repository attivo non riselezionato: ${active.root}`,
+			error
+		);
+	}
+}
+
 async function boot(): Promise<void> {
 	if (panelMode) {
 		if (!panelBootRoot) {
@@ -1511,8 +1595,11 @@ async function boot(): Promise<void> {
 		if (pending) void applyPanelState(pending);
 		return;
 	}
-	// all'avvio non si apre nessun dialog: senza `--repo` si parte dal benvenuto
+	// niente dialog all'avvio: si riaprono le schede dell'ultima volta e, se c'è, il `--repo`
+	await restoreSessions();
 	await openRepository(undefined, false);
+	sessionsReady = true;
+	saveSessions();
 	renderSession();
 	void loadBaseFolder();
 }
@@ -2500,6 +2587,7 @@ function adoptSnapshot(snapshot: Snapshot): void {
 	state = session;
 	applySnapshot(snapshot);
 	updateEmptyState();
+	saveSessions();
 }
 
 /**
@@ -2527,6 +2615,7 @@ async function useSession(root: string): Promise<void> {
 	}
 	state = session;
 	renderSession();
+	saveSessions();
 }
 
 async function closeSession(root: string): Promise<void> {
@@ -2539,6 +2628,7 @@ async function closeSession(root: string): Promise<void> {
 	}
 	if (state.root !== root) {
 		renderRepoTabs();
+		saveSessions();
 		return;
 	}
 	const next = sessions.values().next().value as State | undefined;
@@ -2546,6 +2636,7 @@ async function closeSession(root: string): Promise<void> {
 		// nessun repository aperto: si torna al benvenuto, non al dialog di sistema
 		state = emptyState();
 		renderSession();
+		saveSessions();
 		return;
 	}
 	state = next;
@@ -2555,6 +2646,7 @@ async function closeSession(root: string): Promise<void> {
 		toast(`Cambio repository: ${readableError(error)}`);
 	}
 	renderSession();
+	saveSessions();
 }
 
 // ── eventi delle nuove zone ──────────────────────────────────────────────────

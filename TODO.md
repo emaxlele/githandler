@@ -64,6 +64,8 @@ Stato al 2026-11-09 (v0.10.0). Le voci spuntate sono in `CHANGELOG.md`.
         rebase, rinomina, elimina, copia; cherry-pick sui commit)
 -   [x] **File dei merge** (`--first-parent` in `commitFilesArgs`): senza, il commit di merge compariva
         senza alcun file
+-   [x] **Schede riaperte all'avvio**: i repository dell'ultima sessione tornano nello stesso ordine e
+        con quello attivo (`localStorage["githandler.sessions"]`); un percorso sparito si salta
 -   [x] **Pannello dei dettagli ridimensionabile e a icona**: maniglia sopra il pannello (18%–78%,
         misura ricordata), pulsante `▾`/`▴` per ridurlo alla riga delle schede, stato in
         `localStorage`
