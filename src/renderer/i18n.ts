@@ -609,8 +609,8 @@ const EN: Record<string, string> = {
 	"Crea uno zip con i file del commit corrente, senza cartella .git.":
 		"Creates a zip with the files of the current commit, without the .git folder.",
 	"GitHub Actions…": "GitHub Actions…",
-	"Elenca le esecuzioni dei workflow di GitHub per il ramo corrente.":
-		"Lists the GitHub workflow runs for the current branch.",
+	"Elenca le esecuzioni dei workflow di GitHub del repository.":
+		"Lists the GitHub workflow runs of the repository.",
 	"Chiude la scheda; il repository resta sul disco.":
 		"Closes the tab; the repository stays on disk.",
 	"Mostra nel pannello i dettagli e le modifiche di questo commit.":

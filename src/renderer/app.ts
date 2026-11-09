@@ -3685,7 +3685,7 @@ ui.repoTabs.addEventListener("contextmenu", (event) => {
 		},
 		{
 			label: "GitHub Actions…",
-			hint: "Elenca le esecuzioni dei workflow di GitHub per il ramo corrente.",
+			hint: "Elenca le esecuzioni dei workflow di GitHub del repository.",
 			action: onRepo(openActions),
 		},
 		{

@@ -31,7 +31,8 @@
 -   **Come**: l'app chiede a GitHub l'elenco dei workflow attivi e avvia quello scelto con
     `workflow_dispatch`; gli input sono un oggetto JSON di stringhe, controllato prima di partire
     (massimo dieci, nomi validi, niente numeri convertiti di nascosto). Un workflow senza quell'evento
-    viene rifiutato da GitHub e il messaggio si legge così com'è.
+    viene rifiutato da GitHub e il messaggio si legge così com'è. Il testo del menu ora dice «del
+    repository»: l'elenco non è filtrato per ramo, e prima lo lasciava credere.
 -   **Verifica**: typecheck, 2 test nuovi su indirizzi, input e tentativi, e build; la finestra è
     stata controllata in inglese su un repository di prova.
 -   **Stato**: completato.
