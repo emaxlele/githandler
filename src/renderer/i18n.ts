@@ -776,6 +776,7 @@ const EN: Record<string, string> = {
 	"{0} giorni fa": "{0} days ago",
 	"Submodule non aggiornato": "Outdated submodule",
 	"Non inizializzato": "Not initialized",
+	"Trascina fuori per copiare il file.": "Drag out to copy the file.",
 	"1 segnalazione.": "1 warning.",
 	"{0} segnalazioni.": "{0} warnings.",
 	"Accesso non riuscito.": "Sign-in failed.",

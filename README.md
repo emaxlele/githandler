@@ -70,6 +70,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Controlli delle pull request** (esito e collegamenti)                                     | ✅             |
 | **Notifiche CI dalla barra di sistema**                                                     | ✅             |
 | **Salute del repository**: divergenti, stash vecchi, submodule, HEAD staccato                | ✅             |
+| **Trascinare un file** fuori dalla finestra                                                  | ✅             |
 | **Avanzamento di rete** (clone, fetch, pull, push)                                          | ✅             |
 | **Temi** chiaro / scuro / OLED, densità e dimensione del testo                              | ✅             |
 | **Aggiornamento automatico** (`--watch`)                                                    | ✅             |
@@ -142,7 +143,8 @@ impostazioni:
     `Terminale`. La maniglia sopra il pannello lo ridimensiona, `▾` lo riduce alla sola riga delle schede
     e `⧉` lo apre in una finestra separata: chiusa quella, il pannello torna al suo posto. Finché è
     separata, un chip «Dettagli ↗» nella toolbar la riporta davanti. Diff e albero scorrono, con la
-    loro altezza vincolata al riquadro.
+    loro altezza vincolata al riquadro. Un file delle liste o dell'albero si può trascinare fuori
+    dalla finestra, come da un gestore file: l'app controlla che il percorso resti nel repository.
 
 ### Scorciatoie da tastiera
 

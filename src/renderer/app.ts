@@ -1402,6 +1402,10 @@ function fillChangeList(
 		item.appendChild(el("span", `st ${badgeClass}`, code));
 		item.appendChild(el("span", "name", entry.path));
 
+		// un file eliminato non esiste più sul disco: non c'è niente da trascinare
+		item.draggable = code !== "D";
+		if (item.draggable) item.title = t("Trascina fuori per copiare il file.");
+
 		const acts = el("span", "acts");
 		const toggle = el("button", "icon-btn", staged ? "−" : "+");
 		toggle.dataset.act = staged ? "unstage" : "stage";
@@ -1535,6 +1539,11 @@ function renderTree(snapshot: Snapshot): void {
 			row.appendChild(el("span", "label", child.name));
 			if (!child.dir && child.path === state.treePath)
 				row.classList.add("is-selected");
+			// solo il working tree ha file sul disco: in un commit il path può non esistere
+			if (!child.dir && !state.selectedCommit && child.status !== "D") {
+				row.draggable = true;
+				row.title = t("Trascina fuori per copiare il file.");
+			}
 			fragment.appendChild(row);
 
 			if (child.dir && !collapsed) walk(child, depth + 1);
@@ -5383,6 +5392,25 @@ function changeListClick(event: Event): void {
 
 ui.changesListStaged.addEventListener("click", changeListClick);
 ui.changesListUnstaged.addEventListener("click", changeListClick);
+
+/** Il trascinamento è della finestra, non del DOM: il file esce come se venisse da un gestore file. */
+function startFileDrag(event: DragEvent): void {
+	const target = (event.target as HTMLElement).closest<HTMLElement>(
+		"[data-path]"
+	);
+	const path = target?.dataset.path;
+	if (!path || !state.root) {
+		event.preventDefault();
+		return;
+	}
+	event.dataTransfer?.setData("text/plain", path);
+	api.startDrag(state.root, path);
+}
+
+for (const list of [ui.changesListStaged, ui.changesListUnstaged]) {
+	list.addEventListener("dragstart", startFileDrag);
+}
+ui.treeList.addEventListener("dragstart", startFileDrag);
 
 ui.treeList.addEventListener("click", (event) => {
 	const target = (event.target as HTMLElement).closest<HTMLElement>(

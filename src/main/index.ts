@@ -5,6 +5,7 @@ import {
 	dialog,
 	ipcMain,
 	Menu,
+	nativeImage,
 	nativeTheme,
 	screen,
 	shell,
@@ -14,6 +15,7 @@ import { basename, join } from "node:path";
 
 import {
 	CHANGED_CHANNEL,
+	DRAG_CHANNEL,
 	NETWORK_CHANNEL,
 	OAUTH_CHANNEL,
 	PANEL_DETACHED_CHANNEL,
@@ -258,7 +260,35 @@ function handle<T>(
 	});
 }
 
+/** Icona del trascinamento: la stessa dell'app, letta una volta sola. */
+let dragIcon: Electron.NativeImage | null = null;
+
+function startFileDrag(
+	event: Electron.IpcMainEvent,
+	root: unknown,
+	path: unknown
+): void {
+	try {
+		if (typeof root !== "string" || typeof path !== "string") return;
+		backendFor(root);
+		const absolute = resolveInside(root, path);
+		dragIcon ??= nativeImage.createFromPath(join(__dirname, "../tray.png"));
+		event.sender.startDrag({
+			file: absolute,
+			icon: dragIcon.isEmpty()
+				? nativeImage.createEmpty()
+				: dragIcon,
+		});
+	} catch (error) {
+		// il renderer non può ricevere un errore da un canale di solo invio: resta su stderr
+		process.stderr.write(`trascinamento non avviato: ${String(error)}\n`);
+	}
+}
+
 function registerIpc(): void {
+	ipcMain.on(DRAG_CHANNEL, (event, root: unknown, path: unknown) =>
+		startFileDrag(event, root, path)
+	);
 	handle("git:open", async (path?: string, interactive = true) => {
 		// `--repo` vale per la prima apertura senza percorso: le schede riaperte all'avvio non lo consumano
 		let target = path;

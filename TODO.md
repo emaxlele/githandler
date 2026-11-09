@@ -173,8 +173,8 @@ minmax(0, 1fr)`), non più contenuto tagliato
 
 -   [ ] Un **albero** completo pigro nel File Tree (un livello alla volta): l'elenco piatto dei file
         tracciati copre l'apertura di un file qualunque, ma non la navigazione per cartelle
--   [ ] Trascinare un file fuori dalla finestra; la **cartella** intera come archivio è coperta da
-        «Esporta HEAD in uno zip»
+-   [x] **Trascinare un file fuori dalla finestra** dalle liste e dal File Tree, con il percorso
+        verificato nel main; la **cartella** intera come archivio è coperta da «Esporta HEAD in uno zip»
 -   [ ] Device flow: un Client ID predefinito per GitHub nell'app, così l'accesso dal browser funziona
         senza che l'utente registri una sua applicazione OAuth. Nell'attesa «Accedi» usa il token che
         c'è già sulla macchina

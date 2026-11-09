@@ -199,6 +199,8 @@ export interface GitApi {
 	onTerminal(listener: (event: TerminalEvent) => void): () => void;
 	/** Avanzamento di clone, fetch, pull e push; restituisce la funzione per disiscriversi. */
 	onNetwork(listener: (event: NetworkEvent) => void): () => void;
+	/** Trascina un file del working tree fuori dalla finestra, come farebbe un gestore file. */
+	startDrag(root: string, path: string): void;
 	/** Apre il pannello dei dettagli in una finestra separata. */
 	detachPanel(): Promise<boolean>;
 	/** Pubblica la selezione corrente: la finestra del pannello la segue. */
@@ -372,6 +374,9 @@ export const PANEL_STATE_CHANNEL = "panel:state";
 
 /** Canale di solo invio: apertura e chiusura della finestra del pannello. */
 export const PANEL_DETACHED_CHANNEL = "panel:detached";
+
+/** Canale di solo invio: inizio del trascinamento di un file fuori dalla finestra. */
+export const DRAG_CHANNEL = "app:startDrag";
 
 /** Canale di solo invio: avanzamento delle operazioni di rete letto da `stderr` di Git. */
 export const NETWORK_CHANNEL = "net:progress";

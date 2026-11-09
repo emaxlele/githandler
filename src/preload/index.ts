@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from "electron";
 import type { GitApi } from "../shared/api.ts";
 import {
 	CHANGED_CHANNEL,
+	DRAG_CHANNEL,
 	NETWORK_CHANNEL,
 	OAUTH_CHANNEL,
 	PANEL_DETACHED_CHANNEL,
@@ -190,6 +191,7 @@ const api: GitApi = {
 			ipcRenderer.removeListener(NETWORK_CHANNEL, handler);
 		};
 	},
+	startDrag: (root, path) => ipcRenderer.send(DRAG_CHANNEL, root, path),
 	detachPanel: () => invokeRepo("panel:detach"),
 	syncPanel: (panel) => invokeRepo("panel:sync", panel),
 	onPanelState: (listener) => {

@@ -5,6 +5,20 @@
 
 ## 2026-11-09
 
+### Portare un file fuori dall'app
+
+-   **Cosa**: i file elencati in **Staged**, **Unstaged** e nel **File Tree** si possono trascinare
+    fuori dalla finestra, per esempio sulla scrivania o in un messaggio, come da un gestore file.
+-   **Perché**: richiesta dell'utente — capita di dover allegare o copiare un file del repository
+    senza aprire il gestore file e cercarlo nel percorso giusto.
+-   **Come**: il file esce dalla finestra come un file normale; l'app controlla che il percorso sia
+    davvero dentro il repository aperto, e non offre il trascinamento per i file eliminati o per i
+    file di un commit (che possono non esistere più sul disco).
+-   **Verifica**: typecheck, test esistenti sui percorsi (inclusi i tentativi di uscire dal
+    repository) e build.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Il messaggio di commit parte dal modello, e gli errori restano
 
 -   **Cosa**: se il repository ha un modello di messaggio configurato in Git (`commit.template`), il

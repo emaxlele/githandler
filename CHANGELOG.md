@@ -2,6 +2,17 @@
 
 ## [Non rilasciato]
 
+### Trascinare un file fuori dalla finestra
+
+-   **File del working tree trascinabili**: dalle liste Staged/Unstaged e dal File Tree un file può
+    essere portato fuori dalla finestra (desktop, file manager, client di posta) come da un gestore
+    file. I file eliminati non sono trascinabili, perché non esistono più sul disco; nel File Tree di
+    un commit il trascinamento non è offerto.
+-   **Percorso validato nel main**: il renderer manda root e percorso relativo, il main verifica che
+    il repository sia aperto e che il percorso resti dentro la radice (`resolveInside`) prima di
+    `webContents.startDrag`. Canale di solo invio `app:startDrag`.
+-   **Icona coerente**: il trascinamento usa `dist/tray.png`, la stessa icona dell'app.
+
 ### Modello del messaggio e output dei hook
 
 -   **`commit.template` rispettato**: se Git è configurato con un modello, il campo del messaggio si
