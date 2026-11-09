@@ -1459,6 +1459,66 @@
 			</form>
 		</dialog>
 
+		<dialog class="dialog dialog-wide" id="comments-dialog">
+			<form id="comments-form">
+				<h2 id="comments-title">Discussione</h2>
+				<p class="hint">
+					I commenti della conversazione, dal più vecchio. Il testo
+					si legge così com'è: la formattazione del servizio resta
+					nella pagina web.
+				</p>
+				<div class="account-repos-head">
+					<strong id="comments-pull">#</strong>
+					<div class="actions-actions">
+						<button
+							type="button"
+							class="btn btn-small"
+							id="comments-open"
+							title="Apre la conversazione nel browser"
+						>
+							Apri nel browser
+						</button>
+						<button
+							type="button"
+							class="btn btn-small"
+							id="comments-refresh"
+							title="Rilegge dal servizio i commenti della conversazione"
+						>
+							Aggiorna
+						</button>
+					</div>
+				</div>
+				<ul class="comment-list" id="comments-list"></ul>
+				<label class="field">
+					<span>Nuovo commento</span>
+					<textarea
+						id="comments-body"
+						rows="4"
+						placeholder="Scrivi un commento…"
+					></textarea>
+				</label>
+				<div class="dialog-actions">
+					<span class="account-status" id="comments-status"></span>
+					<button
+						type="button"
+						class="btn"
+						id="comments-close"
+						title="Chiude la conversazione"
+					>
+						Chiudi
+					</button>
+					<button
+						type="submit"
+						class="btn btn-primary"
+						id="comments-send"
+						title="Pubblica il commento sul servizio"
+					>
+						Invia
+					</button>
+				</div>
+			</form>
+		</dialog>
+
 		<dialog class="dialog dialog-wide" id="reflog-dialog">
 			<form id="reflog-form">
 				<h2>Reflog</h2>

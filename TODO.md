@@ -155,7 +155,11 @@ minmax(0, 1fr)`), non più contenuto tagliato
 -   [x] **Pull request / merge request**: elenco delle aperte (GitHub, GitLab, Gitea/Forgejo,
         Bitbucket), creazione da due rami già inviati, apertura nel browser, bozza; dal menu della
         scheda e dalla palette
--   [ ] Commenti e revisioni delle pull request nell'app
+-   [x] **Commenti delle pull request**: la finestra _Discussione_ legge la conversazione dal più
+        vecchio e ne pubblica di nuovi, per GitHub, GitLab, Gitea/Forgejo e Bitbucket; il testo si
+        mostra com'è (mai HTML), gli indirizzi e il corpo passano da `src/core/comments.ts`
+-   [ ] Revisioni delle pull request (approva / chiedi modifiche): le quattro API non concordano e
+        va deciso un comportamento unico prima di aggiungerle
 -   [x] **Stato dei check per pull request**: esito complessivo e singoli controlli (GitHub,
         GitLab, Gitea/Forgejo, Bitbucket), con apertura nel browser; il colore non è mai verde senza
         un successo

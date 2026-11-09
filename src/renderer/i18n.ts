@@ -957,6 +957,28 @@ const EN: Record<string, string> = {
 	"Elenca le pull request aperte e ne crea una da due rami già inviati.":
 		"Lists the open pull requests and creates one from two pushed branches.",
 	"Merge request": "Merge request",
+	Discussione: "Discussion",
+	"Legge i commenti della conversazione e ne aggiunge uno.":
+		"Reads the conversation comments and adds one.",
+	"I commenti della conversazione, dal più vecchio. Il testo si legge così com'è: la formattazione del servizio resta nella pagina web.":
+		"The conversation comments, oldest first. The text is shown as it is: the service formatting stays on the web page.",
+	"Rilegge dal servizio i commenti della conversazione":
+		"Re-reads the conversation comments from the service",
+	"Nuovo commento": "New comment",
+	"Scrivi un commento…": "Write a comment…",
+	"Chiude la conversazione": "Closes the conversation",
+	"Pubblica il commento sul servizio": "Publishes the comment on the service",
+	"Leggo la discussione…": "Reading the discussion…",
+	"{0} commenti.": "{0} comments.",
+	"Nessun commento: puoi scrivere il primo.":
+		"No comments yet: you can write the first one.",
+	Sconosciuto: "Unknown",
+	"Apre il commento nel browser.": "Opens the comment in the browser.",
+	"Scrivi il commento prima di inviarlo.":
+		"Write the comment before sending it.",
+	"Invio il commento…": "Sending the comment…",
+	"Commento inviato.": "Comment sent.",
+	Invia: "Send",
 };
 
 const EXACT = new Map<string, string>();

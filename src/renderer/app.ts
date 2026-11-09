@@ -63,6 +63,7 @@ import type { TreeEntry } from "../core/tree.ts";
 import type { WorktreeInfo } from "../core/worktrees.ts";
 import { summarizeRecovery, type RecoverySummary } from "../core/recovery.ts";
 import type { CheckRun, CheckSummary } from "../core/checks.ts";
+import type { PullComment } from "../core/comments.ts";
 import type { PullList, PullRequest } from "../core/pulls.ts";
 import type { ReflogEntry } from "../core/reflog.ts";
 import { deviceFlow, tokenPageUrl } from "../core/oauth.ts";
@@ -414,6 +415,17 @@ const ui = {
 	pullsNewSource: byId<HTMLInputElement>("pulls-new-source"),
 	pullsNewTarget: byId<HTMLInputElement>("pulls-new-target"),
 	pullsCreate: byId<HTMLButtonElement>("pulls-create"),
+	commentsDialog: byId<HTMLDialogElement>("comments-dialog"),
+	commentsForm: byId<HTMLFormElement>("comments-form"),
+	commentsTitle: byId("comments-title"),
+	commentsPull: byId("comments-pull"),
+	commentsList: byId("comments-list"),
+	commentsStatus: byId("comments-status"),
+	commentsBody: byId<HTMLTextAreaElement>("comments-body"),
+	commentsSend: byId<HTMLButtonElement>("comments-send"),
+	commentsRefresh: byId<HTMLButtonElement>("comments-refresh"),
+	commentsOpen: byId<HTMLButtonElement>("comments-open"),
+	commentsClose: byId<HTMLButtonElement>("comments-close"),
 	reflogDialog: byId<HTMLDialogElement>("reflog-dialog"),
 	reflogForm: byId<HTMLFormElement>("reflog-form"),
 	reflogList: byId("reflog-list"),
@@ -4958,6 +4970,18 @@ function renderPullItem(pull: PullRequest): void {
 	}
 	actions.appendChild(run);
 
+	const discuss = el(
+		"button",
+		"btn btn-small",
+		t("Discussione")
+	) as HTMLButtonElement;
+	discuss.type = "button";
+	discuss.title = t(
+		"Legge i commenti della conversazione e ne aggiunge uno."
+	);
+	discuss.addEventListener("click", () => void openComments(pull));
+	actions.appendChild(discuss);
+
 	const open = el("button", "btn btn-small", t("Apri")) as HTMLButtonElement;
 	open.type = "button";
 	open.title = t("Apre la pull request nel browser.");
@@ -5032,6 +5056,112 @@ function renderCheckSummary(
 		if (run.detail)
 			line.appendChild(el("span", "check-detail", run.detail));
 		container.appendChild(line);
+	}
+}
+
+let commentsPull: PullRequest | null = null;
+
+/** Apre la conversazione della pull request scelta: i commenti arrivano dal servizio. */
+async function openComments(pull: PullRequest): Promise<void> {
+	commentsPull = pull;
+	ui.commentsTitle.textContent = t("Discussione");
+	ui.commentsPull.textContent = `#${pull.number} · ${pull.title}`;
+	ui.commentsPull.title = pull.title;
+	ui.commentsBody.value = "";
+	ui.commentsStatus.textContent = "";
+	ui.commentsStatus.classList.remove("is-error");
+	if (!ui.commentsDialog.open) ui.commentsDialog.showModal();
+	await loadComments();
+}
+
+async function loadComments(): Promise<void> {
+	const pull = commentsPull;
+	if (!pull) return;
+	ui.commentsRefresh.disabled = true;
+	ui.commentsSend.disabled = true;
+	ui.commentsStatus.textContent = t("Leggo la discussione…");
+	ui.commentsStatus.classList.remove("is-error");
+	clear(ui.commentsList);
+	try {
+		const comments = await api.pullComments(pull.number);
+		renderComments(comments);
+		ui.commentsStatus.textContent = comments.length
+			? t(`${comments.length} commenti.`)
+			: "";
+	} catch (error) {
+		ui.commentsStatus.classList.add("is-error");
+		ui.commentsStatus.textContent = readableError(error);
+	} finally {
+		ui.commentsRefresh.disabled = false;
+		ui.commentsSend.disabled = false;
+	}
+}
+
+/**
+ * Il testo si mostra come testo, mai come HTML: un commento arriva da fuori e non deve poter
+ * aggiungere elementi alla finestra.
+ */
+function renderComments(comments: PullComment[]): void {
+	clear(ui.commentsList);
+	if (comments.length === 0) {
+		ui.commentsList.appendChild(
+			el("li", "muted", t("Nessun commento: puoi scrivere il primo."))
+		);
+		return;
+	}
+	for (const comment of comments) {
+		const item = el("li");
+		const head = el("div", "comment-head");
+		head.appendChild(
+			el("span", "comment-author", comment.author || t("Sconosciuto"))
+		);
+		const when = Date.parse(comment.createdAt);
+		if (Number.isFinite(when))
+			head.appendChild(el("span", "comment-when", shortDate(when)));
+		if (comment.url) {
+			const link = el(
+				"button",
+				"comment-link",
+				t("Apri")
+			) as HTMLButtonElement;
+			link.type = "button";
+			link.title = t("Apre il commento nel browser.");
+			link.addEventListener(
+				"click",
+				() => void guard("Browser", () => api.openExternal(comment.url))
+			);
+			head.appendChild(link);
+		}
+		item.appendChild(head);
+		item.appendChild(el("div", "comment-body", comment.body));
+		ui.commentsList.appendChild(item);
+	}
+}
+
+async function sendComment(): Promise<void> {
+	const pull = commentsPull;
+	if (!pull) return;
+	const body = ui.commentsBody.value.trim();
+	if (!body) {
+		ui.commentsStatus.classList.add("is-error");
+		ui.commentsStatus.textContent = t("Scrivi il commento prima di inviarlo.");
+		return;
+	}
+	ui.commentsSend.disabled = true;
+	ui.commentsRefresh.disabled = true;
+	ui.commentsStatus.classList.remove("is-error");
+	ui.commentsStatus.textContent = t("Invio il commento…");
+	try {
+		await api.addPullComment(pull.number, body);
+		ui.commentsBody.value = "";
+		ui.commentsStatus.textContent = t("Commento inviato.");
+		await loadComments();
+	} catch (error) {
+		ui.commentsStatus.classList.add("is-error");
+		ui.commentsStatus.textContent = readableError(error);
+	} finally {
+		ui.commentsSend.disabled = false;
+		ui.commentsRefresh.disabled = false;
 	}
 }
 
@@ -5879,6 +6009,17 @@ ui.pullsClose.addEventListener("click", () => ui.pullsDialog.close());
 ui.pullsOpenPage.addEventListener("click", () => {
 	if (pullsCache?.webUrl)
 		void guard("Browser", () => api.openExternal(pullsCache!.webUrl));
+});
+
+ui.commentsForm.addEventListener("submit", (event) => {
+	event.preventDefault();
+	void sendComment();
+});
+ui.commentsRefresh.addEventListener("click", () => void loadComments());
+ui.commentsClose.addEventListener("click", () => ui.commentsDialog.close());
+ui.commentsOpen.addEventListener("click", () => {
+	if (commentsPull)
+		void guard("Browser", () => api.openExternal(commentsPull!.url));
 });
 
 ui.reflogForm.addEventListener("submit", (event) => event.preventDefault());

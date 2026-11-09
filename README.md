@@ -56,7 +56,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Stash** (salva anche solo alcuni file, applica, pop, elimina)                             | ✅             |
 | **Merge, rebase, cherry-pick**, annulla operazione                                          | ✅             |
 | **Rebase interattivo**: riordina, squash/fixup, reword, drop                                | ✅             |
-| **Pull request / merge request**: elenco e creazione da due rami                            | ✅             |
+| **Pull request / merge request**: elenco, creazione e discussione                           | ✅             |
 | **Conflitti risolti nell'app** (per file e per hunk, «continua»)                            | ✅             |
 | **Interfaccia in italiano e in inglese**                                                    | ✅             |
 | **Palette dei comandi** (`Ctrl+K`) e scorciatoie documentate                                | ✅             |
@@ -359,7 +359,9 @@ Dal menu del tasto destro sulla scheda del repository:
     stessa finestra se ne crea una da due rami: i rami devono essere già stati inviati con Push. Su
     GitLab la finestra si chiama _merge request_. Non serve un token nuovo: usa l'account già scelto
     per il repository. _Controlli_ legge l'esito dei workflow sul commit in testa alla richiesta —
-    verde, rosso o in corso, con il dettaglio e il collegamento a ciascuno.
+    verde, rosso o in corso, con il dettaglio e il collegamento a ciascuno. _Discussione_ mostra i
+    commenti della conversazione, dal più vecchio, e ne pubblica di nuovi; il testo resta testo, la
+    formattazione del servizio si vede nella pagina web.
 -   **GitHub Actions…**: ultime esecuzioni con workflow, stato, ramo ed evento; _Riprova i falliti_
     (solo i job rossi, dopo un fallimento), _Ri-esegui_ (l'intero workflow), _Annulla_ (una in corso),
     _Apri_ nel browser. Solo GitHub.

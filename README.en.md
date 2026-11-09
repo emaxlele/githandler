@@ -55,8 +55,8 @@ Italiano: [README.md](README.md)
 | **Pull** (`--ff-only`) and **push** (never forced)                                   | ✅             |
 | **Stash** (save selected files only, apply, pop, drop)                               | ✅             |
 | **Merge, rebase, cherry-pick**, abort operation                                      | ✅             |
-| **Interactive rebase**: reorder, squash/fixup, reword, drop                         | ✅             |
-| **Pull request / merge request**: list and create from two branches                  | ✅             |
+| **Interactive rebase**: reorder, squash/fixup, reword, drop                          | ✅             |
+| **Pull request / merge request**: list, create and discuss                           | ✅             |
 | **Conflicts resolved in the app** (per file and per hunk, "continue")                | ✅             |
 | **Interface in Italian and English**                                                 | ✅             |
 | **Command palette** (`Ctrl+K`) and documented shortcuts                              | ✅             |
@@ -358,7 +358,9 @@ From the right-click menu on the repository tab:
     same window one is created from two branches: the branches must already be pushed. On GitLab the
     window is titled _merge request_. No new token: it uses the account already chosen for the
     repository. _Checks_ reads the workflow results on the head commit of the request — green, red
-    or pending, with the detail and a link to each one.
+    or pending, with the detail and a link to each one. _Discussion_ shows the conversation comments,
+    oldest first, and publishes new ones; the text stays text and the service formatting is on the
+    web page.
 -   **GitHub Actions…**: latest runs with workflow, status, branch and event; _Retry failed jobs_
     (only the red ones, after a failure), _Re-run_ (the whole workflow), _Cancel_ (a running one),
     _Open_ in the browser. GitHub only.

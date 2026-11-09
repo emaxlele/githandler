@@ -2,6 +2,18 @@
 
 ## [Non rilasciato]
 
+### Discussione delle pull request
+
+-   **Nuovo pulsante «Discussione»** su ogni richiesta: legge i commenti della conversazione dal più
+    vecchio e ne pubblica di nuovi, con autore, data e collegamento al singolo commento. Il testo
+    arriva dall'esterno e si mostra come testo, mai come HTML.
+-   **Quattro servizi, una sola forma** in `src/core/comments.ts` (`commentsUrl`, `commentPayload`,
+    `parseComments`, `parseComment`): GitHub e Gitea usano i commenti della issue, GitLab le `notes`
+    (senza le azioni di sistema), Bitbucket `content.raw` (senza le risposte su una riga e i
+    commenti cancellati).
+-   **Testi validati prima della rete**: un commento vuoto o oltre 60.000 caratteri non parte.
+-   Test nuovi in `tests/comments.test.mts`.
+
 ### Rebase interattivo
 
 -   **Dal commit scelto a HEAD**: il menu del commit aggiunge «Rebase interattivo da qui…». La

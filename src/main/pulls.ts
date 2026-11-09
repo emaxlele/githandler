@@ -1,4 +1,11 @@
 import {
+	commentPayload,
+	commentsUrl,
+	parseComment,
+	parseComments,
+	type PullComment,
+} from "../core/comments.ts";
+import {
 	assertCommitSha,
 	checksUrl,
 	parseChecks,
@@ -167,6 +174,41 @@ export async function pullChecks(
 		{ method: "GET" }
 	);
 	return summarizeChecks(parseChecks(context.account, payload));
+}
+
+/** La conversazione di una pull request, dal più vecchio. */
+export async function pullComments(
+	root: string,
+	number: number
+): Promise<PullComment[]> {
+	const context = await contextFor(root);
+	const payload = await request(
+		context,
+		commentsUrl(context.account, context.namespace, context.name, number),
+		{ method: "GET" }
+	);
+	return parseComments(context.account, payload);
+}
+
+/** Aggiunge un commento alla conversazione e restituisce quello creato. */
+export async function addPullComment(
+	root: string,
+	number: number,
+	body: string
+): Promise<PullComment> {
+	const context = await contextFor(root);
+	// il testo si valida nel core prima della rete: vuoto o troppo lungo non parte
+	const payload = commentPayload(context.account, body);
+	const created = await request(
+		context,
+		commentsUrl(context.account, context.namespace, context.name, number),
+		{
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(payload),
+		}
+	);
+	return parseComment(context.account, created);
 }
 
 export async function createPull(

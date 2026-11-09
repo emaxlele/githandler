@@ -54,7 +54,13 @@ import {
 } from "./accounts.ts";
 import { listWorkflowRuns, runWorkflowAction } from "./actions.ts";
 import type { WorkflowAction } from "../core/actions.ts";
-import { createPull, listPulls, pullChecks } from "./pulls.ts";
+import {
+	addPullComment,
+	createPull,
+	listPulls,
+	pullChecks,
+	pullComments,
+} from "./pulls.ts";
 import { exportArchive } from "./export.ts";
 import { forkBranches, forkInfo, forkPreview, syncFork } from "./fork.ts";
 import { CliGitBackend } from "./backend.ts";
@@ -580,6 +586,14 @@ function registerIpc(): void {
 	handle("pulls:checks", (root: string, sha: string) =>
 		pullChecks(root, sha)
 	);
+	handle("pulls:comments", (root: string, number: number) =>
+		pullComments(root, number)
+	);
+	handle(
+		"pulls:comment",
+		(root: string, number: number, body: string) =>
+			addPullComment(root, number, body)
+	);
 	handle("actions:run", (root: string, id: string, action: WorkflowAction) =>
 		runWorkflowAction(root, id, action)
 	);
@@ -1035,6 +1049,7 @@ async function runShots(): Promise<void> {
 			target.replace(/\.png$/, "-pulls.png"),
 		],
 		[`document.getElementById("pulls-dialog")?.close()`, null],
+
 		[
 			`(() => {
 				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
