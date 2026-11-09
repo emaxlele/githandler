@@ -2,6 +2,17 @@
 
 ## [Non rilasciato]
 
+### Interfaccia bilingue
+
+-   **Catalogo di traduzione** (`src/renderer/i18n.ts`): l'italiano è la lingua di partenza e il
+    catalogo lo traduce in inglese, con segnaposto per i valori interpolati. La lingua si sceglie in
+    *Impostazioni → Lingua* (`auto` segue il sistema) e il cambio ricarica la finestra.
+-   La shell statica, i menu contestuali, i toast, le conferme, le etichette create dalla UI, le date e
+    i tempi relativi passano dal catalogo; `GITHANDLER_LOCALE=en` (o `--locale en`) forza la lingua
+    per screenshot e prove.
+-   **Test del catalogo**: nessuna traduzione vuota, segnaposto conservati, traduzione esatta e con
+    valori, lingua automatica.
+
 ### Progetto pronto per la pubblicazione
 
 -   **Licenza GPL-3.0-or-later**: `LICENSE`, `package.json`, README italiano e inglese. Chi distribuisce

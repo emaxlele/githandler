@@ -2,25 +2,28 @@ import { alignHunk, changedRanges, type AlignedRow } from "../core/align.ts";
 import { canStagePartially, type PatchMode } from "../core/patch.ts";
 import type { DiffFile, DiffHunk, DiffLine } from "../core/types.ts";
 import { escapeHtml } from "./dom.ts";
+import { t } from "./i18n.ts";
 
 export type DiffLayout = "unified" | "split";
 
 function statusLabel(file: DiffFile): string {
 	switch (file.status) {
 		case "added":
-			return "nuovo";
+			return t("nuovo");
 		case "deleted":
-			return "eliminato";
+			return t("eliminato");
 		case "renamed":
-			return `rinominato${file.oldPath ? ` da ${file.oldPath}` : ""}`;
+			return t(
+				`rinominato${file.oldPath ? ` da ${file.oldPath}` : ""}`
+			);
 		case "copied":
-			return "copiato";
+			return t("copiato");
 		case "typechange":
-			return "tipo cambiato";
+			return t("tipo cambiato");
 		case "binary":
-			return "binario";
+			return t("binario");
 		default:
-			return "modificato";
+			return t("modificato");
 	}
 }
 

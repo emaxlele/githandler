@@ -21,17 +21,17 @@ Architettura in `docs/architettura.md`; misure in `docs/backend-performance.md`.
 
 ## Fase 1 — Infrastruttura i18n
 
--   [ ] `src/renderer/i18n.ts`: tipo `Locale = "it" | "en"`, catalogo con chiavi semantiche,
-        `t(key, params)`, `setLocale`, `getLocale`, `onLocaleChange`.
--   [ ] `Locale` in `Settings` (`auto` | `it` | `en`) con migrazione del file esistente e canale IPC
-        delle impostazioni già presente.
--   [ ] Rilevamento del sistema al primo avvio (`app.getLocale()` nel main) e ripiego su `it`.
--   [ ] Attributi `data-i18n`, `data-i18n-title`, `data-i18n-placeholder` in `index.html`, applicati
-        all'avvio e al cambio lingua.
--   [ ] Migrazione delle stringhe di `app.ts` a `t()`: toolbar, schede, pannello, dialog, toast,
-        stati vuoti, impostazioni.
--   [ ] Test del catalogo: chiavi presenti in entrambe le lingue, nessuna stringa vuota, parametri
-        interpolati.
+-   [x] `src/renderer/i18n.ts`: tipo `Locale = "it" | "en"`, catalogo italiano → inglese con
+        segnaposto `{0}`, `t()`, `tExact()`, `setLocale`, `resolveLocale`, `translateStatic`
+-   [x] `locale` in `Settings` (`auto` | `it` | `en`), normalizzazione e selettore nelle impostazioni
+-   [x] Lingua preferita letta all'avvio da `localStorage`, così il primo disegno è già corretto;
+        cambio lingua = ricarica della finestra
+-   [x] Traduzione della shell statica, dei menu contestuali, dei toast, delle conferme, delle
+        etichette create da `el()`, di date e tempi relativi
+-   [x] Override per screenshot e prove: `GITHANDLER_LOCALE` / `--locale`
+-   [x] Test del catalogo: nessuna traduzione vuota, segnaposto conservati, esatto e con valori
+-   [ ] Tradurre le stringhe dinamiche rimaste (tooltip e pannelli secondari) e i messaggi che
+        arrivano dal backend
 
 ## Fase 2 — Conflitti in-app
 

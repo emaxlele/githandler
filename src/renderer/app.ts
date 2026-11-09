@@ -52,7 +52,33 @@ import {
 	type DiffLayout,
 } from "./diff-view.ts";
 import { avatarColor, byId, clear, el, initials, shortDate } from "./dom.ts";
+import {
+	LOCALE_STORAGE_KEY,
+	currentLocale,
+	localeTag,
+	resolveLocale,
+	setLocale,
+	t,
+	translateStatic,
+} from "./i18n.ts";
 import { LogView } from "./log-view.ts";
+
+/*
+ * The language must be chosen before anything is drawn: the stored preference is read
+ * synchronously here, while the authoritative copy lives in the settings file.
+ */
+const localeOverride = new URLSearchParams(location.search).get("locale");
+setLocale(
+	resolveLocale(
+		(localeOverride === "it" || localeOverride === "en"
+			? localeOverride
+			: (localStorage.getItem(LOCALE_STORAGE_KEY) ?? "auto")) as
+			| "auto"
+			| "it"
+			| "en"
+	)
+);
+translateStatic();
 
 declare global {
 	interface Window {
@@ -221,6 +247,7 @@ const ui = {
 	btnWelcomeClone: byId<HTMLButtonElement>("btn-welcome-clone"),
 	btnWelcomeAccount: byId<HTMLButtonElement>("btn-welcome-account"),
 	settingBase: byId<HTMLInputElement>("setting-base"),
+	settingLanguage: byId<HTMLSelectElement>("setting-language"),
 	btnChooseBase: byId<HTMLButtonElement>("btn-choose-base"),
 	createDialog: byId<HTMLDialogElement>("create-dialog"),
 	createForm: byId<HTMLFormElement>("create-form"),
@@ -416,7 +443,7 @@ const blameView = new BlameView();
 let toastTimer: number | undefined;
 
 function toast(message: string, kind: "error" | "ok" = "error"): void {
-	ui.toast.textContent = message;
+	ui.toast.textContent = t(message);
 	ui.toast.classList.remove("hidden", "is-ok");
 	if (kind === "ok") ui.toast.classList.add("is-ok");
 	window.clearTimeout(toastTimer);
@@ -424,6 +451,11 @@ function toast(message: string, kind: "error" | "ok" = "error"): void {
 		() => ui.toast.classList.add("hidden"),
 		5000
 	);
+}
+
+/** `window.confirm` con il messaggio tradotto: la conferma è dell'utente, non della lingua. */
+function askConfirm(message: string): boolean {
+	return askConfirm(t(message));
 }
 
 /** Il messaggio vero, senza il prefisso che Electron aggiunge agli errori IPC. */
@@ -451,7 +483,7 @@ async function guard<T>(
 	try {
 		return await task();
 	} catch (error) {
-		toast(`${label}: ${readableError(error)}`);
+		toast(`${t(label)}: ${readableError(error)}`);
 		return null;
 	}
 }
@@ -467,7 +499,7 @@ async function guardRepo<T>(
 	try {
 		return await task();
 	} catch (error) {
-		toast(`${label}: ${readableError(error)}`);
+		toast(`${t(label)}: ${readableError(error)}`);
 		try {
 			applySnapshot(await api.refresh());
 		} catch (refreshError) {
@@ -607,7 +639,7 @@ function applySnapshot(snapshot: Snapshot): void {
 
 /** Nome, ramo, sincronizzazione e operazione sospesa del repository attivo. */
 function renderHeader(snapshot: Snapshot | null): void {
-	ui.repoName.textContent = snapshot?.info.name ?? "nessun repository";
+	ui.repoName.textContent = snapshot?.info.name ?? t("nessun repository");
 	ui.sideRepo.textContent = snapshot?.info.name ?? "—";
 	ui.repoBranch.textContent = snapshot?.info.branch ?? "—";
 	if (!snapshot) {
@@ -639,7 +671,7 @@ function renderOperation(snapshot: Snapshot | null): void {
 			: operation === "rebase"
 			? "Rebase in corso"
 			: "Cherry-pick in corso";
-	ui.repoOperation.textContent = `${label} · annulla`;
+	ui.repoOperation.textContent = t(`${label} · annulla`);
 	ui.repoOperation.dataset.operation = operation;
 }
 
@@ -705,12 +737,12 @@ function renderRepoAccount(): void {
 		chip.textContent = "account…";
 		chip.classList.remove("is-guess");
 		chip.disabled = true;
-		chip.title = "Sto leggendo il remoto…";
+		chip.title = t("Sto leggendo il remoto…");
 		return;
 	}
 	chip.disabled = false;
 	const account = cached.account;
-	chip.textContent = account ? accountLabel(account) : "nessun account";
+	chip.textContent = account ? accountLabel(account) : t("nessun account");
 	chip.classList.toggle("is-guess", cached.reason === "first");
 	chip.title = account
 		? `${accountLabel(account)} — ${accountReasonText(
@@ -802,7 +834,7 @@ function renderRepoTabs(): void {
 		);
 		const close = el("span", "repo-tab-close", "×");
 		close.dataset.close = session.root;
-		close.title = "Chiudi la scheda";
+		close.title = t("Chiudi la scheda");
 		tab.appendChild(close);
 		ui.repoTabs.appendChild(tab);
 	}
@@ -845,9 +877,11 @@ function renderSession(): void {
 
 function updateCommitCount(): void {
 	const total = state.commits.length;
-	ui.commitCount.textContent = state.hasMore
-		? `${total}+ commit — scorri per caricarne altri`
-		: `${total} commit`;
+	ui.commitCount.textContent = t(
+		state.hasMore
+			? `${total}+ commit — scorri per caricarne altri`
+			: `${total} commit`
+	);
 }
 
 /** La sorveglianza parte quando il repository è aperto: il chip va aggiornato dopo, non al boot. */
@@ -920,7 +954,9 @@ function formatBytes(bytes: number): string {
 		value /= 1024;
 		unit++;
 	}
-	const text = value.toLocaleString("it-IT", { maximumFractionDigits: 1 });
+	const text = value.toLocaleString(localeTag(), {
+		maximumFractionDigits: 1,
+	});
 	return `${text} ${units[unit]}`;
 }
 
@@ -943,6 +979,7 @@ function fillSettings(settings: Settings): void {
 		box.checked = settings.api.tools.includes(box.value as ApiTool);
 	}
 	ui.settingBase.value = settings.defaultRoot ?? "";
+	ui.settingLanguage.value = settings.locale;
 	setBaseFolder(settings.defaultRoot);
 	ui.settingTrash.checked = settings.trash.enabled;
 	ui.settingTrashBytes.value = String(toMebibytes(settings.trash.maxBytes));
@@ -968,6 +1005,7 @@ function collectSettings(): Settings {
 	}
 	return {
 		api: { mode, tools },
+		locale: ui.settingLanguage.value as Settings["locale"],
 		defaultRoot: ui.settingBase.value.trim() || null,
 		repoAccounts: savedRepoAccounts,
 		trash: {
@@ -991,12 +1029,14 @@ async function refreshTrashUsage(quotaBytes: number): Promise<void> {
 		const usage: TrashUsage = await api.trashUsage();
 		ui.trashUsage.textContent =
 			usage.entries === 0
-				? "Nessuna copia conservata."
-				: `${usage.entries} ${
-						usage.entries === 1 ? "copia" : "copie"
-				  } · ${formatBytes(usage.bytes)} su ${formatBytes(
-						quotaBytes
-				  )}`;
+				? t("Nessuna copia conservata.")
+				: t(
+						`${usage.entries} ${
+							usage.entries === 1 ? "copia" : "copie"
+						} · ${formatBytes(usage.bytes)} su ${formatBytes(
+							quotaBytes
+						)}`
+				  );
 	} catch (error) {
 		console.warn("spazio delle copie non disponibile:", error);
 		ui.trashUsage.textContent = "";
@@ -1101,7 +1141,7 @@ function renderRefs(snapshot: Snapshot): void {
 			const empty = el(
 				"li",
 				"muted",
-				kind === "tag" ? "nessun tag" : "—"
+				kind === "tag" ? t("nessun tag") : "—"
 			);
 			empty.style.cursor = "default";
 			container.appendChild(empty);
@@ -1119,7 +1159,9 @@ function renderRefs(snapshot: Snapshot): void {
 					el("span", "ref-track", `↑${ref.ahead} ↓${ref.behind}`)
 				);
 			}
-			item.title = `Vai al commit di ${ref.short} · tasto destro per le operazioni`;
+			item.title = t(
+				`Vai al commit di ${ref.short} · tasto destro per le operazioni`
+			);
 			// il clic non fa checkout: sposta il cursore, come nella storia
 			item.addEventListener("click", () => void revealRef(ref.sha));
 			item.addEventListener("contextmenu", (event) => {
@@ -1206,12 +1248,14 @@ function fillChangeList(
 		const acts = el("span", "acts");
 		const toggle = el("button", "icon-btn", staged ? "−" : "+");
 		toggle.dataset.act = staged ? "unstage" : "stage";
-		toggle.title = staged ? "Togli dallo stage" : "Aggiungi allo stage";
+		toggle.title = t(
+			staged ? "Togli dallo stage" : "Aggiungi allo stage"
+		);
 		acts.appendChild(toggle);
 
 		const discard = el("button", "icon-btn", "×");
 		discard.dataset.act = "discard";
-		discard.title = "Scarta le modifiche";
+		discard.title = t("Scarta le modifiche");
 		acts.appendChild(discard);
 
 		item.appendChild(acts);
@@ -1295,9 +1339,9 @@ function treeFiles(
 
 function renderTree(snapshot: Snapshot): void {
 	const files = treeFiles(snapshot);
-	ui.treeTitle.textContent = state.selectedCommit
-		? "File tree · commit"
-		: "File tree · working tree";
+	ui.treeTitle.textContent = t(
+		state.selectedCommit ? "File tree · commit" : "File tree · working tree"
+	);
 	clear(ui.treeList);
 
 	if (files.length === 0) {
@@ -1396,7 +1440,7 @@ function renderCommitHead(): void {
 	);
 
 	const sha = el("button", "commit-sha", commit.sha.slice(0, 7));
-	sha.title = `Copia lo SHA completo (${commit.sha})`;
+	sha.title = t(`Copia lo SHA completo (${commit.sha})`);
 	sha.addEventListener("click", () => void copyText(commit.sha));
 	facts.appendChild(sep());
 	facts.appendChild(sha);
@@ -1471,7 +1515,7 @@ function renderCommitAnalysis(): HTMLElement {
 	const deletions = stat?.deletions ?? 0;
 	if (stat && additions + deletions > 0) {
 		const bar = el("div", "commit-bar");
-		bar.title = `${additions} righe aggiunte, ${deletions} rimosse`;
+		bar.title = t(`${additions} righe aggiunte, ${deletions} rimosse`);
 		const add = el("span", "seg-add");
 		add.style.flexGrow = String(additions);
 		const del = el("span", "seg-del");
@@ -1491,7 +1535,7 @@ function renderCommitAnalysis(): HTMLElement {
 		if (additions + deletions === 0) {
 			totals.appendChild(el("span", "", "±0 righe"));
 		}
-		totals.title = `${additions} righe aggiunte, ${deletions} rimosse`;
+		totals.title = t(`${additions} righe aggiunte, ${deletions} rimosse`);
 		row.appendChild(totals);
 	}
 
@@ -1918,7 +1962,7 @@ async function discard(paths: string[]): Promise<void> {
 	const message = copies
 		? `Scartare le modifiche di ${label}? Le modifiche tracciate si ripristinano con Annulla; i file non tracciati vengono conservati come oggetti Git.`
 		: `Scartare le modifiche di ${label}? Le modifiche tracciate si ripristinano con Annulla, ma i file non tracciati vengono eliminati definitivamente.`;
-	if (!window.confirm(message)) return;
+	if (!askConfirm(message)) return;
 	const snapshot = await guard("Scarta", () => api.discard(paths));
 	if (snapshot) applySnapshot(snapshot);
 }
@@ -1985,9 +2029,9 @@ function openMenu(
 			ui.ctxMenu.appendChild(el("div", "ctx-sep"));
 			continue;
 		}
-		const button = el("button", "ctx-item", entry.label);
+		const button = el("button", "ctx-item", t(entry.label));
 		button.type = "button";
-		if (entry.hint) button.title = entry.hint;
+		if (entry.hint) button.title = t(entry.hint);
 		if (entry.danger) button.classList.add("is-danger");
 		if (entry.disabled) {
 			button.disabled = true;
@@ -2217,7 +2261,7 @@ function localBranchName(remoteRef: string): string {
 }
 
 async function mergeBranch(branch: string): Promise<void> {
-	if (!window.confirm(`Unire ${branch} nel ramo attuale?`)) return;
+	if (!askConfirm(`Unire ${branch} nel ramo attuale?`)) return;
 	const snapshot = await guardRepo(`Merge di ${branch}`, () =>
 		api.merge(branch)
 	);
@@ -2228,7 +2272,7 @@ async function mergeBranch(branch: string): Promise<void> {
 
 async function rebaseOnto(branch: string): Promise<void> {
 	if (
-		!window.confirm(
+		!askConfirm(
 			`Riscrivere il ramo attuale sopra ${branch}? La storia locale cambia.`
 		)
 	)
@@ -2255,7 +2299,7 @@ async function renameBranch(branch: string): Promise<void> {
 }
 
 async function deleteBranch(branch: string): Promise<void> {
-	if (!window.confirm(`Eliminare il ramo locale ${branch}?`)) return;
+	if (!askConfirm(`Eliminare il ramo locale ${branch}?`)) return;
 	try {
 		const snapshot = await api.deleteBranch(branch, false);
 		applySnapshot(snapshot);
@@ -2263,7 +2307,7 @@ async function deleteBranch(branch: string): Promise<void> {
 	} catch (error) {
 		// Git protegge i rami non uniti: cancellarli è una scelta esplicita
 		if (
-			!window.confirm(
+			!askConfirm(
 				`${readableError(error)}\n\nEliminare comunque ${branch}?`
 			)
 		)
@@ -2287,7 +2331,7 @@ async function startTracking(remoteRef: string, local: string): Promise<void> {
 async function checkoutCommit(sha: string): Promise<void> {
 	const short = sha.slice(0, 8);
 	if (
-		!window.confirm(
+		!askConfirm(
 			`Portare HEAD sul commit ${short}? Il ramo non si sposta: si lavora con HEAD staccato (l'operazione è annullabile).`
 		)
 	)
@@ -2301,8 +2345,7 @@ async function checkoutCommit(sha: string): Promise<void> {
 }
 
 async function cherryPickCommit(sha: string): Promise<void> {
-	if (!window.confirm(`Applicare ${sha.slice(0, 8)} sul ramo attuale?`))
-		return;
+	if (!askConfirm(`Applicare ${sha.slice(0, 8)} sul ramo attuale?`)) return;
 	const snapshot = await guardRepo("Cherry-pick", () => api.cherryPick(sha));
 	if (!snapshot) return;
 	applySnapshot(snapshot);
@@ -2325,7 +2368,7 @@ async function createBranchAt(sha: string): Promise<void> {
 
 async function mergeCommit(sha: string): Promise<void> {
 	const short = sha.slice(0, 8);
-	if (!window.confirm(`Unire il commit ${short} nel ramo attuale?`)) return;
+	if (!askConfirm(`Unire il commit ${short} nel ramo attuale?`)) return;
 	const snapshot = await guardRepo(`Merge di ${short}`, () => api.merge(sha));
 	if (!snapshot) return;
 	applySnapshot(snapshot);
@@ -2335,7 +2378,7 @@ async function mergeCommit(sha: string): Promise<void> {
 async function rebaseCommit(sha: string): Promise<void> {
 	const short = sha.slice(0, 8);
 	if (
-		!window.confirm(
+		!askConfirm(
 			`Riscrivere il ramo attuale sopra il commit ${short}? La storia locale cambia.`
 		)
 	)
@@ -2360,7 +2403,7 @@ async function resetTo(
 			: mode === "soft"
 			? "I commit successivi escono dal ramo, le modifiche restano in stage."
 			: "I commit successivi escono dal ramo, le modifiche restano nel working tree.";
-	if (!window.confirm(`Reset ${mode} di ${branch} a ${short}?\n\n${detail}`))
+	if (!askConfirm(`Reset ${mode} di ${branch} a ${short}?\n\n${detail}`))
 		return;
 	const snapshot = await guard(`Reset ${mode}`, () => api.reset(sha, mode));
 	if (!snapshot) return;
@@ -2391,7 +2434,7 @@ async function abortOperation(): Promise<void> {
 	const operation = state.snapshot?.info.operation;
 	if (!operation) return;
 	if (
-		!window.confirm(
+		!askConfirm(
 			`Annullare il ${operation} in corso e tornare allo stato precedente?`
 		)
 	)
@@ -2491,8 +2534,7 @@ async function stashAction(
 		pop: "Pop stash",
 		drop: "Elimina stash",
 	};
-	if (action === "drop" && !window.confirm(`Eliminare stash@{${index}}?`))
-		return;
+	if (action === "drop" && !askConfirm(`Eliminare stash@{${index}}?`)) return;
 	const snapshot =
 		action === "drop"
 			? await guard(labels.drop, () => api.stashDrop(index))
@@ -2563,9 +2605,11 @@ function appendTerminal(text: string): void {
 function updateTerminalState(): void {
 	const busy = runningTerminal !== null;
 	ui.termStop.disabled = !busy;
-	ui.termInput.placeholder = busy
-		? "comando in corso… Interrompi per fermarlo"
-		: "comando nella cartella del repository";
+	ui.termInput.placeholder = t(
+		busy
+			? "comando in corso… Interrompi per fermarlo"
+			: "comando nella cartella del repository"
+	);
 }
 function renderTerminal(): void {
 	updateTerminalState();
@@ -3506,7 +3550,7 @@ async function removeSelectedAccount(): Promise<void> {
 	);
 	if (!account) return;
 	if (
-		!window.confirm(
+		!askConfirm(
 			`Rimuovere l'account ${accountLabel(
 				account
 			)}? Il token resta nel credential helper di Git, se ne hai uno.`
@@ -3623,7 +3667,7 @@ async function cloneRemoteRepo(repo: RemoteRepo): Promise<void> {
 		parent = chosen;
 	}
 	const dest = joinPath(parent, repo.name);
-	if (!window.confirm(`Clonare ${repo.fullName} in ${dest}?`)) return;
+	if (!askConfirm(`Clonare ${repo.fullName} in ${dest}?`)) return;
 	ui.accountDialog.close();
 	toast("Clone in corso…", "ok");
 	const snapshot = await guard("Clone", () =>
@@ -3653,7 +3697,7 @@ async function syncForkWith(mode: "merge" | "rebase"): Promise<void> {
 	const parent = info.parent;
 	const verb = mode === "merge" ? "Unire" : "Rebasare il ramo attuale su";
 	if (
-		!window.confirm(
+		!askConfirm(
 			`${verb} ${parent.fullName}/${parent.defaultBranch}? Le modifiche non committate possono fermare l'operazione; niente viene forzato.`
 		)
 	)
@@ -3727,7 +3771,7 @@ function renderFileList(): void {
 			)
 		);
 		ui.fileStatus.textContent = fileListTruncated
-			? "L'elenco è troncato dal repository."
+			? t("L'elenco è troncato dal repository.")
 			: "";
 		return;
 	}
@@ -3747,13 +3791,15 @@ function renderFileList(): void {
 		ui.fileList.appendChild(item);
 	}
 	const more = matches.length - shown.length;
-	ui.fileStatus.textContent = [
-		`${matches.length} file`,
-		more > 0 ? `mostrati i primi ${shown.length}` : "",
-		fileListTruncated ? "elenco troncato dal repository" : "",
-	]
-		.filter(Boolean)
-		.join(" · ");
+	ui.fileStatus.textContent = t(
+		[
+			`${matches.length} file`,
+			more > 0 ? `mostrati i primi ${shown.length}` : "",
+			fileListTruncated ? "elenco troncato dal repository" : "",
+		]
+			.filter(Boolean)
+			.join(" · ")
+	);
 }
 
 function selectFile(path: string): void {
@@ -3896,7 +3942,7 @@ async function workflowAction(
 	id: string,
 	action: "rerun" | "cancel"
 ): Promise<void> {
-	if (action === "cancel" && !window.confirm("Annullare questa esecuzione?"))
+	if (action === "cancel" && !askConfirm("Annullare questa esecuzione?"))
 		return;
 	const done = await guard("Actions", () =>
 		api.workflowRunAction(id, action)
@@ -4102,6 +4148,12 @@ ui.settingsForm.addEventListener("submit", (event) => {
 		fillSettings(saved);
 		setBaseFolder(saved.defaultRoot);
 		await refreshTrashUsage(saved.trash.quotaBytes);
+		localStorage.setItem(LOCALE_STORAGE_KEY, saved.locale);
+		// Changing the language rebuilds the window: every view is rendered from the catalogue.
+		if (resolveLocale(saved.locale) !== currentLocale()) {
+			location.reload();
+			return;
+		}
 		ui.settingsDialog.close();
 		toast("Impostazioni salvate.", "ok");
 	})();

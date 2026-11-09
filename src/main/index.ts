@@ -63,6 +63,9 @@ const argValue = (name: string): string | null => {
 
 const shotsPath = argValue("--shots-output");
 const shotsMode = argv.includes("--shots") || shotsPath !== null;
+/** Override della lingua per screenshot e prove: la scelta dell'utente resta nelle impostazioni. */
+const localeOverride =
+	process.env.GITHANDLER_LOCALE ?? argValue("--locale") ?? null;
 let pendingRepo = argValue("--repo");
 
 /**
@@ -644,7 +647,11 @@ function openPanelWindow(root: string): void {
 	}
 
 	created.loadFile(join(__dirname, "../renderer/index.html"), {
-		query: { panel: "1", root },
+		query: {
+			panel: "1",
+			root,
+			...(localeOverride ? { locale: localeOverride } : {}),
+		},
 	});
 
 	// la selezione può essere già stata pubblicata prima che la finestra fosse pronta
@@ -678,7 +685,10 @@ function createWindow(): void {
 		},
 	});
 
-	window.loadFile(join(__dirname, "../renderer/index.html"));
+	window.loadFile(
+		join(__dirname, "../renderer/index.html"),
+		localeOverride ? { query: { locale: localeOverride } } : undefined
+	);
 
 	window.once("ready-to-show", () => window?.show());
 

@@ -5,6 +5,25 @@
 
 ## 2026-11-09
 
+### Interfaccia in italiano e in inglese
+
+-   **Cosa**: l'interfaccia dell'app può ora essere usata in **italiano o in inglese**. La lingua si
+    sceglie nelle impostazioni ("automatica" segue quella del sistema) e la finestra si ricarica per
+    applicarla. Sono tradotti i testi fissi della finestra, i menu, gli avvisi, le richieste di
+    conferma, le etichette e le date. Aggiunto anche il codice che permette di forzare la lingua per
+    fare screenshot o prove.
+-   **Perché**: richiesta dell'utente — il codice va scritto in inglese, ma la vista deve esistere in
+    italiano e in inglese. Senza questo, chi non legge l'italiano non può usare il programma.
+-   **Come**: le stringhe italiane restano la lingua di partenza e un catalogo
+    (`src/renderer/i18n.ts`) le traduce in inglese, comprese quelle che contengono valori variabili
+    (nomi di ramo, conteggi). La scelta viene salvata nelle impostazioni e ricordata; all'avvio si
+    legge prima la preferenza locale, così la finestra non appare nella lingua sbagliata.
+-   **Verifica**: typecheck e **149 test** verdi, compresi quelli sul catalogo; screenshot in inglese
+    prodotti con il repository di prova e controllati.
+-   **Stato**: completato per la struttura della finestra e le parti comuni; le stringhe meno visibili
+    e i messaggi che arrivano dai comandi Git restano nella lingua originale.
+-   **Riferimento**: commit di questa sessione.
+
 ### Licenza GPL-3.0, CI e documenti di progetto
 
 -   **Cosa**: il progetto ha una licenza definitiva (**GPL-3.0-or-later**, al posto della MIT), una

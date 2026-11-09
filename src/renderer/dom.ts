@@ -1,3 +1,5 @@
+import { localeTag, tExact } from "./i18n.ts";
+
 export function el<K extends keyof HTMLElementTagNameMap>(
 	tag: K,
 	className?: string,
@@ -5,7 +7,8 @@ export function el<K extends keyof HTMLElementTagNameMap>(
 ): HTMLElementTagNameMap[K] {
 	const node = document.createElement(tag);
 	if (className) node.className = className;
-	if (text !== undefined) node.textContent = text;
+	// Widget labels pass through the catalogue; repository data does not match a key.
+	if (text !== undefined) node.textContent = tExact(text);
 	return node;
 }
 
@@ -31,15 +34,18 @@ const MINUTE = 60;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
-/** Tempo relativo in italiano, compatto: "ora", "12 min", "3 h", "5 g". */
+/** Relative time in the current language, compact: "now", "12 min", "3 h", "5 d". */
 export function relativeTime(timestampMs: number, now = Date.now()): string {
 	const seconds = Math.max(0, Math.round((now - timestampMs) / 1000));
-	if (seconds < 60) return "ora";
+	const italian = localeTag().startsWith("it");
+	if (seconds < 60) return italian ? "ora" : "now";
 	if (seconds < HOUR) return `${Math.floor(seconds / MINUTE)} min`;
 	if (seconds < DAY) return `${Math.floor(seconds / HOUR)} h`;
-	if (seconds < 30 * DAY) return `${Math.floor(seconds / DAY)} g`;
-	if (seconds < 365 * DAY) return `${Math.floor(seconds / (30 * DAY))} mesi`;
-	return `${Math.floor(seconds / (365 * DAY))} anni`;
+	if (seconds < 30 * DAY)
+		return `${Math.floor(seconds / DAY)} ${italian ? "g" : "d"}`;
+	if (seconds < 365 * DAY)
+		return `${Math.floor(seconds / (30 * DAY))} ${italian ? "mesi" : "mo"}`;
+	return `${Math.floor(seconds / (365 * DAY))} ${italian ? "anni" : "y"}`;
 }
 
 const AVATAR_COLORS = [
@@ -75,7 +81,7 @@ export function initials(name: string): string {
 
 /** Data come nella lista della storia: "2 apr 2021, 02:02". */
 export function shortDate(timestampMs: number): string {
-	return new Date(timestampMs).toLocaleString("it-IT", {
+	return new Date(timestampMs).toLocaleString(localeTag(), {
 		day: "numeric",
 		month: "short",
 		year: "numeric",
@@ -85,7 +91,7 @@ export function shortDate(timestampMs: number): string {
 }
 
 export function fullDate(timestampMs: number): string {
-	return new Date(timestampMs).toLocaleString("it-IT", {
+	return new Date(timestampMs).toLocaleString(localeTag(), {
 		day: "2-digit",
 		month: "short",
 		year: "numeric",

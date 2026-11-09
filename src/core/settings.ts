@@ -40,8 +40,12 @@ export interface TrashSettings {
 	quotaBytes: number;
 }
 
+/** Language of the user interface: `auto` follows the system. */
+export type LocalePreference = "auto" | "it" | "en";
+
 export interface Settings {
 	api: ApiPolicy;
+	locale: LocalePreference;
 	trash: TrashSettings;
 	/**
 	 * Cartella da cui partono i dialog «Apri», «Crea» e «Clona». Non è un limite: da lì si può
@@ -82,6 +86,7 @@ export interface TrashUsage {
 export function defaultSettings(): Settings {
 	return {
 		api: { mode: "off", tools: [] },
+		locale: "auto",
 		trash: { ...TRASH_DEFAULTS },
 		defaultRoot: null,
 		repoAccounts: {},
@@ -93,6 +98,10 @@ export function isApiTool(value: unknown): value is ApiTool {
 		typeof value === "string" &&
 		(API_TOOLS as readonly string[]).includes(value)
 	);
+}
+
+export function isLocalePreference(value: unknown): value is LocalePreference {
+	return value === "auto" || value === "it" || value === "en";
 }
 
 export function isApiMode(value: unknown): value is ApiMode {
@@ -154,6 +163,9 @@ export function normalizeSettings(data: unknown): Settings {
 
 	return {
 		api: { mode, tools },
+		locale: isLocalePreference(record.locale)
+			? record.locale
+			: fallback.locale,
 		defaultRoot,
 		repoAccounts,
 		trash: {

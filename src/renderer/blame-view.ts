@@ -1,5 +1,6 @@
 import { UNCOMMITTED_SHA, type BlameFile } from "../core/blame.ts";
 import { byId, clear, el, fullDate } from "./dom.ts";
+import { t } from "./i18n.ts";
 
 const ROW_H = 20;
 const OVERSCAN = 8;
@@ -114,7 +115,7 @@ export class BlameView {
 				} — ${fullDate(line.timestamp * 1000)}\n${line.summary}`;
 			} else {
 				number.style.borderLeftColor = "#4b5563";
-				row.title = "Righe non ancora committate";
+				row.title = t("Righe non ancora committate");
 			}
 
 			row.append(number, sha, author, text);

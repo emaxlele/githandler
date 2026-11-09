@@ -141,6 +141,7 @@ test("il formato v0.4 migra senza perdere la scelta di accensione", () => {
 test("la serializzazione si rilegge uguale", () => {
 	const settings = {
 		api: { mode: "custom" as const, tools: ["blame" as const] },
+		locale: "auto" as const,
 		defaultRoot: null,
 		trash: {
 			enabled: false,
@@ -181,6 +182,7 @@ test("senza file valgono i default; salvare e rileggere conserva i valori", asyn
 
 	const custom = {
 		api: { mode: "custom" as const, tools: ["repo_status" as const] },
+		locale: "it" as const,
 		defaultRoot: "/tmp/progetti",
 		trash: {
 			enabled: false,
@@ -204,4 +206,12 @@ test("un file illeggibile non fa partire l'app con l'API aperta", async () => {
 	await mkdir(settingsDirectory(), { recursive: true });
 	await writeFile(settingsFile(), "{ rotto", "utf8");
 	assert.equal((await loadSettings()).api.mode, "off");
+});
+
+test("la lingua accetta solo le scelte previste", () => {
+	assert.equal(normalizeSettings({ locale: "en" }).locale, "en");
+	assert.equal(normalizeSettings({ locale: "it" }).locale, "it");
+	assert.equal(normalizeSettings({ locale: "auto" }).locale, "auto");
+	assert.equal(normalizeSettings({ locale: "fr" }).locale, "auto");
+	assert.equal(normalizeSettings({}).locale, "auto");
 });

@@ -1678,6 +1678,25 @@ body {
 	text-align: right;
 }
 
+.settings-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	font-size: 12px;
+	color: var(--text-dim);
+}
+
+.settings-row select {
+	padding: 4px 8px;
+	border: 1px solid var(--border-strong);
+	border-radius: 6px;
+	background: var(--bg);
+	color: var(--text);
+	font-family: inherit;
+	font-size: 12px;
+}
+
 .settings-grid input:disabled {
 	opacity: 0.45;
 }

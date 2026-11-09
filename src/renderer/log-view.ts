@@ -8,6 +8,7 @@ import {
 	initials,
 	shortDate,
 } from "./dom.ts";
+import { t } from "./i18n.ts";
 
 const ROW_H = 28;
 const LANE_W = 12;
@@ -194,7 +195,7 @@ export class LogView {
 		const message = el(
 			"span",
 			"msg",
-			commit.subject || "(nessun messaggio)"
+			commit.subject || t("(nessun messaggio)")
 		);
 		message.title = commit.subject;
 		subject.appendChild(message);
