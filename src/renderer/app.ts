@@ -692,7 +692,7 @@ let panelApplyToken = 0;
 async function applyPanelState(payload: PanelState): Promise<void> {
 	if (!panelMode) return;
 	if (payload.root !== state.root) {
-		await followPanelRepo(payload.root);
+		await followPanelRepo(payload.root, payload.selectedCommit);
 		if (payload.root !== state.root) return;
 	}
 
@@ -720,19 +720,71 @@ async function applyPanelState(payload: PanelState): Promise<void> {
 	if (payload.tab !== state.tab) setTab(payload.tab);
 }
 
-/** Il pannello segue il repository attivo della finestra principale, senza chiedere niente. */
-async function followPanelRepo(root: string): Promise<void> {
+/**
+ * Ultimo commit guardato nel pannello, per repository: quando la finestra principale non ne indica
+ * uno (repository appena aperto, pubblicazione non ancora arrivata) il pannello riapre questo
+ * invece del primo della storia.
+ */
+const PANEL_COMMIT_KEY = "githandler.panelCommit";
+
+function readPanelCommits(): Record<string, string> {
 	try {
+		const parsed: unknown = JSON.parse(
+			localStorage.getItem(PANEL_COMMIT_KEY) ?? "{}"
+		);
+		if (typeof parsed !== "object" || parsed === null) return {};
+		const result: Record<string, string> = {};
+		for (const [root, sha] of Object.entries(parsed)) {
+			if (typeof sha === "string" && /^[0-9a-f]{7,64}$/.test(sha))
+				result[root] = sha;
+		}
+		return result;
+	} catch (error) {
+		console.warn("ultimo commit del pannello non leggibile:", error);
+		return {};
+	}
+}
+
+function rememberedPanelCommit(root: string): string | null {
+	return readPanelCommits()[root] ?? null;
+}
+
+function rememberPanelCommit(root: string, sha: string | null): void {
+	if (!panelMode || !root || !sha) return;
+	try {
+		const commits = readPanelCommits();
+		if (commits[root] === sha) return;
+		commits[root] = sha;
+		localStorage.setItem(PANEL_COMMIT_KEY, JSON.stringify(commits));
+	} catch (error) {
+		console.warn("ultimo commit del pannello non salvato:", error);
+	}
+}
+
+/** Il pannello segue il repository attivo della finestra principale, senza chiedere niente. */
+async function followPanelRepo(
+	root: string,
+	mainSelection: string | null
+): Promise<void> {
+	if (state.root === root && state.snapshot) return;
+	try {
+		// la sessione lasciata indietro può avere una selezione più recente di quella salvata
+		const previous = sessions.get(root)?.selectedCommit ?? null;
+		const restore =
+			mainSelection ?? previous ?? rememberedPanelCommit(root);
 		await api.use(root);
 		const snapshot = await api.refresh();
 		const session = emptyState(root);
 		session.snapshot = snapshot;
 		session.commits = snapshot.commits;
 		session.hasMore = snapshot.hasMore;
+		// prima di `renderSession`: senza selezione `loadLog` aprirebbe il primo commit della storia
+		session.selectedCommit = restore;
 		sessions.clear();
 		sessions.set(root, session);
 		state = session;
 		renderSession();
+		if (restore) await selectCommit(restore);
 	} catch (error) {
 		toast(`Cambio repository: ${readableError(error)}`);
 	}
@@ -1230,9 +1282,11 @@ async function loadLog(): Promise<void> {
 		);
 		logView.setData(state.commits, layoutGraph(state.commits));
 		ui.searchInfo.textContent = "";
-		// senza selezione il pannello Commit resterebbe vuoto all'apertura
-		if (!state.selectedCommit && state.commits[0]) {
-			const first = state.commits[0].sha;
+		// senza selezione il pannello Commit resterebbe vuoto all'apertura; nella finestra
+		// staccata torna prima l'ultimo commit guardato lì, se c'è
+		const remembered = panelMode ? rememberedPanelCommit(state.root) : null;
+		if (!state.selectedCommit && (remembered || state.commits[0])) {
+			const first = remembered ?? state.commits[0]!.sha;
 			if (state.tab === "commit") void selectCommit(first);
 			else logView.select(first);
 		}
@@ -1411,7 +1465,8 @@ function fillChangeList(
 
 		// un file eliminato non esiste più sul disco: non c'è niente da trascinare
 		item.draggable = code !== "D";
-		if (item.draggable) item.title = t("Trascina fuori per copiare il file.");
+		if (item.draggable)
+			item.title = t("Trascina fuori per copiare il file.");
 
 		const acts = el("span", "acts");
 		const toggle = el("button", "icon-btn", staged ? "−" : "+");
@@ -1832,6 +1887,7 @@ async function refresh(): Promise<void> {
 async function selectCommit(sha: string): Promise<void> {
 	const root = state.root;
 	state.selectedCommit = sha;
+	rememberPanelCommit(root, sha);
 	state.commitDetails = null;
 	state.commitFiles = [];
 	state.commitStat = null;
@@ -5060,16 +5116,12 @@ function renderRecovery(summary: RecoverySummary): void {
 	);
 
 	ui.recoveryList.appendChild(
-		recoveryRow(
-			"Reflog",
-			t("Gli spostamenti di HEAD, dal più recente."),
-			[
-				recoveryAction("Apri il reflog", () => {
-					ui.recoveryDialog.close();
-					void openReflog();
-				}),
-			]
-		)
+		recoveryRow("Reflog", t("Gli spostamenti di HEAD, dal più recente."), [
+			recoveryAction("Apri il reflog", () => {
+				ui.recoveryDialog.close();
+				void openReflog();
+			}),
+		])
 	);
 
 	ui.recoveryStatus.textContent = summary.anything
@@ -5117,7 +5169,9 @@ function healthRow(label: string, detail: string): HTMLLIElement {
 function renderHealth(report: HealthReport): void {
 	clear(ui.healthList);
 	if (report.clean) {
-		ui.healthList.appendChild(el("li", "muted", t("Nessun problema trovato.")));
+		ui.healthList.appendChild(
+			el("li", "muted", t("Nessun problema trovato."))
+		);
 		ui.healthStatus.textContent = "";
 		return;
 	}
@@ -6164,7 +6218,7 @@ api.onChanged((event) => {
 	const session = sessions.get(event.snapshot.info.root);
 	if (!session) {
 		// il pannello segue la finestra principale quando cambia repository
-		if (panelMode) void followPanelRepo(event.snapshot.info.root);
+		if (panelMode) void followPanelRepo(event.snapshot.info.root, null);
 		return;
 	}
 	if (session !== state) {

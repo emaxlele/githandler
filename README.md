@@ -146,9 +146,10 @@ impostazioni:
     file del commit o del working tree, diff a destra, l'unica vista file per file), `Blame` e
     `Terminale`. La maniglia sopra il pannello lo ridimensiona, `▾` lo riduce alla sola riga delle schede
     e `⧉` lo apre in una finestra separata: chiusa quella, il pannello torna al suo posto. Finché è
-    separata, un chip «Dettagli ↗» nella toolbar la riporta davanti. Diff e albero scorrono, con la
-    loro altezza vincolata al riquadro. Un file delle liste o dell'albero si può trascinare fuori
-    dalla finestra, come da un gestore file: l'app controlla che il percorso resti nel repository.
+    separata, un chip «Dettagli ↗» nella toolbar la riporta davanti; cambiando repository, la
+    finestra riapre l'ultimo commit guardato lì. Diff e albero scorrono, con la loro altezza
+    vincolata al riquadro. Un file delle liste o dell'albero si può trascinare fuori dalla finestra,
+    come da un gestore file: l'app controlla che il percorso resti nel repository.
 
 ### Scorciatoie da tastiera
 

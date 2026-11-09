@@ -185,9 +185,10 @@ minmax(0, 1fr)`), non più contenuto tagliato
         si sono ricevuti prima del merge invece che solo dopo
 -   [ ] Actions: workflow con input e con più tentativi per esecuzione; l'annullamento è offerto solo
         alle esecuzioni non concluse
--   [ ] Pannello staccato: quando la finestra principale cambia repository, la finestra dei dettagli
-        dovrebbe riaprire l'ultimo commit guardato in quel repository invece del primo della storia
-        (oggi segue il repository e aspetta la pubblicazione successiva)
+-   [x] **Pannello staccato**: quando la finestra principale cambia repository, la finestra dei
+        dettagli riapre l'ultimo commit guardato lì (o quello che la principale sta guardando), non
+        il primo della storia; la scelta è ricordata per repository in
+        `localStorage["githandler.panelCommit"]`
 -   [x] **Indicatore nella finestra principale** che i dettagli sono in una finestra separata, oltre al
         rientro che avviene chiudendola
 

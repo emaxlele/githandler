@@ -5,6 +5,20 @@
 
 ## 2026-11-09
 
+### Il pannello dei dettagli ricorda dov'era
+
+-   **Cosa**: quando la finestra principale passa a un altro repository, la finestra dei dettagli
+    riapre **l'ultimo commit guardato in quel repository** invece del primo della storia; se la
+    finestra principale sta guardando un commit, vince quello. Il ricordo vale anche quando il
+    pannello viene riaperto.
+-   **Perché**: richiesta dell'utente — cambiando repository, i dettagli tornavano all'inizio della
+    storia e bisognava ritrovare il commit a mano.
+-   **Come**: il pannello salva per ogni repository l'ultimo commit mostrato e lo imposta prima di
+    disegnare la vista, così la selezione automatica del primo commit non può più sovrascriverlo.
+-   **Verifica**: typecheck, test esistenti e build.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Un unico posto per capire cosa si può ancora recuperare
 
 -   **Cosa**: dalla palette dei comandi si apre **«Recupero»**, una finestra che riassume l'ultima

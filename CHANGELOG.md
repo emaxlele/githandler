@@ -2,6 +2,16 @@
 
 ## [Non rilasciato]
 
+### Il pannello staccato ricorda l'ultimo commit
+
+-   **Cambio repository nel pannello**: quando la finestra principale passa a un altro repository, la
+    finestra dei dettagli riapre l'ultimo commit guardato lì — o quello che la principale sta
+    guardando — invece del primo della storia. La scelta è ricordata per repository in
+    `localStorage["githandler.panelCommit"]`.
+-   **Niente primo commit per sbaglio**: la selezione viene impostata prima di `renderSession`, così
+    `loadLog` non apre il primo commit e non può più vincerla una risposta arrivata in ritardo; alla
+    riapertura della finestra il commit ricordato viene caricato subito.
+
 ### Finestra «Recupero»
 
 -   **Una sola schermata per ciò che si può riportare indietro**: l'ultima operazione annullabile con

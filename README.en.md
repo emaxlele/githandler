@@ -144,9 +144,10 @@ settings:
     or of the working tree, diff on the right, the only file-by-file view), `Blame` and `Terminal`.
     The handle above the panel resizes it, `▾` collapses it to the tab row and `⧉` opens it in a
     separate window: when that is closed, the panel returns to its place. While it is separate, a
-    «Details ↗» chip in the toolbar brings that window to the front. Diff and tree scroll, with their
-    height bound to the pane. A file from the lists or the tree can be dragged out of the window, as
-    from a file manager: the app checks that the path stays inside the repository.
+    «Details ↗» chip in the toolbar brings that window to the front; when the repository changes,
+    the window reopens the last commit watched there. Diff and tree scroll, with their height bound
+    to the pane. A file from the lists or the tree can be dragged out of the window, as from a file
+    manager: the app checks that the path stays inside the repository.
 
 ### Keyboard shortcuts
 
