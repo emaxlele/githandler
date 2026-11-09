@@ -110,6 +110,10 @@ minmax(0, 1fr)`), non più contenuto tagliato
 -   [x] **Preferenze e temi**: chiaro, scuro e OLED (nero assoluto), densità comoda o compatta,
         tre dimensioni del testo; il tema «Automatico» segue il sistema e vale anche per la finestra
         dei dettagli, perché zoom e schema di colore li applica il processo principale
+-   [x] **Stash parziale**: nel dialog si scelgono i file da salvare (tutti di default); con una
+        parte selezionata `git stash push --include-untracked -- <path>…` salva solo quelli e lascia
+        gli altri nel working tree. I path sono verificati nel main (niente `..`, path assoluti o
+        nomi che sembrano opzioni).
 -   [x] **Progetto pubblicabile**: licenza **GPL-3.0-or-later**, CI GitHub Actions (typecheck, test,
         build, smoke del benchmark), `SECURITY.md`, `CONTRIBUTING.md`, `ROADMAP.md`, moduli per le issue,
         `AGENTS.md`, badge nel README

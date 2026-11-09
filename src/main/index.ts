@@ -376,8 +376,8 @@ function registerIpc(): void {
 		)
 	);
 	handle("git:stashList", (root: string) => backendFor(root).stashList());
-	handle("git:stashSave", (root: string, message: string) =>
-		backendFor(root).stashSave(message)
+	handle("git:stashSave", (root: string, message: string, paths?: string[]) =>
+		backendFor(root).stashSave(message, paths)
 	);
 	handle("git:stashApply", (root: string, index: number, drop: boolean) =>
 		backendFor(root).stashApply(index, drop)

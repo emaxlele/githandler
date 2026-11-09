@@ -5,6 +5,22 @@
 
 ## 2026-11-09
 
+### Lo stash può salvare solo alcuni file
+
+-   **Cosa**: la finestra dello **Stash** ora elenca i file modificati e non tracciati, con una
+    casella per ciascuno. Si può salvare tutto come prima oppure togliere la spunta a quello che deve
+    restare nel working tree; «Tutti» e «Nessuno» cambiano la selezione in un clic.
+-   **Perché**: richiesta dell'utente — capita di voler mettere da parte una modifica urgente senza
+    portarsi dietro il lavoro a metà su un altro file.
+-   **Come**: quando la selezione è parziale, l'app passa a Git l'elenco dei file; gli altri non
+    vengono toccati. I percorsi sono controllati prima di eseguire il comando, così un nome
+    malformato non può uscire dal repository né diventare un'opzione.
+-   **Verifica**: typecheck, **221 test** verdi (3 nuovi: argomenti e due casi su un repository
+    reale) e build; la finestra è stata controllata in inglese con due file di prova, uno modificato
+    e uno non tracciato.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Si vede quando il trasferimento è in corso
 
 -   **Cosa**: durante clone, fetch, pull e push la barra in alto mostra cosa sta facendo Git

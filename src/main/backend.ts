@@ -141,7 +141,8 @@ export interface GitBackend {
 	/** Push senza forza; senza upstream crea il tracking su `origin`. */
 	push(onProgress?: ProgressListener): Promise<Snapshot>;
 	stashList(): Promise<StashEntry[]>;
-	stashSave(message: string): Promise<Snapshot>;
+	/** Con `paths` salva solo quei file e lascia gli altri nel working tree. */
+	stashSave(message: string, paths?: string[]): Promise<Snapshot>;
 	/** Applica (`pop` falso) o applica ed elimina (`pop` vero) lo stash indicato. */
 	stashApply(index: number, drop: boolean): Promise<Snapshot>;
 	stashDrop(index: number): Promise<Snapshot>;
@@ -650,11 +651,22 @@ export class CliGitBackend implements GitBackend {
 		return parseStashList(result.stdout);
 	}
 
-	async stashSave(message: string): Promise<Snapshot> {
+	async stashSave(message: string, paths?: string[]): Promise<Snapshot> {
 		const info = this.#requireInfo();
 		if ((await this.refresh()).status.entries.length === 0)
 			throw new Error("Niente da salvare: il working tree è pulito.");
-		await runGit(info.root, stashSaveArgs(message), { timeoutMs: 120_000 });
+		if (paths) {
+			const unique = [...new Set(paths)];
+			if (unique.length === 0)
+				throw new Error(
+					"Scegli almeno un file da mettere nello stash."
+				);
+			for (const path of unique) assertSafePath(path);
+			paths = unique;
+		}
+		await runGit(info.root, stashSaveArgs(message, paths), {
+			timeoutMs: 120_000,
+		});
 		return this.refresh();
 	}
 

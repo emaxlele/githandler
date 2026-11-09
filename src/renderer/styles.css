@@ -2217,6 +2217,54 @@ body {
 	gap: 8px;
 }
 
+/* Selezione parziale: l'elenco resta compatto e scorre, il messaggio sopra non si perde. */
+.stash-paths {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.stash-paths-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: var(--text-dim);
+}
+
+.stash-paths-head > span {
+	margin-right: auto;
+}
+
+.stash-path-list {
+	max-height: 160px;
+	overflow: auto;
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 4px 6px;
+	background: var(--panel-2);
+}
+
+.stash-path-list .check {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	padding: 2px 0;
+	font-size: 12px;
+}
+
+.stash-path-list .check code {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	direction: rtl;
+	text-align: left;
+}
+
+.stash-path-list .muted {
+	padding: 2px 0;
+}
+
 .stash-save input {
 	flex: 1;
 	min-width: 0;

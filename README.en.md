@@ -53,7 +53,7 @@ Italiano: [README.md](README.md)
 | Commit (also `-a`), checkout of branch and commit, new branch                        | ✅             |
 | Fetch                                                                                | ✅             |
 | **Pull** (`--ff-only`) and **push** (never forced)                                   | ✅             |
-| **Stash** (save, apply, pop, drop)                                                   | ✅             |
+| **Stash** (save selected files only, apply, pop, drop)                               | ✅             |
 | **Merge, rebase, cherry-pick**, abort operation                                      | ✅             |
 | **Pull request / merge request**: list and create from two branches                  | ✅             |
 | **Conflicts resolved in the app** (per file and per hunk, "continue")                | ✅             |

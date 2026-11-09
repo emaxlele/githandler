@@ -446,6 +446,10 @@ const ui = {
 	keysDialog: byId<HTMLDialogElement>("keys-dialog"),
 	stashDialog: byId<HTMLDialogElement>("stash-dialog"),
 	stashMessage: byId<HTMLInputElement>("stash-message"),
+	stashPaths: byId("stash-paths"),
+	stashAll: byId<HTMLButtonElement>("stash-all"),
+	stashNone: byId<HTMLButtonElement>("stash-none"),
+	stashPartialHint: byId("stash-partial-hint"),
 	stashList: byId("stash-list"),
 	btnStashSave: byId<HTMLButtonElement>("btn-stash-save"),
 	stashClose: byId<HTMLButtonElement>("stash-close"),
@@ -2895,8 +2899,54 @@ function settleInput(value: string | null): void {
 	resolve?.(value);
 }
 
+/** Elenco dei file che lo stash può prendere: tutti selezionati, l'utente toglie quelli da lasciare. */
+function renderStashPaths(): void {
+	clear(ui.stashPaths);
+	const entries = (state.snapshot?.status.entries ?? []).filter(
+		(entry) => entry.kind !== "unmerged"
+	);
+	if (entries.length === 0) {
+		ui.stashPaths.appendChild(
+			el("span", "muted", "Nessun file da salvare.")
+		);
+		return;
+	}
+	for (const entry of entries) {
+		const label = el("label", "check");
+		const box = document.createElement("input");
+		box.type = "checkbox";
+		box.checked = true;
+		box.value = entry.path;
+		label.appendChild(box);
+		const path = document.createElement("code");
+		path.textContent = entry.path;
+		label.appendChild(path);
+		label.appendChild(el("span", "muted", t(entry.label)));
+		ui.stashPaths.appendChild(label);
+	}
+}
+
+function selectedStashPaths(): string[] {
+	return [
+		...ui.stashPaths.querySelectorAll<HTMLInputElement>(
+			"input[type=checkbox]"
+		),
+	]
+		.filter((box) => box.checked)
+		.map((box) => box.value);
+}
+
+function setStashPaths(checked: boolean): void {
+	for (const box of ui.stashPaths.querySelectorAll<HTMLInputElement>(
+		"input[type=checkbox]"
+	)) {
+		box.checked = checked;
+	}
+}
+
 async function openStash(): Promise<void> {
 	ui.stashMessage.value = "";
+	renderStashPaths();
 	if (!ui.stashDialog.open) ui.stashDialog.showModal();
 	await loadStashList();
 }
@@ -3137,16 +3187,37 @@ ui.conflictContinue.addEventListener("click", () => void continueConflicts());
 ui.conflictAbort.addEventListener("click", () => void abortConflicts());
 
 ui.stashClose.addEventListener("click", () => ui.stashDialog.close());
+ui.stashAll.addEventListener("click", () => setStashPaths(true));
+ui.stashNone.addEventListener("click", () => setStashPaths(false));
 ui.btnStashSave.addEventListener("click", () => {
 	void (async () => {
+		const boxes = ui.stashPaths.querySelectorAll<HTMLInputElement>(
+			"input[type=checkbox]"
+		);
+		const paths = selectedStashPaths();
+		if (boxes.length > 0 && paths.length === 0) {
+			toast("Scegli almeno un file da mettere nello stash.");
+			return;
+		}
+		// tutti i file = comportamento classico, senza pathspec
+		const partial =
+			boxes.length > 0 && paths.length < boxes.length ? paths : undefined;
 		const snapshot = await guard("Stash", () =>
-			api.stashSave(ui.stashMessage.value)
+			api.stashSave(ui.stashMessage.value, partial)
 		);
 		if (!snapshot) return;
 		ui.stashMessage.value = "";
 		applySnapshot(snapshot);
+		renderStashPaths();
 		await loadStashList();
-		toast("Modifiche salvate nello stash.", "ok");
+		toast(
+			partial
+				? partial.length === 1
+					? "Stash salvato per un file."
+					: `Stash salvato per ${partial.length} file.`
+				: "Modifiche salvate nello stash.",
+			"ok"
+		);
 	})();
 });
 ui.stashList.addEventListener("click", (event) => {

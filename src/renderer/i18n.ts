@@ -202,6 +202,14 @@ const EN: Record<string, string> = {
 	"apre la pagina dei token e poi lo incolli qui sotto.":
 		"opens the token page and then you paste it below.",
 	Nuovo: "New",
+	Modificato: "Modified",
+	"Non tracciato": "Untracked",
+	Eliminato: "Deleted",
+	Rinominato: "Renamed",
+	Copiato: "Copied",
+	"Tipo cambiato": "Type changed",
+	Conflitto: "Conflict",
+	Ignorato: "Ignored",
 	Rimuovi: "Remove",
 	Provider: "Provider",
 	Host: "Host",
@@ -566,6 +574,16 @@ const EN: Record<string, string> = {
 	"comando in corso… Interrompi per fermarlo":
 		"command running… Stop to end it",
 	"Modifiche salvate nello stash.": "Changes saved to the stash.",
+	"File da salvare": "Files to save",
+	Tutti: "All",
+	Nessuno: "None",
+	"Con una parte dei file, gli altri restano nel working tree.":
+		"With only some files selected, the others stay in the working tree.",
+	"Nessun file da salvare.": "No files to save.",
+	"Scegli almeno un file da mettere nello stash.":
+		"Choose at least one file to put in the stash.",
+	"Stash salvato per {0} file.": "Stash saved for {0} files.",
+	"Stash salvato per un file.": "Stash saved for one file.",
 	"Aggiornamento dei submodule…": "Updating submodules…",
 	"Submodule aggiornati.": "Submodules updated.",
 	"Interruzione: {0}": "Stopped: {0}",

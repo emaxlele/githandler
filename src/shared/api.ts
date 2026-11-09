@@ -63,7 +63,7 @@ export interface GitApi {
 	/** Push senza forza; il primo push crea il tracking su origin. */
 	push(): Promise<Snapshot>;
 	stashList(): Promise<StashEntry[]>;
-	stashSave(message: string): Promise<Snapshot>;
+	stashSave(message: string, paths?: string[]): Promise<Snapshot>;
 	stashApply(index: number, drop: boolean): Promise<Snapshot>;
 	stashDrop(index: number): Promise<Snapshot>;
 	submodules(): Promise<SubmoduleInfo[]>;

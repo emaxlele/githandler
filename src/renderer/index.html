@@ -850,6 +850,30 @@
 					working tree pulito. Riprendere uno stash lo rimette sui
 					file; «Pop» lo applica e lo elimina.
 				</p>
+				<div class="stash-paths">
+					<div class="stash-paths-head">
+						<span>File da salvare</span>
+						<button
+							type="button"
+							class="btn btn-small"
+							id="stash-all"
+						>
+							Tutti
+						</button>
+						<button
+							type="button"
+							class="btn btn-small"
+							id="stash-none"
+						>
+							Nessuno
+						</button>
+					</div>
+					<div class="stash-path-list" id="stash-paths"></div>
+					<p class="hint" id="stash-partial-hint">
+						Con una parte dei file, gli altri restano nel working
+						tree.
+					</p>
+				</div>
 				<div class="stash-save">
 					<input
 						id="stash-message"

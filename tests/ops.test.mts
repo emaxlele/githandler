@@ -142,6 +142,15 @@ test("stash: salvataggio con messaggio, applica e scarta", () => {
 		"-m",
 		"lavoro",
 	]);
+	// con i path Git prende solo quelli; il `--` impedisce che un nome diventi un'opzione
+	assert.deepEqual(stashSaveArgs("", ["a.txt", "dir/b.txt"]), [
+		"stash",
+		"push",
+		"--include-untracked",
+		"--",
+		"a.txt",
+		"dir/b.txt",
+	]);
 	assert.deepEqual(stashApplyArgs(0, false), [
 		"stash",
 		"apply",

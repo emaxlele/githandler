@@ -125,10 +125,12 @@ export function stashListArgs(): string[] {
 	return ["stash", "list", `--format=${STASH_FORMAT}`];
 }
 
-export function stashSaveArgs(message: string): string[] {
+export function stashSaveArgs(message: string, paths?: string[]): string[] {
 	const args = ["stash", "push", "--include-untracked"];
 	const subject = message.trim();
 	if (subject) args.push("-m", subject);
+	// con i path Git salva solo quei file: gli altri restano nel working tree
+	if (paths && paths.length > 0) args.push("--", ...paths);
 	return args;
 }
 

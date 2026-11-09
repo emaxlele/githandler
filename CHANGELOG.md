@@ -2,6 +2,19 @@
 
 ## [Non rilasciato]
 
+### Stash parziale
+
+-   **Scelta dei file nello stash**: il dialog dello stash elenca i file modificati e non tracciati,
+    tutti selezionati; «Tutti» e «Nessuno» cambiano la selezione. Con una parte selezionata Git salva
+    solo quelli (`stash push --include-untracked -- <path>…`) e gli altri restano nel working tree.
+-   **Nessuna scorciatoia pericolosa**: i path sono relativi al repository e verificati nel main;
+    `..`, path assoluti e nomi che iniziano con `-` vengono rifiutati prima di chiamare Git. Un elenco
+    vuoto è un errore detto, non uno stash di tutto.
+-   **Core**: `stashSaveArgs(message, paths?)` aggiunge `--` e i path solo quando servono, quindi il
+    comportamento classico resta senza pathspec.
+-   Test nuovi in `tests/ops.test.mts` (argomenti) e `tests/stash-partial.test.mts` (stash reale:
+    `a.txt` salvato, `b.txt` e il non tracciato restano, applicazione che riporta `a.txt`).
+
 ### Avanzamento delle operazioni di rete
 
 -   **Barra nella toolbar** per clone, fetch, pull e push: la fase di Git (ricezione, risoluzione,

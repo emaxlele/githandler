@@ -53,7 +53,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | Commit (anche `-a`), checkout di ramo e commit, nuovo ramo                                  | ✅             |
 | Fetch                                                                                       | ✅             |
 | **Pull** (`--ff-only`) e **push** (mai con forza)                                           | ✅             |
-| **Stash** (salva, applica, pop, elimina)                                                    | ✅             |
+| **Stash** (salva anche solo alcuni file, applica, pop, elimina)                             | ✅             |
 | **Merge, rebase, cherry-pick**, annulla operazione                                          | ✅             |
 | **Pull request / merge request**: elenco e creazione da due rami                            | ✅             |
 | **Conflitti risolti nell'app** (per file e per hunk, «continua»)                            | ✅             |
