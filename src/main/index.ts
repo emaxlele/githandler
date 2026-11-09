@@ -56,6 +56,7 @@ import { claimAccount, cancelOAuth, startOAuth } from "./oauth.ts";
 import { originRemote } from "./remote.ts";
 import { cloneRepository, initRepository, type Identity } from "./repos.ts";
 import { loadSettings, saveSettings } from "./settings.ts";
+import { startCiNotifier, type CiNotifier } from "./tray.ts";
 import { startWatcher } from "./watcher.ts";
 
 const argv = process.argv.slice(1);
@@ -128,6 +129,8 @@ async function openBackend(
 	backends.set(snapshot.info.root, backend);
 	activeRoot = snapshot.info.root;
 	watchRepository(snapshot.info.root);
+	// il repository è appena diventato attivo: la fotografia dei workflow parte da qui
+	void ciNotifier?.checkNow();
 	return snapshot;
 }
 
@@ -253,6 +256,7 @@ function registerIpc(): void {
 		backendFor(root);
 		activeRoot = root;
 		watchRepository(root);
+		void ciNotifier?.checkNow();
 	});
 
 	handle("git:refresh", (root: string) => backendFor(root).refresh());
@@ -1028,16 +1032,41 @@ async function runShots(): Promise<void> {
 	}
 }
 
+let ciNotifier: CiNotifier | null = null;
+
+/** Riporta la finestra davanti; se non c'è più la ricrea. */
+function showWindow(): void {
+	if (!window || window.isDestroyed()) {
+		createWindow();
+		return;
+	}
+	if (window.isMinimized()) window.restore();
+	window.show();
+	window.focus();
+}
+
 app.whenReady().then(() => {
 	registerIpc();
 	buildMenu();
 	createWindow();
 	// i token già presenti sulla macchina tornano in memoria: nessun «Accedi» dopo un riavvio
 	if (!shotsMode) void hydrateTokens();
+	if (!shotsMode)
+		void startCiNotifier({
+			getRoot: () => activeRoot,
+			showWindow,
+		}).then((notifier) => {
+			ciNotifier = notifier;
+		});
 
 	app.on("activate", () => {
 		if (BrowserWindow.getAllWindows().length === 0) createWindow();
 	});
+});
+
+app.on("before-quit", () => {
+	ciNotifier?.stop();
+	ciNotifier = null;
 });
 
 app.on("window-all-closed", () => {

@@ -5,6 +5,24 @@
 
 ## 2026-11-09
 
+### Un avviso quando i controlli automatici falliscono
+
+-   **Cosa**: l'app ha ora un'icona nella **barra di sistema**, con «Mostra GitHandler», «Controlla
+    adesso», l'interruttore delle notifiche e «Esci». Quando un controllo automatico del repository
+    attivo fallisce arriva un avviso, **una volta sola**; prima non serve tenere la finestra davanti.
+-   **Perché**: richiesta dell'utente — chi lancia i controlli e passa ad altro vuole sapere subito se
+    qualcosa si è rotto, senza tornare a controllare il sito.
+-   **Come**: ogni due minuti si legge l'ultima pagina delle esecuzioni (solo GitHub, come la finestra
+    delle Actions). Il primo controllo dopo l'apertura è una fotografia e non avvisa di quello che era
+    già rosso; un repository senza remoto o senza account non produce un avviso ogni due minuti.
+    L'icona è ricavata dal logo già esistente e finisce anche nel pacchetto di installazione.
+-   **Verifica**: typecheck, **212 test** verdi (4 nuovi sulla regola degli avvisi) e build; l'app è
+    stata avviata con l'icona e il controllo automatico attivi, e l'errore di un repository senza
+    remoto è comparso una volta sola. La resa dell'avviso di sistema va vista su un desktop con la
+    barra di sistema.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Si vede se i controlli automatici sono passati
 
 -   **Cosa**: nella finestra delle pull request ogni richiesta ha ora il pulsante **«Controlli»**: legge

@@ -67,6 +67,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Ricerca nella storia**: testo, `author:`, `file:`, `regex:`, `change:`, `diff:`, `lines:` | ✅             |
 | **Reflog** nell'app e «vai al commit» per SHA                    | ✅             |
 | **Controlli delle pull request** (esito e collegamenti)          | ✅             |
+| **Notifiche CI dalla barra di sistema**                          | ✅             |
 | **Aggiornamento automatico** (`--watch`)                         | ✅             |
 | **Blame nella UI** (pannello virtualizzato)                      | ✅             |
 | **Pannello ridimensionabile, a icona, in finestra**              | ✅             |
@@ -93,6 +94,11 @@ La finestra segue la disposizione dei client Git desktop affermati, con un tema 
 -   **Barra laterale**: nome del repository, _Changes_ con il conteggio, _All Commits_, filtro di
     ricerca e i ref divisi in Branches / Remotes / Tags. Il conteggio si nasconde a zero, è verde quando
     tutto è in stage e ambra quando resta qualcosa fuori.
+-   **Notifiche CI senza tenere la finestra davanti**: l'icona nella barra di sistema ha «Mostra
+    GitHandler», «Controlla adesso», l'interruttore delle notifiche e «Esci». Quando un'esecuzione
+    dei workflow del repository attivo diventa un errore arriva un avviso, **una volta sola**; il
+    primo controllo dopo l'apertura è una fotografia e non avvisa del passato. Solo GitHub, come la
+    finestra delle esecuzioni.
 -   **Reflog e salto a un commit**: «Reflog…» elenca gli spostamenti di HEAD (commit, checkout,
     reset, rebase) con selettore, SHA abbreviato e data; «Vai al commit» apre quel commit nel
     pannello. «Vai al commit per SHA…», dalla palette, raggiunge qualsiasi commit anche fuori dalla

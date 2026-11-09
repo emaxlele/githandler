@@ -128,7 +128,9 @@ minmax(0, 1fr)`), non più contenuto tagliato
 -   [x] **Stato dei check per pull request**: esito complessivo e singoli controlli (GitHub,
         GitLab, Gitea/Forgejo, Bitbucket), con apertura nel browser; il colore non è mai verde senza
         un successo
--   [ ] Notifiche CI dal tray
+-   [x] **Notifiche CI dal tray**: icona nella barra di sistema con «Mostra», «Controlla adesso»,
+        interruttore delle notifiche e «Esci»; un avviso quando un'esecuzione dei workflow diventa un
+        errore, una volta sola, senza tenere la finestra davanti
 -   [ ] Milestone 3 — scala e affidabilità
     -   [x] Misura di `status`, refresh e primo paint su repo da 100k file e 50k commit
     -   [x] **Refresh incrementale**: la pagina di storia si riusa se HEAD e i ref non cambiano

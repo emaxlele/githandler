@@ -67,3 +67,5 @@ if (watch) {
 
 await cp("src/renderer/index.html", "dist/renderer/index.html");
 await cp("src/renderer/styles.css", "dist/renderer/styles.css");
+// icona della barra di sistema: sta accanto al bundle del main, anche nel pacchetto .deb
+await cp("build/tray.png", "dist/tray.png");

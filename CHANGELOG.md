@@ -2,6 +2,25 @@
 
 ## [Non rilasciato]
 
+### Notifiche CI dalla barra di sistema
+
+-   **Icona nella barra di sistema** con «Mostra GitHandler», «Controlla adesso», l'interruttore delle
+    notifiche e «Esci»; un clic sull'icona riporta la finestra davanti, o la ricrea se è stata chiusa.
+-   **Avviso sui workflow falliti**: ogni due minuti si legge l'ultima pagina delle esecuzioni del
+    repository attivo (GitHub, come la finestra delle Actions) e si avvisa quando un'esecuzione
+    diventa `failure`, `timed_out`, `startup_failure` o `action_required`, **una volta sola**.
+    `success`, `skipped` e `cancelled` non avvisano.
+-   **Il primo giro è una fotografia**: senza, all'apertura arriverebbero insieme tutte le esecuzioni
+    fallite della settimana. Cambiare repository azzera la fotografia.
+-   **Errori senza rumore**: un repository senza remoto o senza account non parla ogni due minuti; il
+    motivo va su stderr una volta, poi si tace finché non cambia. Senza barra di sistema l'app
+    funziona lo stesso.
+-   **Core nuovo** `src/core/ci.ts`: `CiState`, `newFailures`, `isCiFailure`; la mappa non cresce fra
+    un giro e l'altro. Icona `build/tray.png` (32×32, ricavata da `build/icon.svg`), copiata in
+    `dist/` dal build e quindi inclusa nel pacchetto `.deb`.
+-   Test nuovi in `tests/ci.test.mts` (4 casi): esiti che avvisano, primo giro silenzioso,
+    in corso → errore una volta sola, esecuzione sparita che non resta nella mappa.
+
 ### Controlli delle pull request
 
 -   **Esito dei controlli** nella finestra delle pull request: _Controlli_ legge i workflow sul commit

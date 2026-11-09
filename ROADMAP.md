@@ -28,7 +28,7 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 -   ✅ Pull request / merge request: list the open ones, open them, create one from two branches.
 -   ⏳ Review comments: read and answer, without leaving the app.
 -   ✅ Checks: status per pull request, with a link to the run.
--   ⏳ CI notifications from the tray, without keeping the window in front.
+-   ✅ CI notifications from the tray, without keeping the window in front.
 
 ## 4. Daily quality
 

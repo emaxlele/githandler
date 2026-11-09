@@ -67,6 +67,7 @@ Italiano: [README.md](README.md)
 | **History search**: text, `author:`, `file:`, `regex:`, `change:`, `diff:`, `lines:` | ✅             |
 | **Reflog** in the app and "go to commit" by SHA                               | ✅             |
 | **Pull request checks** (result and links)                                    | ✅             |
+| **CI notifications from the system tray**                                     | ✅             |
 | **Automatic refresh** (`--watch`)                                             | ✅             |
 | **Blame in the UI** (virtualized panel)                                       | ✅             |
 | **Resizable, collapsible, detachable panel**                                  | ✅             |
@@ -93,6 +94,10 @@ The window follows the layout of established desktop Git clients, with its own d
 -   **Sidebar**: repository name, _Changes_ with a count, _All Commits_, a search filter and refs split
     into Branches / Remotes / Tags. The count hides at zero, is green when everything is staged and
     amber when something is left out.
+-   **CI notifications without keeping the window in front**: the system tray icon has "Show
+    GitHandler", "Check now", the notifications toggle and "Quit". When a workflow run of the active
+    repository turns into a failure a notification arrives, **once**; the first check after startup
+    is a snapshot and does not warn about the past. GitHub only, like the runs window.
 -   **Reflog and a jump to any commit**: "Reflog…" lists the moves of HEAD (commit, checkout,
     reset, rebase) with selector, abbreviated SHA and date; "Go to the commit" opens that commit in
     the panel. "Go to commit by SHA…", from the palette, reaches any commit even outside the loaded
