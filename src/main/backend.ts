@@ -73,6 +73,7 @@ import type {
 	CommitPage,
 	CommitStat,
 	DiffFile,
+	RefInfo,
 	RepoInfo,
 	RepoOperation,
 	Snapshot,
@@ -165,6 +166,13 @@ export interface GitBackend {
 	trashUsage(): Promise<TrashUsage>;
 }
 
+/** Impronta stabile dei ref: dice se la pagina di storia letta è ancora valida. */
+function refFingerprint(refs: RefInfo[]): string {
+	return refs
+		.map((ref) => `${ref.kind}\u0000${ref.name}\u0000${ref.sha}`)
+		.join("\u0001");
+}
+
 /** Rifiuta path che possano uscire dal repository o diventare opzioni per git. */
 function assertSafePath(path: string): void {
 	if (
@@ -179,6 +187,16 @@ function assertSafePath(path: string): void {
 
 export class CliGitBackend implements GitBackend {
 	#info: RepoInfo | null = null;
+	/**
+	 * Pagina di storia già letta, con l'impronta di HEAD e dei ref.
+	 * `git log --date-order` percorre tutta la storia per ordinarla: rileggerla a ogni
+	 * `fs.watch` (un salvataggio, un `git add`) sarebbe il costo più alto del refresh.
+	 */
+	#history: {
+		head: string | null;
+		refs: string;
+		commits: Commit[];
+	} | null = null;
 	readonly #settings: () => Promise<Settings>;
 	readonly #credentials: BackendOptions["credentials"];
 
@@ -225,35 +243,53 @@ export class CliGitBackend implements GitBackend {
 			detached: branch === null,
 			operation: await this.#operation(gitDir),
 		};
+		this.#history = null;
 		return this.refresh();
 	}
 
 	async refresh(): Promise<Snapshot> {
 		const info = this.#requireInfo();
 
-		const [log, refs, status, undoLog, headRef] = await Promise.all([
-			runGit(info.root, logArgs({ limit: HISTORY_PAGE_SIZE }), {
-				allowFailure: true,
-			}),
+		// `git status --branch` porta già ramo e SHA di HEAD: la `symbolic-ref` separata
+		// sarebbe un processo in più per un dato che arriva qui.
+		const [refs, status, undoLog] = await Promise.all([
 			runGit(info.root, refsArgs(), { allowFailure: true }),
 			runGit(info.root, statusArgs(), { allowFailure: true }),
 			this.#readUndo(),
-			// HEAD può essere stato staccato dopo l'apertura: `info` da solo sarebbe vecchio
-			runGit(info.root, ["symbolic-ref", "--short", "-q", "HEAD"], {
-				allowFailure: true,
-			}),
 		]);
 
-		const commits = parseLog(log.stdout);
+		const statusTree = parseStatus(status.stdout);
 		const refList = parseRefs(refs.stdout);
+		const fingerprint = refFingerprint(refList);
+
+		let commits =
+			this.#history?.head === statusTree.oid &&
+			this.#history.refs === fingerprint
+				? this.#history.commits
+				: null;
+
+		if (commits) {
+			// le decorazioni cambiano con i ref: si ricalcolano sulla pagina riusata
+			for (const commit of commits) commit.refs = [];
+		} else {
+			const log = await runGit(
+				info.root,
+				logArgs({ limit: HISTORY_PAGE_SIZE }),
+				{ allowFailure: true }
+			);
+			commits = parseLog(log.stdout);
+			this.#history = {
+				head: statusTree.oid,
+				refs: fingerprint,
+				commits,
+			};
+		}
 		attachRefs(commits, refList);
 
-		const branch =
-			headRef.code === 0 ? headRef.stdout.trim() || null : null;
 		this.#info = {
 			...info,
-			branch,
-			detached: branch === null,
+			branch: statusTree.branch,
+			detached: statusTree.branch === null,
 			operation: await this.#operation(info.gitDir),
 		};
 
@@ -262,7 +298,7 @@ export class CliGitBackend implements GitBackend {
 			commits,
 			graph: layoutGraph(commits),
 			refs: refList,
-			status: parseStatus(status.stdout),
+			status: statusTree,
 			undo: undoLog[0] ?? null,
 			hasMore: commits.length === HISTORY_PAGE_SIZE,
 		};

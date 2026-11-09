@@ -219,3 +219,20 @@ test("applyPatch toglie dallo stage una sola riga", async () => {
 	assert.equal(entry!.index, ".");
 	assert.equal(git("show", ":righe.ts"), "uno\ndue\ntre\n");
 });
+
+test("il refresh non rilegge la storia se HEAD e i ref non cambiano", async () => {
+	const first = await backend.refresh();
+	const again = await backend.refresh();
+	assert.equal(again.commits, first.commits);
+	assert.equal(again.graph.length, first.graph.length);
+
+	git("commit", "--allow-empty", "-m", "commit senza modifiche");
+	const changed = await backend.refresh();
+	assert.notEqual(changed.commits, first.commits);
+	assert.equal(changed.commits[0]!.subject, "commit senza modifiche");
+	assert.ok(
+		changed.commits.some((commit) =>
+			commit.refs.some((ref) => ref.kind === "head")
+		)
+	);
+});

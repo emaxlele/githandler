@@ -20,8 +20,9 @@ import { join } from "node:path";
 import { performance } from "node:perf_hooks";
 
 import { layoutGraph } from "../src/core/graph.ts";
-import { logArgs, parseLog } from "../src/core/log.ts";
+import { logArgs, parseLog, refsArgs } from "../src/core/log.ts";
 import { parseStatus, statusArgs } from "../src/core/status.ts";
+import { CliGitBackend } from "../src/main/backend.ts";
 import { runGit } from "../src/main/git.ts";
 
 function arg(name: string, fallback: number): number {
@@ -92,6 +93,9 @@ function fastImportStream(commitCount: number): string {
 
 async function createRepo(dir: string): Promise<void> {
 	await git(dir, ["init", "-q", "-b", "main"]);
+	// Il `git gc` automatico parte in background dopo il commit dei file e scriverebbe dentro
+	// `.git/objects` mentre il benchmark sta cancellando il repository temporaneo.
+	await git(dir, ["config", "gc.auto", "0"]);
 	await git(dir, ["fast-import", "--quiet"], fastImportStream(commits));
 }
 
@@ -120,6 +124,20 @@ async function addFiles(dir: string, count: number): Promise<void> {
 		"-qm",
 		"file di prova",
 	]);
+}
+
+async function measureAsync<T>(
+	runs: number,
+	task: () => Promise<T>
+): Promise<{ result: T; ms: number }> {
+	const times: number[] = [];
+	let result = await task();
+	for (let i = 0; i < runs; i++) {
+		const start = performance.now();
+		result = await task();
+		times.push(performance.now() - start);
+	}
+	return { result, ms: median(times) };
 }
 
 function fmt(ms: number): string {
@@ -166,13 +184,30 @@ try {
 	const status = await runGit(root, statusArgs(), { allowFailure: true });
 	const statusMs = performance.now() - statusStart;
 
+	const backend = new CliGitBackend();
+	await backend.open(root);
+	const page = await measureAsync(5, () =>
+		runGit(root, logArgs({ limit: 2000 }), { allowFailure: true })
+	);
+	const refsCall = await measureAsync(5, () =>
+		runGit(root, refsArgs(), { allowFailure: true })
+	);
+	const statusCall = await measureAsync(5, () =>
+		runGit(root, statusArgs(), { allowFailure: true })
+	);
+	const refresh = await measureAsync(5, () => backend.refresh());
+
 	process.stdout.write(
 		[
 			`git status (${files} file)     ${fmt(statusMs)}   ${parseStatus(status.stdout).entries.length} modifiche`,
 			`parse dello status              ${fmt(statusParsed.ms)}`,
+			`pagina di storia (2000)         ${fmt(page.ms)}   come la chiede il refresh`,
+			`refs                            ${fmt(refsCall.ms)}`,
+			`status nel refresh              ${fmt(statusCall.ms)}`,
+			`refresh completo                ${fmt(refresh.ms)}   ${refresh.result.commits.length} commit, ${refresh.result.status.entries.length} modifiche`,
 			"",
 		].join("\n"),
 	);
 } finally {
-	await rm(root, { recursive: true, force: true });
+	await rm(root, { recursive: true, force: true, maxRetries: 3 });
 }
