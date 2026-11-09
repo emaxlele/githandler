@@ -2,6 +2,18 @@
 
 ## [Non rilasciato]
 
+### Worktree
+
+-   **Dialog «Worktree»** dalla palette: elenca le cartelle collegate allo stesso repository con ramo
+    e SHA, ne crea una nuova su un ramo esistente o nuovo, la apre in una scheda e la rimuove quando
+    è pulita. Il worktree principale non ha «Rimuovi»; uno con modifiche non committate resta al suo
+    posto perché è Git a rifiutare.
+-   **Parser puro in `src/core/worktrees.ts`**: `parseWorktrees` legge `git worktree list --porcelain`
+    (blocchi, `HEAD`, `branch`, `bare`, `detached`, `locked`, `prunable`).
+-   **Backend prudente**: percorso assoluto obbligatorio, `assertRefName` sul ramo, `-b` solo se il
+    ramo non esiste, rimozione solo di un percorso presente nell'elenco e mai del principale.
+-   Test nuovi in `tests/worktrees.test.mts` (parser e repository reale con creazione e rimozione).
+
 ### Controllo dei remoti
 
 -   **«Controlla i remoti»** nella finestra della salute: per ogni remoto configurato esegue

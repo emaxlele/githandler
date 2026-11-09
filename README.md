@@ -73,6 +73,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Remoti raggiungibili**, controllati su richiesta dal pannello della salute                 | ✅             |
 | **Trascinare un file** fuori dalla finestra                                                  | ✅             |
 | **Finestra Recupero**: ultima operazione, stash, copie, reflog                              | ✅             |
+| **Worktree**: elenco, creazione, apertura in una scheda, rimozione                          | ✅             |
 | **Commit firmati** (GPG o SSH con la chiave di Git)                                          | ✅             |
 | **Avanzamento di rete** (clone, fetch, pull, push)                                          | ✅             |
 | **Temi** chiaro / scuro / OLED, densità e dimensione del testo                              | ✅             |
@@ -94,6 +95,9 @@ impostazioni:
     Aggiorna, Annulla) e, al centro, repository e ramo corrente. Sopra la storia ci sono le schede dei repository
     aperti, con la × per chiuderle e il `+` che apre la scelta _Apri / Crea / Clona da URL / Clona da un
     account_.
+-   **Worktree…** (palette dei comandi): elenca le cartelle collegate allo stesso repository, ne crea
+    una nuova su un ramo esistente o nuovo, la apre in una scheda e la rimuove quando è pulita. Il
+    worktree principale non si rimuove e Git rifiuta se restano modifiche non committate.
 -   **Le schede si riaprono da sole**: all'avvio la finestra riprende i repository dell'ultima sessione,
     nello stesso ordine, e torna su quello che era attivo (`localStorage["githandler.sessions"]`). Un
     percorso sparito viene saltato senza fermare gli altri. `--repo <path>` apre quel repository in più e

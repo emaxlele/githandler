@@ -53,6 +53,7 @@ import {
 } from "../core/actions.ts";
 import type { HealthReport } from "../core/health.ts";
 import type { RemoteCheck } from "../core/remotes.ts";
+import type { WorktreeInfo } from "../core/worktrees.ts";
 import { summarizeRecovery, type RecoverySummary } from "../core/recovery.ts";
 import type { CheckRun, CheckSummary } from "../core/checks.ts";
 import type { PullList, PullRequest } from "../core/pulls.ts";
@@ -422,6 +423,16 @@ const ui = {
 	recoveryStatus: byId("recovery-status"),
 	recoveryRefresh: byId<HTMLButtonElement>("recovery-refresh"),
 	recoveryClose: byId<HTMLButtonElement>("recovery-close"),
+	worktreeDialog: byId<HTMLDialogElement>("worktree-dialog"),
+	worktreeForm: byId<HTMLFormElement>("worktree-form"),
+	worktreeList: byId("worktree-list"),
+	worktreeStatus: byId("worktree-status"),
+	worktreePath: byId<HTMLInputElement>("worktree-path"),
+	worktreeBranch: byId<HTMLInputElement>("worktree-branch"),
+	worktreeChoose: byId<HTMLButtonElement>("worktree-choose"),
+	worktreeCreate: byId<HTMLButtonElement>("worktree-create"),
+	worktreeRefresh: byId<HTMLButtonElement>("worktree-refresh"),
+	worktreeClose: byId<HTMLButtonElement>("worktree-close"),
 	btnUndo: byId<HTMLButtonElement>("btn-undo"),
 	btnRefresh: byId<HTMLButtonElement>("btn-refresh"),
 	btnFetch: byId<HTMLButtonElement>("btn-fetch"),
@@ -5012,6 +5023,134 @@ function renderContentMatch(match: ContentMatch): void {
 	ui.contentList.appendChild(item);
 }
 
+// ── worktree ────────────────────────────────────────────────────────────────
+
+async function openWorktrees(): Promise<void> {
+	if (!ui.worktreeDialog.open) ui.worktreeDialog.showModal();
+	await loadWorktrees();
+}
+
+async function loadWorktrees(): Promise<void> {
+	ui.worktreeRefresh.disabled = true;
+	ui.worktreeStatus.textContent = t("Leggo i worktree…");
+	ui.worktreeStatus.classList.remove("is-error");
+	clear(ui.worktreeList);
+	try {
+		renderWorktrees(await api.worktrees());
+	} catch (error) {
+		ui.worktreeStatus.classList.add("is-error");
+		ui.worktreeStatus.textContent = readableError(error);
+	} finally {
+		ui.worktreeRefresh.disabled = false;
+	}
+}
+
+function renderWorktrees(entries: WorktreeInfo[]): void {
+	clear(ui.worktreeList);
+	if (entries.length === 0) {
+		ui.worktreeList.appendChild(el("li", "muted", t("Nessun worktree.")));
+		ui.worktreeStatus.textContent = "";
+		return;
+	}
+	for (const entry of entries) {
+		const item = el("li");
+		const text = el("div", "actions-text");
+		text.appendChild(
+			el(
+				"span",
+				"actions-name",
+				entry.branch ?? t("HEAD staccato")
+			)
+		);
+		const notes = [
+			entry.path,
+			entry.head ? entry.head.slice(0, 7) : "",
+			entry.main ? t("principale") : "",
+			entry.locked ? t("bloccato") : "",
+			entry.prunable ? t("cartella sparita") : "",
+		]
+			.filter(Boolean)
+			.join(" · ");
+		text.appendChild(el("span", "actions-meta", notes));
+		item.appendChild(text);
+
+		const actions = el("div", "actions-actions");
+		const open = el(
+			"button",
+			"btn btn-small",
+			t("Apri")
+		) as HTMLButtonElement;
+		open.type = "button";
+		open.title = t("Apre questo worktree in una scheda.");
+		open.addEventListener("click", () => {
+			ui.worktreeDialog.close();
+			void openRepository(entry.path);
+		});
+		actions.appendChild(open);
+
+		// il principale è la cartella del repository e una cartella sparita non si rimuove
+		if (!entry.main && !entry.prunable) {
+			const remove = el(
+				"button",
+				"btn btn-small",
+				t("Rimuovi")
+			) as HTMLButtonElement;
+			remove.type = "button";
+			remove.title = t(
+				"Rimuove il worktree; Git rifiuta se contiene modifiche non committate."
+			);
+			remove.addEventListener("click", () => void removeWorktree(entry));
+			actions.appendChild(remove);
+		}
+		item.appendChild(actions);
+		ui.worktreeList.appendChild(item);
+	}
+	ui.worktreeStatus.textContent =
+		entries.length === 1 ? t("1 worktree.") : t(`${entries.length} worktree.`);
+}
+
+async function createWorktree(): Promise<void> {
+	const path = ui.worktreePath.value.trim();
+	const branch = ui.worktreeBranch.value.trim();
+	if (!path) {
+		toast(t("Scegli la cartella del nuovo worktree."));
+		return;
+	}
+	if (!branch) {
+		toast(t("Scrivi il ramo del nuovo worktree."));
+		return;
+	}
+	ui.worktreeCreate.disabled = true;
+	try {
+		renderWorktrees(await api.createWorktree(path, branch));
+		ui.worktreePath.value = "";
+		ui.worktreeBranch.value = "";
+		toast(t("Worktree creato."), "ok");
+	} catch (error) {
+		ui.worktreeStatus.classList.add("is-error");
+		ui.worktreeStatus.textContent = readableError(error);
+	} finally {
+		ui.worktreeCreate.disabled = false;
+	}
+}
+
+async function removeWorktree(entry: WorktreeInfo): Promise<void> {
+	if (
+		!askConfirm(
+			`Rimuovere il worktree «${entry.path}»? La cartella viene eliminata; Git rifiuta se contiene modifiche non committate.`
+		)
+	)
+		return;
+	try {
+		renderWorktrees(await api.removeWorktree(entry.path));
+		if (sessions.has(entry.path)) await closeSession(entry.path);
+		toast(t("Worktree rimosso."), "ok");
+	} catch (error) {
+		ui.worktreeStatus.classList.add("is-error");
+		ui.worktreeStatus.textContent = readableError(error);
+	}
+}
+
 // ── recupero ────────────────────────────────────────────────────────────────
 
 async function openRecovery(): Promise<void> {
@@ -5413,6 +5552,17 @@ ui.contentForm.addEventListener("submit", (event) => {
 	void runContentSearch();
 });
 ui.contentClose.addEventListener("click", () => ui.contentDialog.close());
+ui.worktreeForm.addEventListener("submit", (event) => event.preventDefault());
+ui.worktreeRefresh.addEventListener("click", () => void loadWorktrees());
+ui.worktreeCreate.addEventListener("click", () => void createWorktree());
+ui.worktreeClose.addEventListener("click", () => ui.worktreeDialog.close());
+ui.worktreeChoose.addEventListener("click", async () => {
+	const chosen = await api.chooseFolder(
+		t("Cartella del nuovo worktree"),
+		state.root || undefined
+	);
+	if (chosen) ui.worktreePath.value = chosen;
+});
 ui.recoveryForm.addEventListener("submit", (event) => event.preventDefault());
 ui.recoveryRefresh.addEventListener("click", () => void loadRecovery());
 ui.recoveryClose.addEventListener("click", () => ui.recoveryDialog.close());
@@ -5996,6 +6146,14 @@ const COMMANDS: PaletteCommand[] = [
 		keywords: "reflog head cronologia movimenti",
 		enabled: repoReady,
 		run: () => void openReflog(),
+	},
+	{
+		id: "worktrees",
+		group: "Progetto",
+		label: "Worktree…",
+		keywords: "worktree cartelle rami checkout",
+		enabled: repoReady,
+		run: () => void openWorktrees(),
 	},
 	{
 		id: "recovery",

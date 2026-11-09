@@ -156,6 +156,10 @@ const api: GitApi = {
 	commitTemplate: () => invokeRepo("git:commitTemplate"),
 	health: () => invokeRepo("git:health"),
 	remoteChecks: () => invokeRepo("git:remoteChecks"),
+	worktrees: () => invokeRepo("git:worktrees"),
+	createWorktree: (path, branch) =>
+		invokeRepo("git:createWorktree", path, branch),
+	removeWorktree: (path) => invokeRepo("git:removeWorktree", path),
 	settings: () => ipcRenderer.invoke("app:settings"),
 	saveSettings: (settings) =>
 		ipcRenderer.invoke("app:settings:save", settings),

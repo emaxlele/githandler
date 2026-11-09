@@ -172,7 +172,10 @@ minmax(0, 1fr)`), non più contenuto tagliato
     -   [ ] Profilo AppArmor nel pacchetto (Ubuntu 24.04+ blocca il sandbox di Chromium): richiede
             verifica su macchina pulita
     -   [ ] AppImage e pacchetto `.rpm`
-    -   [ ] Rebase interattivo e worktree
+    -   [x] **Worktree**: elenco dal dialog, creazione su un ramo esistente o nuovo, apertura in una
+            scheda e rimozione (mai il principale, mai con modifiche non committate); il parser dello
+            formato `--porcelain` sta in `src/core/worktrees.ts`
+    -   [ ] Rebase interattivo
     -   [x] **Preferenze e temi**: chiaro, scuro, OLED (nero assoluto), densità comoda/compatta e
             tre dimensioni del testo; l'aspetto si applica a tutte le finestre, il tema «Automatico»
             segue il sistema

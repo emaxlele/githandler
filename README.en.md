@@ -73,6 +73,7 @@ Italiano: [README.md](README.md)
 | **Reachable remotes**, checked on request from the health panel                       | ✅             |
 | **Drag a file** out of the window                                                   | ✅             |
 | **Recovery window**: last operation, stashes, copies, reflog                        | ✅             |
+| **Worktrees**: list, create, open in a tab, remove                                  | ✅             |
 | **Signed commits** (GPG or SSH with the Git key)                                    | ✅             |
 | **Network progress** (clone, fetch, pull, push)                                      | ✅             |
 | **Themes** light / dark / OLED, density and text size                                | ✅             |
@@ -94,6 +95,9 @@ settings:
     Refresh, Undo) and, in the middle, the repository and current branch. Above the history are the
     open repository tabs, with the × to close them and the `+` that opens the choice _Open / Create /
     Clone from URL / Clone from an account_.
+-   **Worktrees…** (command palette): lists the folders linked to the same repository, creates one
+    on an existing or new branch, opens it in a tab and removes it when clean. The main worktree
+    cannot be removed and Git refuses if uncommitted changes are left.
 -   **Tabs reopen by themselves**: on start the window restores the repositories of the last session,
     in the same order, and returns to the active one (`localStorage["githandler.sessions"]`). A path
     that no longer exists is skipped without stopping the others. `--repo <path>` opens that

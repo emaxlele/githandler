@@ -1538,6 +1538,77 @@
 			</form>
 		</dialog>
 
+		<dialog class="dialog dialog-wide" id="worktree-dialog">
+			<form id="worktree-form">
+				<h2>Worktree</h2>
+				<p class="hint">
+					Cartelle collegate allo stesso repository: ognuna ha il
+					suo ramo e il suo working tree. Aprirne una mostra il
+					repository in una scheda; rimuoverla elimina la cartella, e
+					Git rifiuta se contiene modifiche non committate.
+				</p>
+				<div class="account-repos-head">
+					<strong>Worktree</strong>
+					<button
+						type="button"
+						class="btn btn-small"
+						id="worktree-refresh"
+						title="Rilegge l'elenco dei worktree"
+					>
+						Aggiorna
+					</button>
+				</div>
+				<ul class="repo-list actions-list" id="worktree-list"></ul>
+				<div class="worktree-create">
+					<label class="field">
+						<span>Cartella</span>
+						<div class="field-row">
+							<input
+								id="worktree-path"
+								readonly
+								placeholder="Scegli una cartella vuota"
+							/>
+							<button
+								type="button"
+								class="btn"
+								id="worktree-choose"
+								title="Sceglie dove creare il nuovo worktree"
+							>
+								Scegli…
+							</button>
+						</div>
+					</label>
+					<label class="field">
+						<span>Ramo</span>
+						<input
+							id="worktree-branch"
+							autocomplete="off"
+							placeholder="Un ramo esistente o uno nuovo"
+						/>
+					</label>
+					<button
+						type="button"
+						class="btn btn-primary"
+						id="worktree-create"
+						title="Crea un worktree nella cartella scelta, sul ramo indicato"
+					>
+						Crea
+					</button>
+				</div>
+				<div class="dialog-actions">
+					<span class="account-status" id="worktree-status"></span>
+					<button
+						type="button"
+						class="btn"
+						id="worktree-close"
+						title="Chiude la finestra dei worktree"
+					>
+						Chiudi
+					</button>
+				</div>
+			</form>
+		</dialog>
+
 		<dialog class="dialog dialog-wide" id="recovery-dialog">
 			<form id="recovery-form">
 				<h2>Recupero</h2>

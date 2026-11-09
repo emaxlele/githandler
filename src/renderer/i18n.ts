@@ -767,6 +767,35 @@ const EN: Record<string, string> = {
 		"Closes the repository health window",
 	"Controllo il repository…": "Checking the repository…",
 	"Nessun problema trovato.": "No problems found.",
+	"Worktree…": "Worktrees…",
+	"Cartelle collegate allo stesso repository: ognuna ha il suo ramo e il suo working tree. Aprirne una mostra il repository in una scheda; rimuoverla elimina la cartella, e Git rifiuta se contiene modifiche non committate.":
+		"Folders linked to the same repository: each has its own branch and working tree. Opening one shows the repository in a tab; removing it deletes the folder, and Git refuses if it holds uncommitted changes.",
+	"Rilegge l'elenco dei worktree": "Re-reads the worktree list",
+	"Scegli una cartella vuota": "Choose an empty folder",
+	"Sceglie dove creare il nuovo worktree": "Chooses where to create the new worktree",
+	Ramo: "Branch",
+	"Un ramo esistente o uno nuovo": "An existing branch or a new one",
+	"Crea un worktree nella cartella scelta, sul ramo indicato":
+		"Creates a worktree in the chosen folder, on that branch",
+	"Chiude la finestra dei worktree": "Closes the worktree window",
+	"Leggo i worktree…": "Reading the worktrees…",
+	"Nessun worktree.": "No worktree.",
+	principale: "main",
+	bloccato: "locked",
+	"cartella sparita": "folder gone",
+	"Apre questo worktree in una scheda.": "Opens this worktree in a tab.",
+	"Rimuove il worktree; Git rifiuta se contiene modifiche non committate.":
+		"Removes the worktree; Git refuses if it holds uncommitted changes.",
+	"{0} worktree.": "{0} worktrees.",
+	"1 worktree.": "1 worktree.",
+	"Scegli la cartella del nuovo worktree.":
+		"Choose the folder of the new worktree.",
+	"Scrivi il ramo del nuovo worktree.": "Type the branch of the new worktree.",
+	"Worktree creato.": "Worktree created.",
+	"Worktree rimosso.": "Worktree removed.",
+	"Cartella del nuovo worktree": "Folder of the new worktree",
+	"Rimuovere il worktree «{0}»? La cartella viene eliminata; Git rifiuta se contiene modifiche non committate.":
+		"Remove the worktree «{0}»? The folder is deleted; Git refuses if it holds uncommitted changes.",
 	"Controlla i remoti": "Check the remotes",
 	"Contatta ogni remoto con git ls-remote; usa la rete":
 		"Contacts every remote with git ls-remote; uses the network",

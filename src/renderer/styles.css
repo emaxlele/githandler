@@ -2805,6 +2805,14 @@ body.is-empty .workspace {
 	max-height: 20vh;
 }
 
+.worktree-create {
+	display: grid;
+	grid-template-columns: 1fr 1fr auto;
+	align-items: end;
+	gap: 10px;
+	padding-top: 6px;
+}
+
 .file-list li {
 	cursor: pointer;
 }

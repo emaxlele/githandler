@@ -5,6 +5,20 @@
 
 ## 2026-11-09
 
+### Lavorare su più cartelle dello stesso repository
+
+-   **Cosa**: dalla palette dei comandi si apre **«Worktree»**: elenca le cartelle collegate allo
+    stesso repository, ne crea una nuova su un ramo esistente o nuovo, la apre in una scheda e la
+    rimuove quando è pulita.
+-   **Perché**: richiesta dell'utente — per confrontare due rami o lasciare una build ferma mentre si
+    lavora altrove serviva il terminale; ora la stessa cosa si fa dall'app, senza perdere le schede.
+-   **Come**: l'app chiede a Git l'elenco dei worktree e non cancella niente da sola; la cartella
+    principale non si può rimuovere e Git rifiuta la rimozione se ci sono modifiche non committate.
+-   **Verifica**: typecheck, 2 test nuovi (lettura dell'elenco e creazione/rimozione su un repository
+    vero) e build; la finestra è stata controllata in inglese su un repository di prova.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Sapere se i remoti rispondono
 
 -   **Cosa**: nella finestra **«Salute del repository»** c'è ora **«Controlla i remoti»**: per ogni

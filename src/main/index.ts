@@ -498,6 +498,15 @@ function registerIpc(): void {
 	handle("git:remoteChecks", (root: string) =>
 		backendFor(root).remoteChecks()
 	);
+	handle("git:worktrees", (root: string) => backendFor(root).worktrees());
+	handle(
+		"git:createWorktree",
+		(root: string, path: string, branch: string) =>
+			backendFor(root).createWorktree(path, branch)
+	);
+	handle("git:removeWorktree", (root: string, path: string) =>
+		backendFor(root).removeWorktree(path)
+	);
 	handle("app:watching", async () => watchEnabled && stopWatching !== null);
 	handle("app:settings", () => loadSettings());
 	handle("app:settings:save", async (input: unknown) => {
@@ -1049,6 +1058,17 @@ async function runShots(): Promise<void> {
 			target.replace(/\.png$/, "-recovery.png"),
 		],
 		[`document.getElementById("recovery-dialog")?.close()`, null],
+		[
+			`(() => {
+				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+				const input = document.getElementById("palette-input");
+				input.value = "worktree";
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+			})()`,
+			target.replace(/\.png$/, "-worktree.png"),
+		],
+		[`document.getElementById("worktree-dialog")?.close()`, null],
 		[
 			`(() => {
 				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));

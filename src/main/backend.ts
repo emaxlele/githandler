@@ -8,7 +8,7 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { homedir } from "node:os";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
 import { blameArgs, parseBlame, type BlameFile } from "../core/blame.ts";
 import {
@@ -43,6 +43,10 @@ import {
 	type RemoteCheck,
 } from "../core/remotes.ts";
 import {
+	parseWorktrees,
+	type WorktreeInfo,
+} from "../core/worktrees.ts";
+import {
 	COMMIT_TEMPLATE_LIMIT,
 	commitArgs,
 	limitCommitTemplate,
@@ -55,6 +59,7 @@ import { patchTargetsOnly, type PatchMode } from "../core/patch.ts";
 import { reflogArgs, parseReflog, type ReflogEntry } from "../core/reflog.ts";
 import { historyArgs, type HistoryQuery } from "../core/search.ts";
 import {
+	assertRefName,
 	cherryPickArgs,
 	checkoutTrackingArgs,
 	createBranchAtArgs,
@@ -1138,6 +1143,55 @@ export class CliGitBackend implements GitBackend {
 				);
 			})
 		);
+	}
+
+	async worktrees(): Promise<WorktreeInfo[]> {
+		const info = this.#requireInfo();
+		const result = await runGit(info.root, [
+			"worktree",
+			"list",
+			"--porcelain",
+		]);
+		return parseWorktrees(result.stdout);
+	}
+
+	async createWorktree(
+		path: string,
+		branch: string
+	): Promise<WorktreeInfo[]> {
+		const info = this.#requireInfo();
+		const target = path.trim();
+		if (!target || target.includes("\u0000") || !isAbsolute(target))
+			throw new Error("Il percorso di un worktree deve essere assoluto.");
+		assertRefName(branch);
+		const exists = await runGit(
+			info.root,
+			["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`],
+			{ allowFailure: true }
+		);
+		const args =
+			exists.code === 0
+				? ["worktree", "add", resolve(target), branch]
+				: ["worktree", "add", "-b", branch, resolve(target), "HEAD"];
+		await runGit(info.root, args, { timeoutMs: 120_000 });
+		return this.worktrees();
+	}
+
+	async removeWorktree(path: string): Promise<WorktreeInfo[]> {
+		const info = this.#requireInfo();
+		const target = resolve(path.trim());
+		const found = (await this.worktrees()).find(
+			(entry) => resolve(entry.path) === target
+		);
+		if (!found) throw new Error("Worktree non trovato: non è stato rimosso.");
+		if (found.main)
+			throw new Error(
+				"Il worktree principale non si rimuove: è la cartella del repository."
+			);
+		await runGit(info.root, ["worktree", "remove", found.path], {
+			timeoutMs: 120_000,
+		});
+		return this.worktrees();
 	}
 
 	async undo(): Promise<Snapshot> {
