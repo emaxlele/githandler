@@ -1,5 +1,9 @@
 # GitHandler
 
+[![CI](https://github.com/emaxlele/githandler/actions/workflows/ci.yml/badge.svg)](https://github.com/emaxlele/githandler/actions/workflows/ci.yml)
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
+[![Node 24](https://img.shields.io/badge/node-24-339933?logo=node.js&logoColor=white)](package.json)
+
 English: [README.en.md](README.en.md)
 
 Client Git desktop **Linux-first**, in TypeScript su Electron. Apre, **crea** o **clona** un
@@ -303,7 +307,14 @@ sicurezza, non un limite da riempire.
 
 ## Licenza
 
-MIT — vedi `LICENSE`.
+**GPL-3.0-or-later** — vedi [`LICENSE`](LICENSE). Copyright © 2026 emaxlele.
+
+Il progetto è software libero: puoi usarlo, studiarlo, modificarlo e ridistribuirlo secondo i termini
+della licenza. Se distribuisci una versione modificata, devi pubblicarne il sorgente con la stessa
+licenza, quindi nessuno può chiudere questo lavoro e rivenderlo come prodotto proprietario.
+
+Per contribuire leggi [`CONTRIBUTING.md`](CONTRIBUTING.md); per i problemi di sicurezza
+[`SECURITY.md`](SECURITY.md); per la direzione del progetto [`ROADMAP.md`](ROADMAP.md).
 
 GitHandler è un progetto indipendente: non è affiliato, approvato o sponsorizzato da GitHub, GitLab,
 Gitea, Bitbucket o da altri prodotti. Quei nomi servono solo a descrivere l'interoperabilità.

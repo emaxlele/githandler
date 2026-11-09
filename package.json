@@ -5,7 +5,7 @@
 	"description": "Client Git desktop Linux-first: grafo della storia, diff, staging e commit",
 	"main": "dist/main/index.js",
 	"private": true,
-	"license": "MIT",
+	"license": "GPL-3.0-or-later",
 	"author": "emaxlele",
 	"scripts": {
 		"build": "node esbuild.mjs",

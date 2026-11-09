@@ -2,6 +2,19 @@
 
 ## [Non rilasciato]
 
+### Progetto pronto per la pubblicazione
+
+-   **Licenza GPL-3.0-or-later**: `LICENSE`, `package.json`, README italiano e inglese. Chi distribuisce
+    una versione modificata deve pubblicarne il sorgente.
+-   **CI GitHub Actions** (`.github/workflows/ci.yml`): `npm ci`, typecheck, test, build e smoke del
+    benchmark su Node 24 a ogni push e pull request.
+-   **Documenti di progetto**: `SECURITY.md` (segnalazioni private, flusso dei token), `CONTRIBUTING.md`
+    (regole di codice e verifica), `ROADMAP.md` (fasi e stato), moduli per issue di bug e proposte, e
+    `AGENTS.md` con le regole per chi lavora al repository.
+-   **Badge nel README**: CI, licenza e versione di Node.
+-   Nuova regola esplicita: **il codice è in inglese** (identificatori, commenti, commit), l'interfaccia
+    è in italiano e inglese.
+
 ### Release e scoperta del progetto
 
 -   **`README.en.md`**: traduzione inglese completa, con rimando reciproco. Il README italiano guadagna

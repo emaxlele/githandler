@@ -1,0 +1,35 @@
+name: Feature request
+description: Suggest something the app should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: The workflow that is slow, unsafe or impossible today. Concrete beats generic.
+      placeholder: When a merge stops on a conflict I have to abort it and resolve in a terminal, because ...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like
+      description: How it should behave. Mention the keyboard path, the destructive cases and how to undo.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you tried
+      description: Other tools, scripts or command-line flows that solve it today.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I read `ROADMAP.md` and this is not already planned.
+          required: true
+        - label: The proposal can be undone or recovered (an irreversible operation needs an explicit warning).
+          required: true

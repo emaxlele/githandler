@@ -6,10 +6,10 @@
 
 ## Contesto
 
-Il repository `emaxlele/githandler` è **privato** dal 2026-11-09. La licenza è ancora da decidere:
-`LICENSE` e `package.json` dicono MIT, in valutazione Apache-2.0 (adozione) o GPL-3.0 (blocca i fork
-chiusi). Prima di riaprire il repository va eliminata ogni menzione di prodotti concorrenti, sia nei
-documenti sia nella storia Git, per non dipendere da nomi e marchi altrui.
+Il repository `emaxlele/githandler` è **privato** dal 2026-11-09. La licenza è stata scelta:
+**GPL-3.0-or-later** (2026-11-09). Prima di riaprire il repository va eliminata ogni menzione di
+prodotti concorrenti, sia nei documenti sia nella storia Git, per non dipendere da nomi e marchi
+altrui.
 
 Stato del codice: v0.10.0, 142 test, `npm run typecheck && npm test && npm run build` verdi.
 Il prodotto è descritto in `README.md`; l'architettura in `docs/architettura.md`; le misure in
@@ -38,6 +38,17 @@ Il prodotto è descritto in `README.md`; l'architettura in `docs/architettura.md
 -   [x] Misura del refresh completo (`CliGitBackend.refresh`) aggiunta al benchmark
 -   [x] Numeri aggiornati in `docs/backend-performance.md`
 
+### Pubblicazione (2026-11-09)
+
+-   [x] Licenza **GPL-3.0-or-later**: `LICENSE`, `package.json`, README e README.en.md
+-   [x] CI GitHub Actions: typecheck, test, build, smoke del benchmark
+-   [x] `SECURITY.md`, `CONTRIBUTING.md`, moduli per issue (bug e proposta), `ROADMAP.md`
+-   [x] `AGENTS.md`: codice in inglese, UI bilingue, nessun nome di altri client, verifica e misure
+-   [x] Badge nel README (CI, licenza, Node)
+-   [ ] Riapertura del repository: decisione dell'utente, dopo il primo giro di CI verde
+
+Il resto del lavoro è nel piano `2026-11-09-roadmap-prodotto.md`.
+
 ## Rischi
 
 -   La riscrittura della storia cambia tutti gli SHA: eventuali cloni locali vanno riallineati con
@@ -59,7 +70,8 @@ storia (verificato con `git grep` su tutti i commit, non solo sull'ultimo).
 
 ## Prompt per riprendere
 
-> Nel repo `~/Projects/githandler` leggi `docs/plans/2026-11-09-preparazione-pubblicazione.md` e
-> `docs/registro-attivita.md`. Il repository è privato e senza riferimenti ad altri client.
-> Restano da decidere: licenza (MIT / Apache-2.0 / GPL-3.0) e riapertura al pubblico. Il pacchetto
-> `.deb` va verificato su macchina pulita con il profilo AppArmor.
+> Nel repo `~/Projects/githandler` leggi `docs/plans/2026-11-09-preparazione-pubblicazione.md`,
+> `docs/plans/2026-11-09-roadmap-prodotto.md` e `docs/registro-attivita.md`. Licenza GPL-3.0-or-later,
+> CI e documenti di progetto fatti; il repository è ancora privato. Il prossimo passo è la
+> risoluzione dei conflitti in-app, poi i18n + command palette, poi gli strumenti MCP di scrittura.
+> Il pacchetto `.deb` va verificato su macchina pulita con il profilo AppArmor.

@@ -100,12 +100,21 @@ minmax(0, 1fr)`), non più contenuto tagliato
 -   [x] **Cartella di base** (`Settings.defaultRoot`): punto di partenza dei dialog e destinazione
         predefinita dei cloni
 -   [x] **Ultima scheda chiudibile**: `git:close` ferma watcher e backend, la finestra torna al benvenuto
+-   [x] **Progetto pubblicabile**: licenza **GPL-3.0-or-later**, CI GitHub Actions (typecheck, test,
+        build, smoke del benchmark), `SECURITY.md`, `CONTRIBUTING.md`, `ROADMAP.md`, moduli per le issue,
+        `AGENTS.md`, badge nel README
 
 ## Aperto
 
 -   [ ] Milestone 2 — il diff che conta
+    -   [ ] **Risoluzione dei conflitti in-app**: vista a tre vie (mio / loro / risultato), scelta per
+            file e per hunk, editor, «segna risolto», «continua» per merge, rebase e cherry-pick
     -   [ ] Evidenziazione della sintassi (CodeMirror 6, licenza MIT): dipendenza nuova, va decisa
             prima di aggiungerla
+    -   [ ] Interfaccia in italiano **e** inglese (`i18n`), lingua scelta nelle impostazioni
+    -   [ ] Command palette (`Ctrl+K`) e scorciatoie documentate
+    -   [ ] Ricerca più forte: regex, `-S` (pickaxe), contenuto dei file, `log -L`
+    -   [ ] Pannello reflog / cronologia undo e «vai al commit per SHA»
 -   [ ] Milestone 3 — scala e affidabilità
     -   [x] Misura di `status`, refresh e primo paint su repo da 100k file e 50k commit
     -   [x] **Refresh incrementale**: la pagina di storia si riusa se HEAD e i ref non cambiano

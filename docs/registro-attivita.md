@@ -5,6 +5,24 @@
 
 ## 2026-11-09
 
+### Licenza GPL-3.0, CI e documenti di progetto
+
+-   **Cosa**: il progetto ha una licenza definitiva (**GPL-3.0-or-later**, al posto della MIT), una
+    verifica automatica su GitHub che compila ed esegue i test a ogni modifica, e i documenti che si
+    aspetta chi arriva per la prima volta: come segnalare un problema di sicurezza, come contribuire,
+    dove sta andando il progetto, i moduli per aprire una segnalazione di bug o una proposta, e le
+    regole per chi lavora al codice. README con i badge di CI e licenza.
+-   **Perché**: richiesta dell'utente — senza licenza e senza una verifica automatica il repository non
+    è pubblicabile. Inoltre l'utente ha stabilito che il codice va scritto in inglese (identificatori,
+    commenti, messaggi di commit) e che l'interfaccia deve esistere in italiano e in inglese.
+-   **Come**: `LICENSE` sostituito con il testo GPL-3.0; `package.json` dichiara
+    `GPL-3.0-or-later`; `.github/workflows/ci.yml` esegue `npm ci`, typecheck, test, build e uno smoke
+    del benchmark su Node 24; aggiunti `SECURITY.md`, `CONTRIBUTING.md`, `ROADMAP.md`, `AGENTS.md` e i
+    due moduli per le issue. README e README inglese aggiornati con licenza, badge e collegamenti.
+-   **Verifica**: typecheck, test e build in locale; la CI eseguirà gli stessi comandi.
+-   **Stato**: completato; il repository resta privato finché l'utente non decide di riaprirlo.
+-   **Riferimento**: commit di questa sessione.
+
 ### Nomi altrui fuori, progetto presentabile, refresh tre volte più veloce
 
 -   **Cosa**: tolto ogni riferimento ad altri client Git da README, registro, CHANGELOG, TODO, piani
