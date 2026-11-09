@@ -5,6 +5,18 @@
 
 ## 2026-11-09
 
+### Il repository GitHub torna privato
+
+-   **Cosa**: il repository `emaxlele/githandler` su GitHub è passato da pubblico a privato. Codice,
+    commit e documenti restano gli stessi; cambia solo chi può vederli.
+-   **Perché**: era già pubblico mentre si discuteva se lasciarlo tale e con quale licenza. In attesa
+    della decisione si è scelto di non lasciare il progetto visibile.
+-   **Come**: `gh api -X PATCH repos/emaxlele/githandler -F private=true`. Verificato che la API
+    pubblica risponda `404` e che `gh repo view` riporti `PRIVATE`.
+-   **Stato**: fatto — visibilità privata attiva. La scelta della licenza resta aperta: oggi `LICENSE`
+    e `package.json` dicono MIT, in valutazione Apache-2.0 o GPL-3.0.
+-   **Riferimento**: commit di questo registro (non ancora pushato).
+
 ### Anche il token torna da solo all'avvio
 
 -   **Cosa**: dopo un riavvio non serve più premere **Accedi**. All'avvio l'app cerca i token che
