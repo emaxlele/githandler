@@ -126,8 +126,7 @@ const EN: Record<string, string> = {
 	"Solo lettura": "Read only",
 	"— stato, storia, diff, blame": "— status, history, diff, blame",
 	Tutte: "All",
-	"— anche i comandi che scrivono, quando esisteranno":
-		"— including the commands that write, when they exist",
+	"— anche i comandi che scrivono": "— including the commands that write",
 	Selettivi: "Selected",
 	"— scegli i comandi": "— choose the commands",
 	"— ramo e modifiche": "— branch and changes",
@@ -136,6 +135,12 @@ const EN: Record<string, string> = {
 	"— dettaglio e diff di un commit": "— details and diff of a commit",
 	"— diff del working tree": "— working tree diff",
 	"— chi ha scritto ogni riga": "— who wrote each line",
+	Scrittura: "Writing",
+	"— mette i file in stage": "— stages the files",
+	"— toglie dallo stage": "— removes from the index",
+	"— crea un commit": "— creates a commit",
+	"— crea un ramo": "— creates a branch",
+	"— cambia ramo": "— switches branch",
 	"File non tracciati": "Untracked files",
 	"Prima di cancellarli conserva una copia, così Annulla li ripristina":
 		"Before deleting them, keep a copy so Undo can restore them",

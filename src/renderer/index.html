@@ -648,7 +648,7 @@
 						<input type="radio" name="api-mode" value="all" />
 						<span
 							><strong>Tutte</strong> — anche i comandi che
-							scrivono, quando esisteranno</span
+							scrivono</span
 						>
 					</label>
 					<label class="radio">
@@ -692,6 +692,37 @@
 							<span
 								><code>blame</code> — chi ha scritto ogni
 								riga</span
+							>
+						</label>
+						<div class="tool-group">Scrittura</div>
+						<label>
+							<input type="checkbox" value="stage" />
+							<span
+								><code>stage</code> — mette i file in
+								stage</span
+							>
+						</label>
+						<label>
+							<input type="checkbox" value="unstage" />
+							<span
+								><code>unstage</code> — toglie dallo stage</span
+							>
+						</label>
+						<label>
+							<input type="checkbox" value="commit" />
+							<span><code>commit</code> — crea un commit</span>
+						</label>
+						<label>
+							<input type="checkbox" value="create_branch" />
+							<span
+								><code>create_branch</code> — crea un ramo</span
+							>
+						</label>
+						<label>
+							<input type="checkbox" value="checkout_branch" />
+							<span
+								><code>checkout_branch</code> — cambia
+								ramo</span
 							>
 						</label>
 					</div>
@@ -1284,7 +1315,10 @@
 			/>
 			<ul class="palette-list" id="palette-list" role="listbox"></ul>
 			<div class="palette-foot">
-				<span>↑ ↓ per scorrere · Invio per eseguire · Esc per chiudere</span>
+				<span
+					>↑ ↓ per scorrere · Invio per eseguire · Esc per
+					chiudere</span
+				>
 			</div>
 		</dialog>
 

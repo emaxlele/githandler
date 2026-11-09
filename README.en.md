@@ -181,7 +181,7 @@ npm run typecheck
 npm run build             # dist/main, dist/preload, dist/renderer, dist/mcp
 npm run dev               # continuous rebuild of the bundles
 npm run bench             # backend measurements (log, parsing, graph, status)
-npm run mcp -- --repo .   # MCP server on stdio, read-only (see docs/mcp.md)
+npm run mcp -- --repo .   # MCP server on stdio, read and write (see docs/mcp.md)
 ```
 
 Start flags: `--repo <path>`, `--watch` (repository watching, or `GITHANDLER_WATCH=1`), `--no-watch`
@@ -222,15 +222,19 @@ The launcher rebuilds with esbuild on every start, so the menu always opens the 
 
 ## AI API
 
-`dist/mcp/index.js` is an MCP server on stdio that can expose `repo_status`, `history`,
-`show_commit`, `worktree_diff` and `blame`. No tool writes: it reads with the same backend as the UI.
+`dist/mcp/index.js` is an MCP server on stdio that can expose five **read** tools (`repo_status`,
+`history`, `show_commit`, `worktree_diff`, `blame`) and five **write** tools (`stage`, `unstage`,
+`commit`, `create_branch`, `checkout_branch`). It uses the same backend as the UI: every change shows
+up in the app and stays undoable there.
 
 **Permissions are decided in the app**, not in the client configuration file: _Settings → AI API_.
-The default is **off**; you can enable everything, read-only, or pick individual commands. The server
-rereads the policy on every request, so an already connected client stops seeing the tools as soon as
-they are removed. The policy lives in `$XDG_CONFIG_HOME/githandler/settings.json` (override with
-`GITHANDLER_CONFIG_DIR`) and is the same for UI and MCP. Configuration for OpenCode, Claude and limits
-in [`docs/mcp.md`](docs/mcp.md).
+The default is **off**; you can enable everything, read-only, or pick individual commands. Read-only
+never exposes a tool that writes. The server rereads the policy on every request, so an already
+connected client stops seeing the tools as soon as they are removed. Every write call appends a line
+to `.git/githandler/mcp-audit.jsonl`, with reduced arguments and the outcome, rotating at 1 MiB. The
+policy lives in `$XDG_CONFIG_HOME/githandler/settings.json` (override with `GITHANDLER_CONFIG_DIR`)
+and is the same for UI and MCP. Configuration for OpenCode, Claude and limits in
+[`docs/mcp.md`](docs/mcp.md).
 
 ## Linked accounts and credentials
 

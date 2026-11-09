@@ -42,8 +42,8 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 
 ## 5. Differentiators
 
--   ⏳ MCP write tools (stage, commit, new branch) under the same per-command permissions, with an
-    audit log of what an agent did.
+-   ✅ MCP write tools (`stage`, `unstage`, `commit`, `create_branch`, `checkout_branch`) under the
+    same per-command permissions, with an audit log of what an agent did.
 -   ⏳ Repository health panel: diverged branches, forgotten stashes, outdated submodules, unreachable
     remotes, repositories that outgrew the layout.
 -   ⏳ Recovery explained: one screen that says what can be recovered and from where

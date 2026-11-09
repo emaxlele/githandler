@@ -181,7 +181,7 @@ npm run typecheck
 npm run build             # dist/main, dist/preload, dist/renderer, dist/mcp
 npm run dev               # rebuild continuo dei bundle
 npm run bench             # misure del backend (log, parsing, grafo, status)
-npm run mcp -- --repo .   # server MCP su stdio, sola lettura (vedi docs/mcp.md)
+npm run mcp -- --repo .   # server MCP su stdio, lettura e scrittura (vedi docs/mcp.md)
 ```
 
 Flag di avvio: `--repo <path>`, `--watch` (sorveglianza del repository, o `GITHANDLER_WATCH=1`),
@@ -222,15 +222,19 @@ spento (`--no-sandbox`).
 
 ## API per l'AI
 
-`dist/mcp/index.js` è un server MCP su stdio che può esporre `repo_status`, `history`,
-`show_commit`, `worktree_diff` e `blame`. Nessun tool scrive: legge con lo stesso backend della UI.
+`dist/mcp/index.js` è un server MCP su stdio che può esporre cinque tool di **lettura**
+(`repo_status`, `history`, `show_commit`, `worktree_diff`, `blame`) e cinque di **scrittura**
+(`stage`, `unstage`, `commit`, `create_branch`, `checkout_branch`). Usa lo stesso backend della UI:
+ogni modifica compare nell'app e resta annullabile.
 
 **I permessi si decidono nell'app**, non nel file di configurazione del client: _Impostazioni → API
 per l'AI_. Il default è **spento**; si può abilitare tutto, solo la lettura, o scegliere i singoli
-comandi. Il server rilegge la policy a ogni richiesta, quindi un client già collegato smette di
-vedere i tool appena li si toglie. La policy vive in
-`$XDG_CONFIG_HOME/githandler/settings.json` (override con `GITHANDLER_CONFIG_DIR`) ed è la stessa per
-UI e MCP. Configurazione per OpenCode, Claude e limiti in [`docs/mcp.md`](docs/mcp.md).
+comandi. La sola lettura non espone mai un comando che scrive. Il server rilegge la policy a ogni
+richiesta, quindi un client già collegato smette di vedere i tool appena li si toglie. Ogni chiamata
+che scrive lascia una riga in `.git/githandler/mcp-audit.jsonl`, con argomenti ridotti ed esito, che
+ruota a 1 MiB. La policy vive in `$XDG_CONFIG_HOME/githandler/settings.json` (override con
+`GITHANDLER_CONFIG_DIR`) ed è la stessa per UI e MCP. Configurazione per OpenCode, Claude e limiti in
+[`docs/mcp.md`](docs/mcp.md).
 
 ## Account collegati e credenziali
 

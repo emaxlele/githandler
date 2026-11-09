@@ -15,6 +15,9 @@ Stato al 2026-11-09 (v0.10.0). Le voci spuntate sono in `CHANGELOG.md`.
 -   [x] Parser di blame (`git blame --line-porcelain`) e `formatDiff` nel core
 -   [x] Server MCP (`npm run mcp`): `repo_status`, `history`, `show_commit`, `worktree_diff`,
         `blame`; configurazione in `docs/mcp.md`
+-   [x] **MCP in scrittura**: `stage`, `unstage`, `commit`, `create_branch`, `checkout_branch`,
+        separati dalla lettura nell'elenco dei permessi e registrati in `.git/githandler/mcp-audit.jsonl`
+        (rotazione a 1 MiB, solo scritture, anche i tentativi falliti)
 -   [x] **Permessi dell'API configurabili** (default spento; `off` / `read` / `all` / `custom`), con
         policy riletta a ogni richiesta da UI e server MCP
 -   [x] **Blame nella UI**: terza scheda del pannello inferiore, virtualizzata

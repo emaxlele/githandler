@@ -2,6 +2,7 @@ import { createInterface } from "node:readline";
 
 import { CliGitBackend } from "../main/backend.ts";
 import { loadSettings } from "../main/settings.ts";
+import { recordAudit } from "./audit.ts";
 import { handleRequest, type JsonRpcResponse } from "./server.ts";
 
 /**
@@ -24,8 +25,9 @@ async function main(): Promise<void> {
 		argValue("--repo") ?? process.env.GITHANDLER_REPO ?? process.cwd();
 	const backend = new CliGitBackend({ settings: loadSettings });
 
+	let gitDir: string;
 	try {
-		await backend.open(repo);
+		gitDir = (await backend.open(repo)).info.gitDir;
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		process.stderr.write(`githandler mcp: ${message}\n`);
@@ -57,7 +59,12 @@ async function main(): Promise<void> {
 					return;
 				}
 				const response = await handleRequest(
-					{ backend, repo, settings: loadSettings },
+					{
+						backend,
+						repo,
+						settings: loadSettings,
+						audit: (record) => recordAudit(gitDir, record),
+					},
 					request
 				);
 				if (response) respond(response);

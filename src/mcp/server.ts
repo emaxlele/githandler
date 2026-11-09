@@ -5,22 +5,25 @@ import {
 	allowedTools,
 	isApiTool,
 	isToolAllowed,
+	isWriteTool,
 	type ApiPolicy,
 	type ApiTool,
 	type Settings,
 } from "../core/settings.ts";
-import type { Commit } from "../core/types.ts";
+import type { Commit, Snapshot } from "../core/types.ts";
 import type { GitBackend } from "../main/backend.ts";
+import { auditArguments, type AuditRecord } from "./audit.ts";
 
 /**
- * Server MCP (Model Context Protocol) in sola lettura.
+ * Server MCP (Model Context Protocol) per un repository.
  *
  * Non è un secondo strato che tocca il disco: riusa `GitBackend`, quindi vede esattamente lo
- * stesso repository, con le stesse regole e lo stesso output della UI. Nessun tool scrive.
+ * stesso repository, con le stesse regole e lo stesso output della UI.
  *
  * L'elenco dei tool non è una costante: a ogni richiesta si legge la policy delle impostazioni e si
- * espone solo ciò che l'utente ha consentito. Un client che chiama un tool non esposto riceve un
- * errore, non un'esecuzione.
+ * espone solo ciò che l'utente ha consentito. I tool che scrivono (`stage`, `unstage`, `commit`,
+ * `create_branch`, `checkout_branch`) non sono mai impliciti: la modalità `read` non li espone, e
+ * ogni chiamata che cambia il repository finisce nell'audit log.
  */
 
 export const SERVER_INFO = { name: "githandler", version: "0.5.0" } as const;
@@ -31,6 +34,8 @@ export interface McpContext {
 	repo: string;
 	/** Rilette a ogni richiesta: cambiare i permessi non richiede riavviare il client. */
 	settings: () => Promise<Settings>;
+	/** Riceve una voce per ogni tool che scrive; assente nelle prove che non toccano il disco. */
+	audit?: (record: AuditRecord) => Promise<void>;
 }
 
 export interface JsonRpcResponse {
@@ -147,6 +152,88 @@ const TOOLS: ToolDefinition[] = [
 			additionalProperties: false,
 		},
 	},
+	{
+		name: "stage",
+		description:
+			"Stages the given files (`git add`). Every path must be inside the repository. Writes to the index; the change appears in the app and can be undone there.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				paths: {
+					type: "array",
+					items: { type: "string" },
+					minItems: 1,
+					description: "repository-relative paths",
+				},
+			},
+			required: ["paths"],
+			additionalProperties: false,
+		},
+	},
+	{
+		name: "unstage",
+		description:
+			"Removes the given files from the index without touching the working tree. Writes to the index; the change appears in the app and can be undone there.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				paths: {
+					type: "array",
+					items: { type: "string" },
+					minItems: 1,
+					description: "repository-relative paths",
+				},
+			},
+			required: ["paths"],
+			additionalProperties: false,
+		},
+	},
+	{
+		name: "commit",
+		description:
+			"Creates a commit from the staged files with the given message (subject on the first line, body after). With `all` it also stages tracked changes. Undoable from the app.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				message: {
+					type: "string",
+					description: "commit message; the first line is the subject",
+				},
+				all: {
+					type: "boolean",
+					description: "stage tracked changes before committing (default false)",
+				},
+			},
+			required: ["message"],
+			additionalProperties: false,
+		},
+	},
+	{
+		name: "create_branch",
+		description:
+			"Creates a branch at the current HEAD and switches to it (`git switch -c`). Undoable from the app.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				name: { type: "string", description: "new branch name" },
+			},
+			required: ["name"],
+			additionalProperties: false,
+		},
+	},
+	{
+		name: "checkout_branch",
+		description:
+			"Switches the working tree to an existing branch (`git switch`). Refuses when Git refuses, for example with uncommitted changes it would overwrite. Undoable from the app.",
+		inputSchema: {
+			type: "object",
+			properties: {
+				name: { type: "string", description: "existing branch name" },
+			},
+			required: ["name"],
+			additionalProperties: false,
+		},
+	},
 ];
 
 interface ToolResult {
@@ -191,6 +278,40 @@ function failure(message: string): ToolResult {
 	};
 }
 
+/** Lo stato che ogni operazione che scrive restituisce: la stessa forma di `repo_status`. */
+function snapshotSummary(snapshot: Snapshot): Record<string, unknown> {
+	return {
+		repo: snapshot.info.root,
+		name: snapshot.info.name,
+		branch: snapshot.info.branch,
+		detached: snapshot.info.detached,
+		operation: snapshot.info.operation,
+		ahead: snapshot.status.ahead,
+		behind: snapshot.status.behind,
+		changes: snapshot.status.entries.map((entry) => ({
+			path: entry.path,
+			originalPath: entry.origPath,
+			kind: entry.kind,
+			index: entry.index,
+			worktree: entry.worktree,
+			label: entry.label,
+		})),
+		undo: snapshot.undo
+			? { kind: snapshot.undo.kind, label: snapshot.undo.label }
+			: null,
+	};
+}
+
+/** Elenco di path: solo stringhe non vuote, nessun altro tipo accettato. */
+function asPathList(value: unknown): string[] | null {
+	if (!Array.isArray(value)) return null;
+	const paths = value
+		.filter((item): item is string => typeof item === "string")
+		.map((item) => item.trim())
+		.filter(Boolean);
+	return paths.length > 0 ? paths : null;
+}
+
 function commitSummary(commit: Commit): Record<string, unknown> {
 	return {
 		sha: commit.sha,
@@ -211,26 +332,37 @@ async function callTool(
 	const { backend } = context;
 
 	if (name === "repo_status") {
-		const snapshot = await backend.refresh();
-		return text({
-			repo: snapshot.info.root,
-			name: snapshot.info.name,
-			branch: snapshot.info.branch,
-			detached: snapshot.info.detached,
-			ahead: snapshot.status.ahead,
-			behind: snapshot.status.behind,
-			changes: snapshot.status.entries.map((entry) => ({
-				path: entry.path,
-				originalPath: entry.origPath,
-				kind: entry.kind,
-				index: entry.index,
-				worktree: entry.worktree,
-				label: entry.label,
-			})),
-			undo: snapshot.undo
-				? { kind: snapshot.undo.kind, label: snapshot.undo.label }
-				: null,
-		});
+		return text(snapshotSummary(await backend.refresh()));
+	}
+
+	if (name === "stage" || name === "unstage") {
+		const paths = asPathList(args.paths);
+		if (!paths)
+			return failure(
+				"`paths` must be a non-empty array of repository paths."
+			);
+		const snapshot =
+			name === "stage"
+				? await backend.stage(paths)
+				: await backend.unstage(paths);
+		return text({ paths, ...snapshotSummary(snapshot) });
+	}
+
+	if (name === "commit") {
+		const message = asString(args.message);
+		if (!message) return failure("`message` is required.");
+		const snapshot = await backend.commit(message, args.all === true);
+		return text(snapshotSummary(snapshot));
+	}
+
+	if (name === "create_branch" || name === "checkout_branch") {
+		const branch = asString(args.name);
+		if (!branch) return failure("`name` is required.");
+		const snapshot =
+			name === "create_branch"
+				? await backend.createBranch(branch)
+				: await backend.checkout(branch);
+		return text(snapshotSummary(snapshot));
 	}
 
 	if (name === "history") {
@@ -367,7 +499,7 @@ export async function handleRequest(
 			capabilities: { tools: {} },
 			serverInfo: SERVER_INFO,
 			instructions:
-				"Read-only access to a Git repository for analysis. Use history, show_commit, worktree_diff and blame to inspect; this server cannot modify the repository. Only tools enabled in the githandler settings are exposed.",
+				"Access to a Git repository. history, show_commit, worktree_diff and blame inspect it; stage, unstage, commit, create_branch and checkout_branch modify it and are recorded in .git/githandler/mcp-audit.jsonl. Only the tools enabled in the githandler settings are exposed, and reading is always separate from writing.",
 		});
 	}
 
@@ -389,13 +521,26 @@ export async function handleRequest(
 					`Tool "${name}" is not enabled in the githandler settings.`
 				)
 			);
+		const writes = isWriteTool(name);
+		const startedAt = new Date().toISOString();
+		let result: ToolResult;
 		try {
-			return ok(id, await callTool(context, name, params.arguments));
+			result = await callTool(context, name, params.arguments);
 		} catch (cause) {
 			const message =
 				cause instanceof Error ? cause.message : String(cause);
-			return ok(id, failure(message));
+			result = failure(message);
 		}
+		if (writes) {
+			await context.audit?.({
+				timestamp: startedAt,
+				tool: name,
+				ok: result.isError !== true,
+				arguments: auditArguments(params.arguments),
+				...(result.isError ? { error: result.content[0]?.text ?? "" } : {}),
+			});
+		}
+		return ok(id, result);
 	}
 
 	return error(id, -32601, `Method not found: ${method}`);

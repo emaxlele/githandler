@@ -2,6 +2,21 @@
 
 ## [Non rilasciato]
 
+### API per l'AI in scrittura, con audit
+
+-   **Cinque tool nuovi**: `stage`, `unstage`, `commit`, `create_branch`, `checkout_branch`. Usano lo
+    stesso backend della UI, quindi ogni modifica compare subito nell'app e resta annullabile.
+-   **Lettura e scrittura separate**: `src/core/settings.ts` distingue `API_READ_TOOLS` e
+    `API_WRITE_TOOLS`; la modalità `read` non espone mai un comando che scrive, e ogni tool dichiara
+    il proprio gruppo invece di riceverlo dal chiamante.
+-   **Audit log** in `.git/githandler/mcp-audit.jsonl`: una riga JSON per ogni scrittura, riuscita o
+    rifiutata, con argomenti ridotti a scalari e testo d'errore; permessi `0600`, rotazione a 1 MiB in
+    `.1`. Se il log non si può scrivere l'errore va su stderr e l'operazione Git resta valida.
+-   **Impostazioni**: l'elenco dei permessi ha le scritture sotto l'intestazione «Scrittura», tradotte
+    come il resto dell'interfaccia; la voce «Tutte» non dice più «quando esisteranno».
+-   Test nuovi: `tests/audit.test.mts` (righe, permessi, rotazione, argomenti) e sei casi in più in
+    `tests/mcp.test.mts` (policy, scritture, rifiuti, path fuori dal repository).
+
 ### Palette dei comandi e scorciatoie
 
 -   **Palette (`Ctrl+K`)**: un solo registro di comandi; la ricerca è a sottosequenza e non guarda gli

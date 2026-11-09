@@ -5,6 +5,27 @@
 
 ## 2026-11-09
 
+### L'assistente AI può anche modificare il repository
+
+-   **Cosa**: il programma può ormai essere collegato a un assistente AI (tramite il protocollo MCP)
+    e, se l'utente lo consente, lasciargli fare anche **cinque operazioni che cambiano il repository**:
+    mettere file in stage, toglierli, creare un commit, creare un ramo e cambiare ramo. Restano
+    escluse le operazioni rischiose (push, reset, rebase). Ogni scrittura lascia una traccia in un file
+    dentro il repository.
+-   **Perché**: richiesta dell'utente — la roadmap prevede l'assistente in scrittura, ma solo dietro un
+    consenso esplicito, con la possibilità di sapere cosa ha fatto.
+-   **Come**: i permessi restano nelle impostazioni dell'app, spente per default; l'opzione «solo
+    lettura» non espone mai un comando che scrive. I nuovi comandi usano lo stesso meccanismo
+    dell'interfaccia, quindi quello che fa l'assistente si vede subito e si può annullare con
+    «Annulla». Il file di traccia (`.git/githandler/mcp-audit.jsonl`) registra data, comando,
+    argomenti ridotti ed esito, **anche i tentativi falliti**; è leggibile solo dal proprietario, non
+    cresce all'infinito (a 1 MB il vecchio diventa `.1`) e un errore nel scriverlo non blocca
+    l'operazione.
+-   **Verifica**: typecheck, **182 test** verdi (8 nuovi sulla traccia, 6 in più sul protocollo) e
+    build; le prove girano su un repository temporaneo vero, con Git, non su simulazioni.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Comandi dalla tastiera
 
 -   **Cosa**: con `Ctrl+K` si apre una **palette dei comandi**: si scrive qualche lettera e si esegue

@@ -163,13 +163,25 @@ test("le modalità decidono quali tool sono esposti", () => {
 	assert.equal(allowedTools(read).length, 5);
 	assert.equal(isToolAllowed(read, "blame"), true);
 
+	// la sola lettura non espone mai un comando che scrive
+	assert.equal(isToolAllowed(read, "commit"), false);
+	assert.equal(isToolAllowed(read, "stage"), false);
+
 	const all = { mode: "all" as const, tools: [] };
-	assert.equal(allowedTools(all).length, 5);
-	assert.equal(isToolAllowed(all, "blame", "write"), true);
+	assert.equal(allowedTools(all).length, 10);
+	assert.equal(isToolAllowed(all, "blame"), true);
+	assert.equal(isToolAllowed(all, "commit"), true);
 
 	const custom = { mode: "custom" as const, tools: ["history" as const] };
 	assert.deepEqual(allowedTools(custom), ["history"]);
 	assert.equal(isToolAllowed(custom, "blame"), false);
+	assert.equal(isToolAllowed(custom, "stage"), false);
+
+	const writes = {
+		mode: "custom" as const,
+		tools: ["commit" as const, "stage" as const],
+	};
+	assert.deepEqual(allowedTools(writes), ["stage", "commit"]);
 });
 
 test("il file delle impostazioni vive nella config dir", () => {

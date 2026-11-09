@@ -65,12 +65,16 @@ Architettura in `docs/architettura.md`; misure in `docs/backend-performance.md`.
 
 ## Fase 4 — MCP in scrittura, con audit
 
--   [ ] Tool `stage`, `unstage`, `commit`, `create_branch`, `checkout_branch`, sotto la stessa policy
-        per comando (`off` / `read` / `all` / `custom`), default spento.
--   [ ] Audit log in `.git/githandler/mcp-audit.jsonl`: timestamp, tool, argomenti, esito; percorso
-        dichiarato in `docs/mcp.md`, dimensione limitata.
--   [ ] Test: un tool non abilitato non compare e non risponde; le scritture finite nell'audit.
--   [ ] UI: i permessi di scrittura sono separati dalla lettura e si vedono nell'elenco.
+-   [x] Tool `stage`, `unstage`, `commit`, `create_branch`, `checkout_branch`, sotto la stessa policy
+        per comando (`off` / `read` / `all` / `custom`), default spento. La lettura non li espone mai:
+        il gruppo lo decide il nome del tool (`isWriteTool`), non un flag del chiamante
+-   [x] Audit log in `.git/githandler/mcp-audit.jsonl`: timestamp, tool, argomenti ridotti a scalari,
+        esito (anche i tentativi falliti); rotazione a 1 MiB in `.1`, permessi `0600`; un errore di
+        scrittura del log non fa fallire l'operazione Git
+-   [x] Test: un tool non abilitato non compare e non risponde; le scritture e i rifiuti finiscono
+        nell'audit; `tests/audit.test.mts` copre righe, permessi, rotazione e argomenti
+-   [x] UI: i permessi di scrittura sono separati dalla lettura, sotto l'intestazione «Scrittura»,
+        con le etichette tradotte
 
 ## Rischi
 

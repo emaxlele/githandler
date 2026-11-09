@@ -7,6 +7,7 @@ import { after, test } from "node:test";
 
 import { CliGitBackend } from "../src/main/backend.ts";
 import { defaultSettings, type Settings } from "../src/core/settings.ts";
+import type { AuditRecord } from "../src/mcp/audit.ts";
 import { handleRequest, PROTOCOL_VERSION } from "../src/mcp/server.ts";
 
 /**
@@ -39,10 +40,15 @@ let settings: Settings = {
 	trash: defaultTrash,
 	repoAccounts: {},
 };
+/** Le voci che il server scriverebbe nell'audit log: qui restano in memoria. */
+const audits: AuditRecord[] = [];
 const context = {
 	backend,
 	repo: root,
 	settings: async () => settings,
+	audit: async (record: AuditRecord) => {
+		audits.push(record);
+	},
 };
 
 after(async () => {
@@ -91,7 +97,7 @@ test("initialize dichiara il protocollo e i tool", async () => {
 	assert.ok(result.capabilities.tools);
 });
 
-test("tools/list elenca i cinque tool di sola lettura", async () => {
+test("tools/list elenca lettura e scrittura in quest'ordine", async () => {
 	const response = await handleRequest(context, {
 		jsonrpc: "2.0",
 		id: 2,
@@ -102,7 +108,18 @@ test("tools/list elenca i cinque tool di sola lettura", async () => {
 	};
 	assert.deepEqual(
 		result.tools.map((tool) => tool.name),
-		["repo_status", "history", "show_commit", "worktree_diff", "blame"],
+		[
+			"repo_status",
+			"history",
+			"show_commit",
+			"worktree_diff",
+			"blame",
+			"stage",
+			"unstage",
+			"commit",
+			"create_branch",
+			"checkout_branch",
+		],
 	);
 	for (const tool of result.tools) assert.ok(tool.inputSchema);
 });
@@ -233,4 +250,99 @@ test("la policy delle impostazioni filtra tools/list e tools/call", async () => 
 	assert.deepEqual(await list(), []);
 
 	settings = { api: { mode: "all", tools: [] }, locale: "auto", defaultRoot: null, trash: defaultTrash, repoAccounts: {} };
+});
+
+test("i tool che scrivono non compaiono con la sola lettura", async () => {
+	settings = {
+		api: { mode: "read", tools: [] },
+		locale: "auto",
+		defaultRoot: null,
+		trash: defaultTrash,
+		repoAccounts: {},
+	};
+	const denied = await callTool("stage", { paths: ["a.txt"] });
+	assert.equal(denied.isError, true);
+	assert.match(denied.content[0]!.text, /not enabled/);
+
+	settings = {
+		api: { mode: "all", tools: [] },
+		locale: "auto",
+		defaultRoot: null,
+		trash: defaultTrash,
+		repoAccounts: {},
+	};
+});
+
+test("stage, commit e unstage cambiano l'indice e finiscono nell'audit", async () => {
+	audits.length = 0;
+	await writeFile(join(root, "b.txt"), "nuovo file\n");
+
+	const staged = data(await callTool("stage", { paths: ["b.txt"] }));
+	const stagedEntries = staged.changes as Array<{ path: string; index: string }>;
+	assert.equal(
+		stagedEntries.find((entry) => entry.path === "b.txt")?.index,
+		"A",
+	);
+
+	const committed = data(
+		await callTool("commit", { message: "aggiungi b\n\ncorpo del messaggio" }),
+	);
+	assert.equal(committed.branch, "main");
+	assert.equal(committed.detached, false);
+	assert.equal(git("log", "-1", "--pretty=%s").trim(), "aggiungi b");
+
+	// l'audit registra solo le scritture, con gli argomenti ridotti a scalari
+	assert.deepEqual(
+		audits.map((entry) => entry.tool),
+		["stage", "commit"],
+	);
+	assert.equal(audits[0]!.ok, true);
+	assert.equal(audits[0]!.arguments.paths, "b.txt");
+	assert.equal(audits[1]!.arguments.message, "aggiungi b\n\ncorpo del messaggio");
+
+	await writeFile(join(root, "b.txt"), "modificato\n");
+	await callTool("stage", { paths: ["b.txt"] });
+	const unstaged = data(await callTool("unstage", { paths: ["b.txt"] }));
+	const entries = unstaged.changes as Array<{ path: string; index: string }>;
+	assert.equal(entries.find((entry) => entry.path === "b.txt")?.index, ".");
+	assert.equal(audits.at(-1)!.tool, "unstage");
+});
+
+test("create_branch e checkout_branch cambiano il ramo", async () => {
+	audits.length = 0;
+	const created = data(await callTool("create_branch", { name: "esperimento" }));
+	assert.equal(created.branch, "esperimento");
+
+	const back = data(await callTool("checkout_branch", { name: "main" }));
+	assert.equal(back.branch, "main");
+	assert.deepEqual(
+		audits.map((entry) => entry.tool),
+		["create_branch", "checkout_branch"],
+	);
+});
+
+test("un ramo inesistente torna errore e resta nell'audit", async () => {
+	audits.length = 0;
+	const result = await callTool("checkout_branch", { name: "non-esiste" });
+	assert.equal(result.isError, true);
+	assert.equal(audits.length, 1);
+	assert.equal(audits[0]!.ok, false);
+	assert.match(audits[0]!.error ?? "", /non-esiste/);
+});
+
+test("un path fuori dal repository viene rifiutato", async () => {
+	audits.length = 0;
+	const result = await callTool("stage", { paths: ["../fuori.txt"] });
+	assert.equal(result.isError, true);
+	assert.equal(audits.length, 1);
+	assert.equal(audits.at(-1)!.ok, false);
+});
+
+test("un elenco di path vuoto non tocca niente, ma il tentativo resta scritto", async () => {
+	audits.length = 0;
+	const result = await callTool("stage", { paths: [] });
+	assert.equal(result.isError, true);
+	assert.match(result.content[0]!.text, /paths/);
+	assert.equal(audits.length, 1);
+	assert.equal(audits[0]!.ok, false);
 });

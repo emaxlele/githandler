@@ -140,8 +140,9 @@ del core.
 -   Il protocollo sta in poche righe di standard library prima di aggiungere un SDK.
 -   I path passano dalle stesse validazioni, gli errori tornano come dati, non come crash.
 
-In `githandler` questo è il server MCP (`src/mcp/`): cinque comandi di sola lettura, zero dipendenze,
-stesso backend della UI.
+In `githandler` questo è il server MCP (`src/mcp/`): cinque comandi di lettura e cinque che scrivono,
+zero dipendenze, stesso backend della UI. Le scritture sono un gruppo separato, spente per default, e
+lasciano una riga in `.git/githandler/mcp-audit.jsonl`.
 
 ### 2.11 Più finestre, un solo stato pubblicato
 
@@ -362,8 +363,8 @@ Copiabile così com'è; le voci in corsivo sono le più facili da saltare e le p
 10. Packaging che include i profili di sicurezza (AppArmor su Linux) e modalità headless per la
     verifica.
 11. Benchmark e soglie scritte **prima** di discutere di ottimizzazioni.
-12. Se serve un secondo consumatore (CLI, API per agenti), importa il backend esistente e resta in
-    sola lettura finché non c'è un consenso esplicito.
+12. Se serve un secondo consumatore (CLI, API per agenti), importa il backend esistente; le scritture
+    restano un gruppo separato, abilitabili una per una e registrate in un audit log.
 
 ## 8. Cosa questa architettura non risolve
 

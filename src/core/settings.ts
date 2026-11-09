@@ -10,7 +10,8 @@
  * modificare a mano, quindi vengono sempre normalizzati e limitati a un intervallo sensato.
  */
 
-export const API_TOOLS = [
+/** Tool che leggono soltanto: sono quelli esposti in modalità `read`. */
+export const API_READ_TOOLS = [
 	"repo_status",
 	"history",
 	"show_commit",
@@ -18,7 +19,26 @@ export const API_TOOLS = [
 	"blame",
 ] as const;
 
+/** Tool che modificano il repository: vanno abilitati uno per uno, mai con la sola lettura. */
+export const API_WRITE_TOOLS = [
+	"stage",
+	"unstage",
+	"commit",
+	"create_branch",
+	"checkout_branch",
+] as const;
+
+export const API_TOOLS = [
+	...API_READ_TOOLS,
+	...API_WRITE_TOOLS,
+] as const;
+
 export type ApiTool = (typeof API_TOOLS)[number];
+
+/** Un tool di scrittura non è mai implicito: `read` non lo espone e `custom` lo elenca a parte. */
+export function isWriteTool(tool: ApiTool): boolean {
+	return (API_WRITE_TOOLS as readonly string[]).includes(tool);
+}
 
 /** `off` = nessun tool; `read` = solo i tool di lettura; `all` = tutto; `custom` = lista scelta. */
 export type ApiMode = "off" | "read" | "all" | "custom";
@@ -233,15 +253,11 @@ export function serializeSettings(settings: Settings): string {
 	return `${JSON.stringify(settings, null, "\t")}\n`;
 }
 
-/** Il tool è esposto? `access` distingue i tool di lettura da eventuali tool che scrivono. */
-export function isToolAllowed(
-	policy: ApiPolicy,
-	tool: ApiTool,
-	access: "read" | "write" = "read"
-): boolean {
+/** Il tool è esposto con questa policy? La distinzione lettura/scrittura la decide il tool. */
+export function isToolAllowed(policy: ApiPolicy, tool: ApiTool): boolean {
 	if (policy.mode === "off") return false;
 	if (policy.mode === "all") return true;
-	if (policy.mode === "read") return access === "read";
+	if (policy.mode === "read") return !isWriteTool(tool);
 	return policy.tools.includes(tool);
 }
 
