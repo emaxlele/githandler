@@ -1,7 +1,29 @@
 # Registro attività — githandler
 
 > Una sezione per giorno, la più recente in alto. Ogni voce dice cosa è stato fatto e perché, in
-> parole semplici. Ultimo aggiornamento: 2026-11-09
+> parole semplici. Ultimo aggiornamento: 2026-11-10
+
+## 2026-11-10
+
+### Installazione anche fuori da Ubuntu
+
+-   **Cosa**: oltre al pacchetto `.deb` ci sono ora un **AppImage** portabile (un solo file da
+    avviare, senza installazione) e un pacchetto **`.rpm`** per Fedora, RHEL e openSUSE. Il `.deb`
+    porta con sé anche il profilo AppArmor che tiene acceso il sandbox di Chromium su Ubuntu 24.04+.
+-   **Perché**: l'app era utilizzabile solo su Ubuntu; chi usa un'altra distribuzione doveva
+    compilare i sorgenti, e su Ubuntu recente il sandbox restava spento.
+-   **Come**: due script nuovi (`npm run appimage`, `npm run rpm`) impacchettano Electron e
+    l'interfaccia; l'AppImage si porta dietro l'icona e un avvio che sceglie da solo se servono
+    limitazioni; il pacchetto RPM descrive le proprie dipendenze leggendole dagli eseguibili. Nel
+    `.deb` l'installazione carica il profilo AppArmor e l'avvio usa il sandbox normale, con il
+    ripiego di prima solo se il sistema non lo permette. Corretta anche la licenza scritta nei
+    documenti del pacchetto, che diceva MIT invece di GPL-3.0-or-later.
+-   **Verifica**: AppImage avviata davvero in modalità senza schermo e controllata con gli
+    screenshot; `.deb` e `.rpm` ispezionati per permessi, proprietario, profilo e dipendenze. Il
+    pacchetto RPM non è stato installato su una distribuzione RPM, e il sandbox va riprovato su una
+    macchina appena installata.
+-   **Stato**: completato, con le due prove esterne ancora consigliate.
+-   **Riferimento**: commit di questa sessione.
 
 ## 2026-11-09
 

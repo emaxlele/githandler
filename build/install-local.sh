@@ -37,8 +37,13 @@ fi
 
 (cd "\$app" && npm run --silent build)
 
-# AppArmor su Ubuntu blocca il sandbox di Chromium: senza --no-sandbox la finestra non parte.
-exec "\$app/node_modules/.bin/electron" "\$app" --no-sandbox "\$@"
+# AppArmor su Ubuntu 24.04+ blocca i namespace utente: solo lì serve --no-sandbox.
+args=()
+if [ "\$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null || echo 0)" = "1" ]; then
+	args+=(--no-sandbox)
+fi
+
+exec "\$app/node_modules/.bin/electron" "\$app" "\${args[@]}" "\$@"
 LAUNCHER
 chmod 755 "$bin/githandler"
 

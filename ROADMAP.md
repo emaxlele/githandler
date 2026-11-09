@@ -69,8 +69,11 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 
 ## 6. Distribution
 
--   ⏳ AppArmor profile inside the `.deb` (Ubuntu 24.04+ restricts the Chromium sandbox).
--   ⏳ AppImage and Flatpak: on Linux, discovery happens through Flathub.
+-   ✅ AppArmor profile inside the `.deb`, loaded by `postinst`, with the setuid sandbox helper as
+    the primary path and the launcher fallback only when both are unavailable.
+-   ✅ AppImage and `.rpm` packages; the AppImage is the portable option, the RPM follows the `.deb`
+    layout and derives its dependencies from the ELF sonames.
+-   ⏳ Flatpak, for discovery through Flathub.
 -   ⏳ Signed automatic updates, only after the AppArmor profile exists.
 
 ## Out of scope

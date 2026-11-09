@@ -16,7 +16,9 @@
 		"shots": "bash build/shots.sh",
 		"bench": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON bench/bench.mts",
 		"mcp": "node dist/mcp/index.js",
-		"deb": "bash build/package-deb.sh"
+		"deb": "bash build/package-deb.sh",
+		"appimage": "bash build/package-appimage.sh",
+		"rpm": "bash build/package-rpm.sh"
 	},
 	"devDependencies": {
 		"@types/node": "^24.10.1",

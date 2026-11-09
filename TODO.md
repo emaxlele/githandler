@@ -180,11 +180,20 @@ minmax(0, 1fr)`), non più contenuto tagliato
             (245 ms → 78 ms sul repository di prova)
     -   [ ] Solo sopra soglia: `koffi` + libgit2 per le letture calde
 -   [ ] Milestone 4 — prodotto
-    -   [x] **Pacchetto `.deb`** con Electron incluso (`npm run deb`): launcher, voce nel menu e
-            icona; `--no-sandbox` automatico quando manca il profilo AppArmor
-    -   [ ] Profilo AppArmor nel pacchetto (Ubuntu 24.04+ blocca il sandbox di Chromium): richiede
-            verifica su macchina pulita
-    -   [ ] AppImage e pacchetto `.rpm`
+    -   [x] **Pacchetto `.deb`** con Electron incluso (`npm run deb`): launcher, voce nel menu,
+            icona e helper `chrome-sandbox` setuid, così `--no-sandbox` resta il ripiego e non la
+            regola
+    -   [x] **Profilo AppArmor nel pacchetto** (Ubuntu 24.04+ blocca il sandbox di Chromium):
+            `build/githandler.apparmor` finisce in `/etc/apparmor.d/githandler` come conffile,
+            `postinst` lo carica e `prerm` lo scarica; l'helper `chrome-sandbox` viaggia con il bit
+            setuid e il launcher passa `--no-sandbox` solo se quel bit è sparito e i namespace
+            utente sono limitati. Il profilo è stato caricato e l'app avviata in headless; la prova
+            su una macchina appena installata resta consigliata.
+    -   [x] **AppImage e pacchetto `.rpm`**: `npm run appimage` produce un'immagine portabile con
+            Electron dentro (icona PNG, `AppRun` che si calcola la propria cartella); `npm run rpm`
+            genera lo spec al volo, ricava le dipendenze dai soname e conserva il layout del `.deb`.
+            L'AppImage è stata avviata in headless con screenshot, il pacchetto RPM è stato ispezionato
+            (modalità, proprietario, dipendenze) ma non installato su una distribuzione RPM.
     -   [x] **Worktree**: elenco dal dialog, creazione su un ramo esistente o nuovo, apertura in una
             scheda e rimozione (mai il principale, mai con modifiche non committate); il parser dello
             formato `--porcelain` sta in `src/core/worktrees.ts`

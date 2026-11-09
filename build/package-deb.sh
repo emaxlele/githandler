@@ -6,9 +6,10 @@
 # Il pacchetto installa:
 #   /opt/githandler/electron              il runtime Electron
 #   /opt/githandler/resources/app/        dist/ e package.json
-#   /usr/bin/githandler                   launcher (aggiunge --no-sandbox solo se serve AppArmor)
+#   /usr/bin/githandler                   launcher (sandbox setuid, ripiego --no-sandbox solo se serve)
 #   /usr/share/applications/githandler.desktop
 #   /usr/share/icons/hicolor/scalable/apps/githandler.svg
+#   /etc/apparmor.d/githandler          profilo AppArmor (userns per il sandbox)
 #   /usr/share/doc/githandler/copyright
 set -euo pipefail
 
@@ -35,10 +36,13 @@ app="$pkg/opt/githandler"
 
 install -d "$pkg/DEBIAN" "$app/resources/app" \
 	"$pkg/usr/bin" "$pkg/usr/share/applications" \
-	"$pkg/usr/share/icons/hicolor/scalable/apps" "$pkg/usr/share/doc/githandler"
+	"$pkg/usr/share/icons/hicolor/scalable/apps" "$pkg/usr/share/doc/githandler" \
+	"$pkg/etc/apparmor.d"
 
 cp -a "$electron/." "$app/"
 rm -f "$app/resources/default_app.asar"
+# Il sandbox di Chromium usa l'helper setuid: permette di non passare --no-sandbox.
+chmod 4755 "$app/chrome-sandbox"
 
 cp -a dist "$app/resources/app/dist"
 node -e '
@@ -56,8 +60,10 @@ set -euo pipefail
 app=/opt/githandler
 args=()
 
-# Ubuntu 24.04+ limita i namespace utente non privilegiati: il sandbox di Chromium non parte.
-if [ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null || echo 0)" = "1" ]; then
+# Con l'helper setuid il sandbox funziona anche dove i namespace utente sono limitati;
+# senza (per esempio dopo una copia che perde il bit) resta il ripiego --no-sandbox.
+if [ ! -u "$app/chrome-sandbox" ] &&
+	[ "$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null || echo 0)" = "1" ]; then
 	args+=(--no-sandbox)
 fi
 
@@ -83,6 +89,40 @@ DESKTOP
 chmod 644 "$pkg/usr/share/applications/githandler.desktop"
 
 install -m 644 build/icon.svg "$pkg/usr/share/icons/hicolor/scalable/apps/githandler.svg"
+install -m 644 build/githandler.apparmor "$pkg/etc/apparmor.d/githandler"
+
+cat >"$pkg/DEBIAN/conffiles" <<'CONFFILES'
+/etc/apparmor.d/githandler
+CONFFILES
+chmod 644 "$pkg/DEBIAN/conffiles"
+
+cat >"$pkg/DEBIAN/postinst" <<'POSTINST'
+#!/bin/sh
+set -e
+
+if command -v apparmor_parser >/dev/null 2>&1 && [ -f /etc/apparmor.d/githandler ]; then
+	if ! apparmor_parser -r /etc/apparmor.d/githandler 2>/dev/null; then
+		echo "githandler: profilo AppArmor non caricato; resta il sandbox setuid" >&2
+	fi
+fi
+
+exit 0
+POSTINST
+chmod 755 "$pkg/DEBIAN/postinst"
+
+cat >"$pkg/DEBIAN/prerm" <<'PRERM'
+#!/bin/sh
+set -e
+
+if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
+	if command -v apparmor_parser >/dev/null 2>&1 && [ -f /etc/apparmor.d/githandler ]; then
+		apparmor_parser -R /etc/apparmor.d/githandler 2>/dev/null || true
+	fi
+fi
+
+exit 0
+PRERM
+chmod 755 "$pkg/DEBIAN/prerm"
 
 {
 	echo "Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/"
@@ -91,7 +131,7 @@ install -m 644 build/icon.svg "$pkg/usr/share/icons/hicolor/scalable/apps/githan
 	echo
 	echo "Files: *"
 	echo "Copyright: 2026 emaxlele"
-	echo "License: MIT"
+	echo "License: GPL-3.0-or-later"
 	sed 's/^/ /' LICENSE
 } >"$pkg/usr/share/doc/githandler/copyright"
 

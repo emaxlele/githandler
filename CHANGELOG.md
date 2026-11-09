@@ -2,6 +2,23 @@
 
 ## [Non rilasciato]
 
+### AppImage, pacchetto RPM e profilo AppArmor
+
+-   **AppImage** (`npm run appimage`): immagine x86_64 con Electron dentro, icona PNG 256×256 e
+    `AppRun` che calcola la propria cartella. `APPIMAGETOOL` sceglie il binario di appimagetool, che
+    non è una dipendenza npm; l'immagine è stata avviata in headless e ha prodotto gli screenshot.
+-   **Pacchetto RPM** (`npm run rpm`): spec generato al volo, layout identico al `.deb`, dipendenze
+    ricavate dai soname degli ELF e `chrome-sandbox` con il bit setuid. Verificato con
+    `rpm -qp --queryformat` (modalità, proprietario, file), non installato su una distribuzione RPM.
+-   **Profilo AppArmor nel `.deb`**: `build/githandler.apparmor` installa
+    `/etc/apparmor.d/githandler` come conffile, `postinst` lo carica e `prerm` lo scarica; il launcher
+    usa `--no-sandbox` solo quando l'helper setuid è sparito e i namespace utente sono limitati.
+    L'installazione locale nei sorgenti ora fa lo stesso controllo invece di spegnere sempre il
+    sandbox.
+-   **Licenza corretta** nel copyright dei pacchetti: `GPL-3.0-or-later`, non `MIT`.
+-   **Script e comandi**: `build/package-appimage.sh`, `build/package-rpm.sh`, `build/githandler.apparmor`,
+    `build/icon-256.png`; nuovi script `appimage` e `rpm` in `package.json`.
+
 ### Evidenziazione della sintassi nel diff
 
 -   **CodeMirror 6** (MIT) colora il codice nel diff: `@codemirror/language`,

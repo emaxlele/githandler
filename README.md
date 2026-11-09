@@ -84,7 +84,8 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Server MCP con permessi configurabili**                                                   | ✅             |
 | **Evidenziazione della sintassi** (CodeMirror 6, oltre trenta linguaggi)                    | ✅             |
 | **`.deb`** (Electron incluso, `npm run deb`)                                                | ✅             |
-| Profilo AppArmor nel pacchetto                                                              | ⏳ milestone 4 |
+| **AppImage** e pacchetto **`.rpm`** (Electron incluso)                                      | ✅             |
+| **Profilo AppArmor** nel `.deb`                                                             | ✅             |
 
 ## Interfaccia
 
@@ -246,9 +247,9 @@ npm run mcp -- --repo .   # server MCP su stdio, lettura e scrittura (vedi docs/
 Flag di avvio: `--repo <path>`, `--watch` (sorveglianza del repository, o `GITHANDLER_WATCH=1`),
 `--no-watch` per spegnerla quando è attiva per ambiente.
 
-## Installazione (Ubuntu)
+## Installazione (Linux)
 
-Due strade.
+Quattro strade.
 
 **Pacchetto `.deb`**, con il runtime Electron incluso e le librerie dell'interfaccia (CodeMirror
 compreso) compilate dentro il pacchetto: nessuna dipendenza npm da installare:
@@ -259,8 +260,32 @@ sudo apt install ./release/githandler_0.10.0_amd64.deb
 ```
 
 Installa l'app in `/opt/githandler`, il launcher in `/usr/bin/githandler`, la voce nel menu e
-l'icona. Su Ubuntu 24.04+ il launcher aggiunge `--no-sandbox` quando manca il profilo AppArmor; il
-profilo dedicato è il lavoro di packaging ancora aperto (milestone 4).
+l'icona. Il pacchetto include `chrome-sandbox` con il bit setuid e il profilo AppArmor in
+`/etc/apparmor.d/githandler`, che `postinst` carica: su Ubuntu 24.04+ il sandbox di Chromium resta
+attivo. Il launcher ripiega su `--no-sandbox` solo se il bit setuid è stato perso e i namespace
+utente sono limitati.
+
+**AppImage**, portabile e senza installazione:
+
+```bash
+npm run appimage
+./release/GitHandler-0.10.0-x86_64.AppImage
+```
+
+Serve `appimagetool` per costruirla: se non è nel `PATH`, indicarlo con
+`APPIMAGETOOL=/percorso/appimagetool`. L'immagine è in sola lettura e non può usare l'helper setuid;
+sui sistemi che limitano i namespace utente il launcher passa `--no-sandbox`.
+
+**Pacchetto `.rpm`** per Fedora, RHEL e openSUSE:
+
+```bash
+sudo apt install rpm   # solo per costruire il pacchetto su Ubuntu
+npm run rpm
+sudo dnf install ./release/githandler-0.10.0-1.x86_64.rpm
+```
+
+Il layout è lo stesso del `.deb` e le dipendenze sono ricavate dai soname degli eseguibili, quindi i
+nomi dei pacchetti restano corretti sulla distribuzione che lo installa.
 
 **Installazione nel profilo utente**, senza sudo e senza pacchetto:
 
@@ -277,8 +302,8 @@ Lo script compila i bundle e scrive launcher, voce nel menu e icona:
 | Icona         | `~/.local/share/icons/hicolor/scalable/apps/githandler.svg` |
 
 Il launcher ricompila con esbuild a ogni avvio, così il menu apre sempre il codice corrente:
-`githandler --repo ~/Projects/AI_Knowledge`. Per AppArmor su Ubuntu il sandbox di Chromium resta
-spento (`--no-sandbox`).
+`githandler --repo ~/Projects/AI_Knowledge`. Su Ubuntu 24.04+ passa `--no-sandbox` solo quando i
+namespace utente sono limitati.
 
 ## API per l'AI
 
