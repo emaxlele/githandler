@@ -33,6 +33,7 @@ import {
 	accountRepos,
 	accountsInfo,
 	credentialEnvFor,
+	hydrateTokens,
 	removeAccount,
 	repoAccountChoice,
 	saveAccount,
@@ -841,6 +842,8 @@ app.whenReady().then(() => {
 	registerIpc();
 	buildMenu();
 	createWindow();
+	// i token già presenti sulla macchina tornano in memoria: nessun «Accedi» dopo un riavvio
+	if (!shotsMode) void hydrateTokens();
 
 	app.on("activate", () => {
 		if (BrowserWindow.getAllWindows().length === 0) createWindow();

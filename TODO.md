@@ -66,6 +66,8 @@ Stato al 2026-11-09 (v0.10.0). Le voci spuntate sono in `CHANGELOG.md`.
         senza alcun file
 -   [x] **Schede riaperte all'avvio**: i repository dell'ultima sessione tornano nello stesso ordine e
         con quello attivo (`localStorage["githandler.sessions"]`); un percorso sparito si salta
+-   [x] **Token recuperato all'avvio** (`hydrateTokens`): credential helper per quell'utente, poi
+        `gh auth token` se l'account sull'host è uno solo; esiti negativi ricordati per la sessione
 -   [x] **Pannello dei dettagli ridimensionabile e a icona**: maniglia sopra il pannello (18%–78%,
         misura ricordata), pulsante `▾`/`▴` per ridurlo alla riga delle schede, stato in
         `localStorage`

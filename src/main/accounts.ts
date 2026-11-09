@@ -19,15 +19,17 @@ import {
 	type RemoteRepo,
 } from "../core/providers.ts";
 import { runGit } from "./git.ts";
+import { githubCliToken } from "./machine-auth.ts";
 import { originRemote } from "./remote.ts";
 import { loadSettings, saveSettings, settingsDirectory } from "./settings.ts";
 
 /**
  * Account collegati: metadati su disco, token in memoria.
  *
- * GitHandler non scrive token in nessun file proprio. Il token arriva dalla finestra, resta in
- * memoria per la sessione e serve a due cose: le chiamate all'API del provider e `GIT_ASKPASS` per
- * `git clone`, `fetch`, `pull`, `push`. Se l'utente ha un credential helper configurato, il token
+ * GitHandler non scrive token in nessun file proprio. Il token arriva dalla finestra oppure dalla
+ * macchina (`gh`, credential helper: `hydrateTokens` lo cerca all'avvio), resta in memoria per la
+ * sessione e serve a due cose: le chiamate all'API del provider e `GIT_ASKPASS` per `git clone`,
+ * `fetch`, `pull`, `push`. Se l'utente ha un credential helper configurato, un token inserito a mano
  * viene anche consegnato a Git con `git credential approve`: così lo ritrova lui, nel suo archivio,
  * e non l'app. Alla rimozione dell'account il token esce dalla memoria; quel che Git ha salvato
  * resta di Git e non lo cancelliamo di nascosto.
@@ -43,6 +45,10 @@ export interface AccountsInfo {
 
 let cache: Account[] | null = null;
 const tokens = new Map<string, string>();
+/** Ricerche in corso, per account: due richieste insieme non lanciano due volte `gh`. */
+const recoveries = new Map<string, Promise<string | null>>();
+/** Account per cui la macchina non aveva niente: non si richiede a ogni operazione. */
+const noToken = new Set<string>();
 let askpassPath: string | null = null;
 let helper: boolean | null = null;
 
@@ -109,21 +115,72 @@ async function hasCredentialHelper(): Promise<boolean> {
 	return helper;
 }
 
-/** Token dell'account: quello appena inserito, altrimenti quello che Git ha in archivio. */
-export async function tokenFor(account: Account): Promise<string | null> {
-	const known = tokens.get(account.id);
-	if (known) return known;
+/**
+ * Cerca un token per l'account già presente sulla macchina. Prima il credential helper, chiesto
+ * per **quell'utente**: due account sullo stesso host non si scambiano il token. Poi GitHub CLI,
+ * che tiene un token per host e quindi vale solo se l'account su quell'host è uno solo.
+ */
+async function recoverToken(account: Account): Promise<string | null> {
 	const result = await runGit("/", ["credential", "fill"], {
 		allowFailure: true,
 		timeoutMs: 20_000,
 		input: `protocol=https\nhost=${account.host}\nusername=${account.username}\n\n`,
 	});
-	if (result.code !== 0) return null;
-	const match = /^password=(.+)$/m.exec(result.stdout);
-	const password = match?.[1]?.trim();
-	if (!password) return null;
-	tokens.set(account.id, password);
-	return password;
+	if (result.code === 0) {
+		const match = /^password=(.+)$/m.exec(result.stdout);
+		const password = match?.[1]?.trim();
+		if (password) return password;
+	}
+
+	const accounts = await loadAccounts();
+	const sameHost = accounts.filter(
+		(item) => item.host.toLowerCase() === account.host.toLowerCase()
+	);
+	if (sameHost.length > 1) return null;
+	const found = await githubCliToken(account.host);
+	return found?.token ?? null;
+}
+
+/**
+ * Token dell'account: quello appena inserito, altrimenti quello già presente sulla macchina. Un
+ * esito negativo si ricorda per la sessione, così un'operazione senza token non riapre un helper
+ * grafico ogni volta.
+ */
+export async function tokenFor(account: Account): Promise<string | null> {
+	const known = tokens.get(account.id);
+	if (known) return known;
+	if (noToken.has(account.id)) return null;
+	const running = recoveries.get(account.id);
+	if (running) return running;
+	const recovery = recoverToken(account)
+		.then((found) => {
+			if (!found) {
+				noToken.add(account.id);
+				return null;
+			}
+			tokens.set(account.id, found);
+			return found;
+		})
+		.finally(() => recoveries.delete(account.id));
+	recoveries.set(account.id, recovery);
+	return recovery;
+}
+
+/**
+ * All'avvio cerca i token degli account già sulla macchina, così chiudere l'app non obbliga a
+ * rifare «Accedi». Parte dopo la finestra e non la blocca: se non c'è niente, si resta senza token
+ * fino a un «Accedi» o al prossimo avvio (un esito negativo non si ritenta a ogni operazione).
+ */
+export async function hydrateTokens(): Promise<void> {
+	const accounts = await loadAccounts();
+	const results = await Promise.allSettled(
+		accounts.map((account) => tokenFor(account))
+	);
+	for (const result of results) {
+		if (result.status === "rejected") {
+			console.warn("token non recuperato:", result.reason);
+		}
+	}
 }
 
 export async function accountsInfo(): Promise<AccountsInfo> {
@@ -149,6 +206,7 @@ export async function saveAccount(
 	if (token !== undefined && token.trim()) {
 		assertToken(token.trim());
 		tokens.set(account.id, token.trim());
+		noToken.delete(account.id);
 		if (await hasCredentialHelper()) {
 			await runGit("/", ["credential", "approve"], {
 				allowFailure: true,
@@ -175,6 +233,7 @@ export async function removeAccount(id: string): Promise<AccountsInfo> {
 	if (next.length === accounts.length)
 		throw new Error("Account non trovato.");
 	tokens.delete(id);
+	noToken.delete(id);
 	await persist(next);
 	return accountsInfo();
 }

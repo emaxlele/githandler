@@ -5,6 +5,26 @@
 
 ## 2026-11-09
 
+### Anche il token torna da solo all'avvio
+
+-   **Cosa**: dopo un riavvio non serve più premere **Accedi**. All'avvio l'app cerca i token che
+    l'utente ha **già sulla macchina** — prima il credential helper di Git, chiesto per l'utente di
+    quell'account, poi GitHub CLI — e li tiene in memoria come sempre. Se non trova niente, l'accesso
+    resta manuale e il token inserito a mano viene consegnato a Git se c'è un credential helper.
+-   **Perché**: completava la lamentela dell'utente sul dover «riconfigurare tutto» a ogni riapertura:
+    le schede ora tornano, il token era l'ultima cosa che si perdeva.
+-   **Come**: `hydrateTokens` parte dopo che la finestra è pronta, quindi non rallenta l'avvio (misurato:
+    finestra pronta in ~300 ms anche quando non c'è nessun token). La ricerca non scrive niente su
+    disco: `git credential fill` per quell'utente e, solo se su quell'host c'è un unico account,
+    `gh auth token` — GitHub CLI tiene un token per host, e con due utenti sarebbe ambiguo. Un esito
+    negativo si ricorda per la sessione, così un fetch senza token non riapre un helper grafico ogni
+    volta. Anche la prima operazione di rete usa la stessa ricerca.
+-   **Verifica**: tipi, 142 test e build puliti. Prova con l'app: account GitHub reale recuperato in
+    memoria all'avvio senza toccare `accounts.json` (stesso hash prima e dopo), account GitLab senza
+    token che resta senza token e non blocca l'avvio, `machineToken` del flusso «Accedi» invariato.
+-   **Stato**: completato.
+-   **Riferimento**: commit del repository `~/Projects/githandler`.
+
 ### Le schede dei repository si riaprono da sole
 
 -   **Cosa**: chiudendo e riaprendo l'applicazione i repository dell'ultima volta tornano aperti, nello

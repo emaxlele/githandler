@@ -77,6 +77,17 @@
     schede, benvenuto). Le voci dei menu contestuali hanno un `hint` (`MenuEntry.hint`) che spiega cosa
     fa ciascuna senza doverla provare.
 
+### Il token torna da solo all'avvio
+
+-   All'avvio `hydrateTokens` cerca i token degli account **già presenti sulla macchina**: prima il
+    credential helper, chiesto per l'utente dell'account, poi `gh auth token --hostname`. Chiudere l'app
+    non obbliga più a rifare _Accedi_: il token torna in memoria da solo, senza scrivere niente su disco.
+    `gh` si usa solo quando su quell'host c'è un solo account, perché GitHub CLI tiene un token per host.
+-   `tokenFor` fa la stessa ricerca anche su richiesta (primo fetch, clone, chiamata all'API) e ricorda
+    per la sessione gli esiti negativi: nessun helper grafico riaperto a ogni operazione. Resta tutto in
+    memoria, come prima; un token inserito a mano continua a finire in `git credential approve` se c'è un
+    helper.
+
 ### Le schede si riaprono da sole
 
 -   All'avvio la finestra **riprende i repository dell'ultima sessione**, nello stesso ordine di schede, e

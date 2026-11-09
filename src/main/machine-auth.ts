@@ -84,6 +84,14 @@ async function fromGitCredential(host: string): Promise<MachineToken | null> {
 	return { token: parsed.password, username: parsed.username, source: "git" };
 }
 
+/**
+ * Solo GitHub CLI: risponde subito e non apre nessun helper grafico. Serve a chi deve decidere se
+ * il token di `gh` è abbastanza sicuro da usare (GitHub CLI ne tiene uno per host, non per utente).
+ */
+export async function githubCliToken(host: string): Promise<MachineToken | null> {
+	return fromGithubCli(host);
+}
+
 /** Cerca un token già presente: prima quello di `gh`, poi quello del credential helper. */
 export async function machineToken(host: string): Promise<MachineToken | null> {
 	const gh = await fromGithubCli(host);

@@ -199,8 +199,11 @@ indirizzo dell'API.
 -   Le credenziali valgono per clone, fetch, pull e push: l'host si ricava da `origin`.
 -   Il token si **cambia** dall'account in qualsiasi momento; un rifiuto dell'API diventa un messaggio
     che dice di aggiornarlo. Rimuovere l'account lo dimentica, ma non cancella quello che ha salvato Git.
--   Senza credential helper il token vale per la sessione: alla riapertura va reinserito, e
-    l'interfaccia lo dice invece di far scoprire il problema al primo fetch.
+-   All'avvio l'app **ricerca da sola** i token già presenti sulla macchina (`hydrateTokens`): prima il
+    credential helper, chiesto per quell'utente, poi `gh auth token` — quest'ultimo solo se su quell'host
+    c'è **un solo account**, perché GitHub CLI ne tiene uno per host e con due utenti il token sarebbe
+    ambiguo. Chiudere e riaprire non richiede quindi di rifare _Accedi_. Un esito negativo si ricorda per
+    la sessione, così un'operazione senza token non riapre un helper grafico ogni volta.
 
 ### Il token: prima dove c'è già, poi dal browser
 
