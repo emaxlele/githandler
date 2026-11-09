@@ -2,6 +2,17 @@
 
 ## [Non rilasciato]
 
+### Finestra «Recupero»
+
+-   **Una sola schermata per ciò che si può riportare indietro**: l'ultima operazione annullabile con
+    il suo pulsante _Annulla_, gli stash, le copie dei file scartati (`refs/githandler/trash/*`) e il
+    reflog, ciascuno con il pulsante che apre la finestra giusta. Non modifica niente da sola.
+-   **Riassunto puro in `src/core/recovery.ts`**: `summarizeRecovery` riceve l'ultima voce di undo,
+    il numero di stash e l'uso delle copie, e restituisce conteggi normalizzati (negativi e `NaN`
+    diventano zero) più la descrizione dell'operazione.
+-   **Voce «Recupero…» nella palette** e dialog con aggiornamento manuale; nessun nuovo stato salvato.
+-   Test nuovi in `tests/recovery.test.mts`.
+
 ### Trascinare un file fuori dalla finestra
 
 -   **File del working tree trascinabili**: dalle liste Staged/Unstaged e dal File Tree un file può

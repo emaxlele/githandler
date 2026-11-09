@@ -1510,6 +1510,40 @@
 			</form>
 		</dialog>
 
+		<dialog class="dialog dialog-wide" id="recovery-dialog">
+			<form id="recovery-form">
+				<h2>Recupero</h2>
+				<p class="hint">
+					Cosa si può ancora riportare indietro: l'ultima operazione,
+					gli stash, le copie dei file scartati e gli spostamenti di
+					HEAD nel reflog.
+				</p>
+				<div class="account-repos-head">
+					<strong>Risorse recuperabili</strong>
+					<button
+						type="button"
+						class="btn btn-small"
+						id="recovery-refresh"
+						title="Rilegge stash, copie e ultima operazione"
+					>
+						Aggiorna
+					</button>
+				</div>
+				<ul class="repo-list actions-list" id="recovery-list"></ul>
+				<div class="dialog-actions">
+					<span class="account-status" id="recovery-status"></span>
+					<button
+						type="button"
+						class="btn"
+						id="recovery-close"
+						title="Chiude la finestra del recupero"
+					>
+						Chiudi
+					</button>
+				</div>
+			</form>
+		</dialog>
+
 		<dialog class="dialog dialog-wide" id="content-dialog">
 			<form id="content-form">
 				<h2>Cerca nel contenuto</h2>

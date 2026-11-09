@@ -53,8 +53,8 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 -   ✅ Repository health panel: diverged branches, forgotten stashes, outdated submodules, detached
     HEAD.
 -   ⏳ Reachability of remotes and repositories that outgrew the layout, in the same panel.
--   ⏳ Recovery explained: one screen that says what can be recovered and from where
-    (`refs/githandler/trash/*`, snapshots), instead of leaving it implicit.
+-   ✅ Recovery explained: one screen that says what can be recovered and from where — the last
+    operation, stashes, copies under `refs/githandler/trash/*`, the reflog.
 
 ## 6. Distribution
 

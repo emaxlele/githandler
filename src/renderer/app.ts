@@ -52,6 +52,7 @@ import {
 	type WorkflowRun,
 } from "../core/actions.ts";
 import type { HealthReport } from "../core/health.ts";
+import { summarizeRecovery, type RecoverySummary } from "../core/recovery.ts";
 import type { CheckRun, CheckSummary } from "../core/checks.ts";
 import type { PullList, PullRequest } from "../core/pulls.ts";
 import type { ReflogEntry } from "../core/reflog.ts";
@@ -412,6 +413,12 @@ const ui = {
 	healthStatus: byId("health-status"),
 	healthRefresh: byId<HTMLButtonElement>("health-refresh"),
 	healthClose: byId<HTMLButtonElement>("health-close"),
+	recoveryDialog: byId<HTMLDialogElement>("recovery-dialog"),
+	recoveryForm: byId<HTMLFormElement>("recovery-form"),
+	recoveryList: byId("recovery-list"),
+	recoveryStatus: byId("recovery-status"),
+	recoveryRefresh: byId<HTMLButtonElement>("recovery-refresh"),
+	recoveryClose: byId<HTMLButtonElement>("recovery-close"),
 	btnUndo: byId<HTMLButtonElement>("btn-undo"),
 	btnRefresh: byId<HTMLButtonElement>("btn-refresh"),
 	btnFetch: byId<HTMLButtonElement>("btn-fetch"),
@@ -4941,6 +4948,135 @@ function renderContentMatch(match: ContentMatch): void {
 	ui.contentList.appendChild(item);
 }
 
+// ── recupero ────────────────────────────────────────────────────────────────
+
+async function openRecovery(): Promise<void> {
+	if (!ui.recoveryDialog.open) ui.recoveryDialog.showModal();
+	await loadRecovery();
+}
+
+async function loadRecovery(): Promise<void> {
+	ui.recoveryRefresh.disabled = true;
+	ui.recoveryStatus.textContent = t("Cerco cosa si può recuperare…");
+	ui.recoveryStatus.classList.remove("is-error");
+	clear(ui.recoveryList);
+	try {
+		const [stashes, trash] = await Promise.all([
+			api.stashList(),
+			api.trashUsage(),
+		]);
+		renderRecovery(
+			summarizeRecovery({
+				undo: state.snapshot?.undo ?? null,
+				stashes: stashes.length,
+				trash,
+			})
+		);
+	} catch (error) {
+		ui.recoveryStatus.classList.add("is-error");
+		ui.recoveryStatus.textContent = readableError(error);
+	} finally {
+		ui.recoveryRefresh.disabled = false;
+	}
+}
+
+function recoveryAction(
+	label: string,
+	run: () => void,
+	disabled = false
+): HTMLButtonElement {
+	const button = el("button", "btn btn-small", t(label)) as HTMLButtonElement;
+	button.type = "button";
+	button.disabled = disabled;
+	button.addEventListener("click", run);
+	return button;
+}
+
+function recoveryRow(
+	label: string,
+	detail: string,
+	actions: HTMLButtonElement[]
+): HTMLLIElement {
+	const item = el("li");
+	const text = el("div", "actions-text");
+	text.appendChild(el("span", "actions-name", t(label)));
+	text.appendChild(el("span", "actions-meta", detail));
+	item.appendChild(text);
+	const box = el("div", "actions-actions");
+	box.append(...actions);
+	item.appendChild(box);
+	return item;
+}
+
+function renderRecovery(summary: RecoverySummary): void {
+	clear(ui.recoveryList);
+
+	ui.recoveryList.appendChild(
+		recoveryRow(
+			"Ultima operazione",
+			summary.undoDescription ?? t("Niente da annullare."),
+			[
+				recoveryAction(
+					"Annulla",
+					() => {
+						ui.recoveryDialog.close();
+						void doUndo();
+					},
+					!summary.undoable
+				),
+			]
+		)
+	);
+
+	ui.recoveryList.appendChild(
+		recoveryRow(
+			"Stash",
+			summary.stashes === 0
+				? t("Nessuno stash.")
+				: t(`${summary.stashes} stash conservati.`),
+			[
+				recoveryAction("Apri gli stash", () => {
+					ui.recoveryDialog.close();
+					void openStash();
+				}),
+			]
+		)
+	);
+
+	ui.recoveryList.appendChild(
+		recoveryRow(
+			"Copie dei file scartati",
+			summary.trashEntries === 0
+				? t("Nessuna copia conservata.")
+				: t(
+						`${summary.trashEntries} ${
+							summary.trashEntries === 1 ? "copia" : "copie"
+						} · ${summary.trashFiles} file · ${formatBytes(
+							summary.trashBytes
+						)}`
+				  ),
+			[]
+		)
+	);
+
+	ui.recoveryList.appendChild(
+		recoveryRow(
+			"Reflog",
+			t("Gli spostamenti di HEAD, dal più recente."),
+			[
+				recoveryAction("Apri il reflog", () => {
+					ui.recoveryDialog.close();
+					void openReflog();
+				}),
+			]
+		)
+	);
+
+	ui.recoveryStatus.textContent = summary.anything
+		? ""
+		: t("Niente da recuperare.");
+}
+
 // ── salute del repository ───────────────────────────────────────────────────
 
 const SUBMODULE_STATE_LABELS: Record<string, string> = {
@@ -5163,6 +5299,9 @@ ui.contentForm.addEventListener("submit", (event) => {
 	void runContentSearch();
 });
 ui.contentClose.addEventListener("click", () => ui.contentDialog.close());
+ui.recoveryForm.addEventListener("submit", (event) => event.preventDefault());
+ui.recoveryRefresh.addEventListener("click", () => void loadRecovery());
+ui.recoveryClose.addEventListener("click", () => ui.recoveryDialog.close());
 ui.healthForm.addEventListener("submit", (event) => event.preventDefault());
 ui.healthRefresh.addEventListener("click", () => void loadHealth());
 ui.healthClose.addEventListener("click", () => ui.healthDialog.close());
@@ -5742,6 +5881,14 @@ const COMMANDS: PaletteCommand[] = [
 		keywords: "reflog head cronologia movimenti",
 		enabled: repoReady,
 		run: () => void openReflog(),
+	},
+	{
+		id: "recovery",
+		group: "Progetto",
+		label: "Recupero…",
+		keywords: "recupero annulla undo stash scartati reflog",
+		enabled: repoReady,
+		run: () => void openRecovery(),
 	},
 	{
 		id: "health",

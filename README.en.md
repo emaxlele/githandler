@@ -71,6 +71,7 @@ Italiano: [README.md](README.md)
 | **CI notifications from the system tray**                                            | ✅             |
 | **Repository health**: diverged branches, old stashes, submodules, detached HEAD      | ✅             |
 | **Drag a file** out of the window                                                   | ✅             |
+| **Recovery window**: last operation, stashes, copies, reflog                        | ✅             |
 | **Network progress** (clone, fetch, pull, push)                                      | ✅             |
 | **Themes** light / dark / OLED, density and text size                                | ✅             |
 | **Automatic refresh** (`--watch`)                                                    | ✅             |
@@ -109,6 +110,9 @@ settings:
     reset, rebase) with selector, abbreviated SHA and date; "Go to the commit" opens that commit in
     the panel. "Go to commit by SHA…", from the palette, reaches any commit even outside the loaded
     history page. Neither changes the repository.
+-   **Recovery…** (command palette): one screen that says what can still be brought back — the last
+    undoable operation, the stashes, the copies of discarded files and the reflog — with the button
+    that leads to the right action. It changes nothing by itself.
 -   **Network progress**: clone, fetch, pull and push read Git `stderr` while they work and show in
     the toolbar the phase (receiving, resolving, sending), a bar and the percentage; on a fast
     connection the bar is not needed, but with a large repository you can see that something is

@@ -275,9 +275,7 @@ function startFileDrag(
 		dragIcon ??= nativeImage.createFromPath(join(__dirname, "../tray.png"));
 		event.sender.startDrag({
 			file: absolute,
-			icon: dragIcon.isEmpty()
-				? nativeImage.createEmpty()
-				: dragIcon,
+			icon: dragIcon.isEmpty() ? nativeImage.createEmpty() : dragIcon,
 		});
 	} catch (error) {
 		// il renderer non può ricevere un errore da un canale di solo invio: resta su stderr
@@ -1030,6 +1028,17 @@ async function runShots(): Promise<void> {
 			target.replace(/\.png$/, "-health.png"),
 		],
 		[`document.getElementById("health-dialog")?.close()`, null],
+		[
+			`(() => {
+				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+				const input = document.getElementById("palette-input");
+				input.value = "recupero";
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+			})()`,
+			target.replace(/\.png$/, "-recovery.png"),
+		],
+		[`document.getElementById("recovery-dialog")?.close()`, null],
 		[
 			`(() => {
 				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));

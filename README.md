@@ -71,6 +71,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Notifiche CI dalla barra di sistema**                                                     | ✅             |
 | **Salute del repository**: divergenti, stash vecchi, submodule, HEAD staccato                | ✅             |
 | **Trascinare un file** fuori dalla finestra                                                  | ✅             |
+| **Finestra Recupero**: ultima operazione, stash, copie, reflog                              | ✅             |
 | **Avanzamento di rete** (clone, fetch, pull, push)                                          | ✅             |
 | **Temi** chiaro / scuro / OLED, densità e dimensione del testo                              | ✅             |
 | **Aggiornamento automatico** (`--watch`)                                                    | ✅             |
@@ -110,6 +111,9 @@ impostazioni:
     reset, rebase) con selettore, SHA abbreviato e data; «Vai al commit» apre quel commit nel
     pannello. «Vai al commit per SHA…», dalla palette, raggiunge qualsiasi commit anche fuori dalla
     pagina di storia caricata. Nessuna delle due cambia il repository.
+-   **Recupero…** (palette dei comandi): una schermata sola che dice cosa si può ancora riportare
+    indietro — l'ultima operazione annullabile, gli stash, le copie dei file scartati e il reflog —
+    con il pulsante che porta all'azione giusta. Non cambia niente da sola.
 -   **Avanzamento delle operazioni di rete**: clone, fetch, pull e push leggono `stderr` di Git
     mentre lavorano e mostrano nella toolbar la fase (ricezione, risoluzione, invio), una barra e la
     percentuale; senza rete lenta la barra non serve, ma con un repository grande si vede che qualcosa

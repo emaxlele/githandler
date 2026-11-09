@@ -5,6 +5,21 @@
 
 ## 2026-11-09
 
+### Un unico posto per capire cosa si può ancora recuperare
+
+-   **Cosa**: dalla palette dei comandi si apre **«Recupero»**, una finestra che riassume l'ultima
+    operazione annullabile, gli stash, le copie dei file scartati e gli spostamenti di HEAD nel
+    reflog, con un pulsante che porta all'azione giusta.
+-   **Perché**: richiesta dell'utente — le possibilità di recupero c'erano già ma erano sparse fra
+    toolbar, finestra degli stash, impostazioni e reflog; chi temeva di aver perso qualcosa non
+    aveva un punto da cui guardare.
+-   **Come**: la finestra legge i dati che l'app ha già e mostra solo il riepilogo; non cancella,
+    non applica e non ripristina niente se non quando si preme il pulsante corrispondente.
+-   **Verifica**: typecheck, 3 test nuovi sul riepilogo (inclusi conteggi negativi) e build; la
+    finestra è stata controllata in inglese su un repository di prova.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Portare un file fuori dall'app
 
 -   **Cosa**: i file elencati in **Staged**, **Unstaged** e nel **File Tree** si possono trascinare
