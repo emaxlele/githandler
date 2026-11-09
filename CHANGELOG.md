@@ -2,6 +2,18 @@
 
 ## [Non rilasciato]
 
+### Salute del repository
+
+-   **Finestra «Salute del repository»** dalla palette dei comandi: un controllo di sola lettura su
+    rami divergenti (commit sia da inviare sia da ricevere), rami locali senza upstream, stash più
+    vecchi di 30 giorni, submodule `modified`/`uninitialized`/`conflict` e HEAD staccato.
+-   **Regola pura in `src/core/health.ts`**: `assessHealth` riceve ref, stash e submodule più il
+    momento attuale, quindi si prova senza repository e senza rete; il backend raccoglie i dati con
+    `refresh`, `stashList` e `submodules` in parallelo.
+-   **Nessuna azione nascosta**: la finestra elenca cosa guardare e non modifica niente; «Aggiorna»
+    rilegge ref, stash e submodule.
+-   Test nuovi in `tests/health.test.mts` (casi puri e un repository reale con un ramo senza upstream).
+
 ### Riprovare solo i job falliti
 
 -   **«Riprova i falliti»** nelle GitHub Actions: dopo un'esecuzione conclusa con `failure`,

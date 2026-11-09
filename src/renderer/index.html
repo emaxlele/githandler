@@ -1471,6 +1471,40 @@
 			</form>
 		</dialog>
 
+		<dialog class="dialog dialog-wide" id="health-dialog">
+			<form id="health-form">
+				<h2>Salute del repository</h2>
+				<p class="hint">
+					Cose che non impediscono di lavorare ma è meglio sapere:
+					rami divergenti, stash dimenticati, submodule non
+					aggiornati, HEAD staccato.
+				</p>
+				<div class="account-repos-head">
+					<strong>Controlli</strong>
+					<button
+						type="button"
+						class="btn btn-small"
+						id="health-refresh"
+						title="Rilegge ref, stash e submodule"
+					>
+						Aggiorna
+					</button>
+				</div>
+				<ul class="repo-list actions-list" id="health-list"></ul>
+				<div class="dialog-actions">
+					<span class="account-status" id="health-status"></span>
+					<button
+						type="button"
+						class="btn"
+						id="health-close"
+						title="Chiude la finestra della salute del repository"
+					>
+						Chiudi
+					</button>
+				</div>
+			</form>
+		</dialog>
+
 		<dialog class="dialog dialog-wide" id="content-dialog">
 			<form id="content-form">
 				<h2>Cerca nel contenuto</h2>

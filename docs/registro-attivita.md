@@ -5,6 +5,24 @@
 
 ## 2026-11-09
 
+### Uno sguardo d'insieme prima che i problemi diventino grandi
+
+-   **Cosa**: dalla palette dei comandi si apre **«Salute del repository»**, una finestra di sola
+    lettura che segnala rami divergenti (con commit sia da inviare sia da ricevere), rami locali mai
+    collegati a un remoto, stash dimenticati da più di 30 giorni, submodule non aggiornati e HEAD
+    staccato.
+-   **Perché**: richiesta dell'utente — sono tutte cose che non fermano il lavoro ma che si scoprono
+    quando è tardi, per esempio uno stash rimasto lì per mesi o un ramo esistente solo su questa
+    macchina.
+-   **Come**: la finestra raccoglie le informazioni che l'app ha già (ref, stash, submodule) e le
+    confronta con poche regole chiare; non cambia nulla nel repository e si può aggiornare con un
+    pulsante.
+-   **Verifica**: typecheck, 5 test nuovi (casi isolati e un repository reale) e build; la finestra è
+    stata controllata in inglese su un repository di prova.
+-   **Stato**: completato. Restano fuori, per ora, la raggiungibilità dei remoti e i repository che
+    sono cresciuti troppo per la vista attuale.
+-   **Riferimento**: commit di questa sessione.
+
 ### Riprovare solo quello che è andato storto
 
 -   **Cosa**: nella finestra delle **GitHub Actions**, quando un'esecuzione è fallita compare

@@ -461,6 +461,7 @@ function registerIpc(): void {
 			backendFor(root).blame(path, start, end)
 	);
 	handle("git:undo", (root: string) => backendFor(root).undo());
+	handle("git:health", (root: string) => backendFor(root).health());
 	handle("app:watching", async () => watchEnabled && stopWatching !== null);
 	handle("app:settings", () => loadSettings());
 	handle("app:settings:save", async (input: unknown) => {
@@ -985,6 +986,17 @@ async function runShots(): Promise<void> {
 			target.replace(/\.png$/, "-content-results.png"),
 		],
 		[`document.getElementById("content-dialog")?.close()`, null],
+		[
+			`(() => {
+				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+				const input = document.getElementById("palette-input");
+				input.value = "salute";
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+			})()`,
+			target.replace(/\.png$/, "-health.png"),
+		],
+		[`document.getElementById("health-dialog")?.close()`, null],
 		[
 			`(() => {
 				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));

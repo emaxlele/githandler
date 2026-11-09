@@ -69,6 +69,7 @@ Italiano: [README.md](README.md)
 | **Reflog** in the app and "go to commit" by SHA                                      | ✅             |
 | **Pull request checks** (result and links)                                           | ✅             |
 | **CI notifications from the system tray**                                            | ✅             |
+| **Repository health**: diverged branches, old stashes, submodules, detached HEAD      | ✅             |
 | **Network progress** (clone, fetch, pull, push)                                      | ✅             |
 | **Themes** light / dark / OLED, density and text size                                | ✅             |
 | **Automatic refresh** (`--watch`)                                                    | ✅             |
@@ -119,6 +120,9 @@ settings:
 -   **Content search** (`git grep`): a separate dialog searches tracked files, with literal text or
     a regular expression and a case-sensitivity switch; every result shows file, line and text, and
     opens in the system app. The list stops at 1,000 matches and says so.
+-   **Repository health…** (command palette): a read-only check for diverged branches (commits both
+    to send and to receive), local branches without upstream, stashes older than 30 days, submodules
+    that are not clean and a detached HEAD. It changes nothing: it says what to look at.
 -   **A single view for changes**: the _Changes_ entry in the sidebar brings them to the whole area,
     without history or lower panel: Staged and Unstaged lists, the diff and the commit box.
     _All Commits_ goes back to history.

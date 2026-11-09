@@ -69,6 +69,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Reflog** nell'app e «vai al commit» per SHA                                               | ✅             |
 | **Controlli delle pull request** (esito e collegamenti)                                     | ✅             |
 | **Notifiche CI dalla barra di sistema**                                                     | ✅             |
+| **Salute del repository**: divergenti, stash vecchi, submodule, HEAD staccato                | ✅             |
 | **Avanzamento di rete** (clone, fetch, pull, push)                                          | ✅             |
 | **Temi** chiaro / scuro / OLED, densità e dimensione del testo                              | ✅             |
 | **Aggiornamento automatico** (`--watch`)                                                    | ✅             |
@@ -121,6 +122,9 @@ impostazioni:
 -   **Ricerca nel contenuto** (`git grep`): un dialog a parte cerca nei file tracciati, con testo
     letterale o espressione regolare e l'opzione delle maiuscole; ogni risultato mostra file, riga e
     testo, e si apre nell'app del sistema. L'elenco si ferma a 1.000 corrispondenze e lo dice.
+-   **Salute del repository…** (palette dei comandi): un controllo in sola lettura su rami divergenti
+    (commit sia da inviare sia da ricevere), rami locali senza upstream, stash più vecchi di 30
+    giorni, submodule non puliti e HEAD staccato. Non cambia niente: dice cosa guardare.
 -   **Una vista sola per le modifiche**: la voce _Changes_ della barra laterale le porta a tutta area,
     senza storia né pannello inferiore: le liste Staged e Unstaged, il diff e il riquadro del commit.
     _All Commits_ riporta la storia.

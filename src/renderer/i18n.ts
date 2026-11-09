@@ -757,6 +757,27 @@ const EN: Record<string, string> = {
 	"Riprova solo i job falliti, senza ripetere quelli già passati.":
 		"Retries only the failed jobs, without repeating the ones that already passed.",
 	"Job falliti ri-avviati.": "Failed jobs restarted.",
+	"Salute del repository": "Repository health",
+	"Salute del repository…": "Repository health…",
+	"Cose che non impediscono di lavorare ma è meglio sapere: rami divergenti, stash dimenticati, submodule non aggiornati, HEAD staccato.":
+		"Things that do not stop the work but are better to know: diverged branches, forgotten stashes, outdated submodules, detached HEAD.",
+	Controlli: "Checks",
+	"Rilegge ref, stash e submodule": "Re-reads refs, stashes and submodules",
+	"Chiude la finestra della salute del repository":
+		"Closes the repository health window",
+	"Controllo il repository…": "Checking the repository…",
+	"Nessun problema trovato.": "No problems found.",
+	"HEAD staccato": "Detached HEAD",
+	"I nuovi commit non appartengono a nessun ramo.":
+		"New commits do not belong to any branch.",
+	"Rami divergenti": "Diverged branches",
+	"Rami senza upstream": "Branches without upstream",
+	"Stash dimenticato": "Forgotten stash",
+	"{0} giorni fa": "{0} days ago",
+	"Submodule non aggiornato": "Outdated submodule",
+	"Non inizializzato": "Not initialized",
+	"1 segnalazione.": "1 warning.",
+	"{0} segnalazioni.": "{0} warnings.",
 	"Accesso non riuscito.": "Sign-in failed.",
 	"Accesso fatto.": "Signed in.",
 	"Impostazioni salvate.": "Settings saved.",
@@ -811,7 +832,6 @@ const EN: Record<string, string> = {
 		"First {0} results: narrow the search.",
 	"{0} risultato.": "{0} result.",
 	"{0} risultati.": "{0} results.",
-	Controlli: "Checks",
 	"Legge gli esiti dei controlli sul commit in testa alla richiesta.":
 		"Reads the check results on the head commit of the request.",
 	"Il servizio non ha indicato il commit in testa a questa richiesta.":

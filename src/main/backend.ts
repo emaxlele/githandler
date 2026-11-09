@@ -35,6 +35,7 @@ import {
 	parseRefs,
 	refsArgs,
 } from "../core/log.ts";
+import { assessHealth, type HealthReport } from "../core/health.ts";
 import { hostFromUrl } from "../core/providers.ts";
 import type { NetworkProgress } from "../core/network.ts";
 import { parseStatus, statusArgs } from "../core/status.ts";
@@ -180,6 +181,8 @@ export interface GitBackend {
 	blame(path: string, start?: number, end?: number): Promise<BlameFile>;
 	/** Annulla l'ultima operazione registrata (commit, checkout, scarto). */
 	undo(): Promise<Snapshot>;
+	/** Segnali da guardare: rami divergenti, stash vecchi, submodule non puliti, HEAD staccato. */
+	health(): Promise<HealthReport>;
 	/** Spazio occupato dalle copie di sicurezza ancora annullabili. */
 	trashUsage(): Promise<TrashUsage>;
 }
@@ -1028,6 +1031,22 @@ export class CliGitBackend implements GitBackend {
 		assertSafePath(path);
 		const result = await runGit(info.root, blameArgs(path, start, end));
 		return parseBlame(result.stdout, path);
+	}
+
+	async health(): Promise<HealthReport> {
+		const info = this.#requireInfo();
+		const [snapshot, stashes, submodules] = await Promise.all([
+			this.refresh(),
+			this.stashList(),
+			this.submodules(),
+		]);
+		return assessHealth({
+			refs: snapshot.refs,
+			stashes,
+			submodules,
+			detached: snapshot.info.detached || !info.branch,
+			now: Date.now(),
+		});
 	}
 
 	async undo(): Promise<Snapshot> {

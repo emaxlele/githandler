@@ -48,8 +48,9 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 
 -   ✅ MCP write tools (`stage`, `unstage`, `commit`, `create_branch`, `checkout_branch`) under the
     same per-command permissions, with an audit log of what an agent did.
--   ⏳ Repository health panel: diverged branches, forgotten stashes, outdated submodules, unreachable
-    remotes, repositories that outgrew the layout.
+-   ✅ Repository health panel: diverged branches, forgotten stashes, outdated submodules, detached
+    HEAD.
+-   ⏳ Reachability of remotes and repositories that outgrew the layout, in the same panel.
 -   ⏳ Recovery explained: one screen that says what can be recovered and from where
     (`refs/githandler/trash/*`, snapshots), instead of leaving it implicit.
 

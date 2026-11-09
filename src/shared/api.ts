@@ -1,6 +1,7 @@
 import type { BlameFile } from "../core/blame.ts";
 import type { CheckSummary } from "../core/checks.ts";
 import type { ContentQuery, ContentSearchResult } from "../core/content.ts";
+import type { HealthReport } from "../core/health.ts";
 import type { WorkflowAction, WorkflowRun } from "../core/actions.ts";
 import type { ForkInfo, ForkSyncResult } from "../core/fork.ts";
 import type { Account, AccountChoice, RemoteRepo } from "../core/providers.ts";
@@ -176,6 +177,8 @@ export interface GitApi {
 	blame(path: string, start?: number, end?: number): Promise<BlameFile>;
 	/** Annulla l'ultima operazione registrata (commit, checkout, scarto). */
 	undo(): Promise<Snapshot>;
+	/** Rami divergenti, stash vecchi, submodule non puliti e HEAD staccato. */
+	health(): Promise<HealthReport>;
 	/** Impostazioni correnti (permessi API, copia dei file non tracciati). */
 	settings(): Promise<Settings>;
 	/** Salva le impostazioni e restituisce la versione normalizzata. */
@@ -313,6 +316,7 @@ export type IpcChannel =
 	| "git:moreCommits"
 	| "git:blame"
 	| "git:undo"
+	| "git:health"
 	| "app:watching"
 	| "app:settings"
 	| "app:chooseFolder"

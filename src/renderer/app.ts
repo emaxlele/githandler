@@ -51,6 +51,7 @@ import {
 	type WorkflowAction,
 	type WorkflowRun,
 } from "../core/actions.ts";
+import type { HealthReport } from "../core/health.ts";
 import type { CheckRun, CheckSummary } from "../core/checks.ts";
 import type { PullList, PullRequest } from "../core/pulls.ts";
 import type { ReflogEntry } from "../core/reflog.ts";
@@ -405,6 +406,12 @@ const ui = {
 	contentList: byId("content-list"),
 	contentStatus: byId("content-status"),
 	contentClose: byId<HTMLButtonElement>("content-close"),
+	healthDialog: byId<HTMLDialogElement>("health-dialog"),
+	healthForm: byId<HTMLFormElement>("health-form"),
+	healthList: byId("health-list"),
+	healthStatus: byId("health-status"),
+	healthRefresh: byId<HTMLButtonElement>("health-refresh"),
+	healthClose: byId<HTMLButtonElement>("health-close"),
 	btnUndo: byId<HTMLButtonElement>("btn-undo"),
 	btnRefresh: byId<HTMLButtonElement>("btn-refresh"),
 	btnFetch: byId<HTMLButtonElement>("btn-fetch"),
@@ -4896,6 +4903,107 @@ function renderContentMatch(match: ContentMatch): void {
 	ui.contentList.appendChild(item);
 }
 
+// ── salute del repository ───────────────────────────────────────────────────
+
+const SUBMODULE_STATE_LABELS: Record<string, string> = {
+	modified: "Modificato",
+	uninitialized: "Non inizializzato",
+	conflict: "Conflitto",
+};
+
+async function openHealth(): Promise<void> {
+	if (!ui.healthDialog.open) ui.healthDialog.showModal();
+	await loadHealth();
+}
+
+async function loadHealth(): Promise<void> {
+	ui.healthRefresh.disabled = true;
+	ui.healthStatus.textContent = t("Controllo il repository…");
+	ui.healthStatus.classList.remove("is-error");
+	clear(ui.healthList);
+	try {
+		renderHealth(await api.health());
+	} catch (error) {
+		ui.healthStatus.classList.add("is-error");
+		ui.healthStatus.textContent = readableError(error);
+	} finally {
+		ui.healthRefresh.disabled = false;
+	}
+}
+
+function healthRow(label: string, detail: string): HTMLLIElement {
+	const item = el("li");
+	const text = el("div", "actions-text");
+	text.appendChild(el("span", "actions-name", t(label)));
+	text.appendChild(el("span", "actions-meta", detail));
+	item.appendChild(text);
+	return item;
+}
+
+function renderHealth(report: HealthReport): void {
+	clear(ui.healthList);
+	if (report.clean) {
+		ui.healthList.appendChild(el("li", "muted", t("Nessun problema trovato.")));
+		ui.healthStatus.textContent = "";
+		return;
+	}
+
+	if (report.detached) {
+		ui.healthList.appendChild(
+			healthRow(
+				"HEAD staccato",
+				t("I nuovi commit non appartengono a nessun ramo.")
+			)
+		);
+	}
+	if (report.diverged.length > 0) {
+		ui.healthList.appendChild(
+			healthRow(
+				"Rami divergenti",
+				report.diverged
+					.map((ref) => `${ref.name} ↑${ref.ahead} ↓${ref.behind}`)
+					.join(" · ")
+			)
+		);
+	}
+	if (report.orphanBranches.length > 0) {
+		ui.healthList.appendChild(
+			healthRow("Rami senza upstream", report.orphanBranches.join(" · "))
+		);
+	}
+	for (const stash of report.staleStashes) {
+		const days = Math.max(
+			1,
+			Math.floor((Date.now() - stash.timestamp * 1000) / 86_400_000)
+		);
+		ui.healthList.appendChild(
+			healthRow(
+				"Stash dimenticato",
+				`${stash.message} · ${t(`${days} giorni fa`)}`
+			)
+		);
+	}
+	for (const module of report.dirtySubmodules) {
+		ui.healthList.appendChild(
+			healthRow(
+				"Submodule non aggiornato",
+				`${module.path} · ${t(
+					SUBMODULE_STATE_LABELS[module.state] ?? module.state
+				)}`
+			)
+		);
+	}
+	const total =
+		(report.detached ? 1 : 0) +
+		report.diverged.length +
+		report.orphanBranches.length +
+		report.staleStashes.length +
+		report.dirtySubmodules.length;
+	ui.healthStatus.textContent = t(
+		total === 1 ? "1 segnalazione." : `${total} segnalazioni.`
+	);
+}
+
 /** Salto a un commit qualsiasi: la storia caricata non conta, `selectCommit` chiede il dettaglio a
  * Git. Lo SHA accorciato va bene, ma deve sembrare uno SHA e non un'opzione.
  */
@@ -5017,6 +5125,9 @@ ui.contentForm.addEventListener("submit", (event) => {
 	void runContentSearch();
 });
 ui.contentClose.addEventListener("click", () => ui.contentDialog.close());
+ui.healthForm.addEventListener("submit", (event) => event.preventDefault());
+ui.healthRefresh.addEventListener("click", () => void loadHealth());
+ui.healthClose.addEventListener("click", () => ui.healthDialog.close());
 ui.accountOauthClientHelp.addEventListener("click", openOauthClientHelp);
 ui.accountTokenPage.addEventListener("click", openTokenPage);
 // chiudere il dialogo ferma l'attesa: nessun ciclo che continua senza finestra
@@ -5574,6 +5685,14 @@ const COMMANDS: PaletteCommand[] = [
 		keywords: "reflog head cronologia movimenti",
 		enabled: repoReady,
 		run: () => void openReflog(),
+	},
+	{
+		id: "health",
+		group: "Progetto",
+		label: "Salute del repository…",
+		keywords: "health salute divergenti stash vecchi submodule staccato",
+		enabled: repoReady,
+		run: () => void openHealth(),
 	},
 	{
 		id: "content-search",
