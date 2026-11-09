@@ -987,6 +987,7 @@ const EN: Record<string, string> = {
 		"Re-reads the conversation comments from the service",
 	"Nuovo commento": "New comment",
 	"Scrivi un commento…": "Write a comment…",
+	"Ctrl+Invio invia il commento": "Ctrl+Enter sends the comment",
 	"Chiude la conversazione": "Closes the conversation",
 	"Pubblica il commento sul servizio": "Publishes the comment on the service",
 	"Leggo la discussione…": "Reading the discussion…",

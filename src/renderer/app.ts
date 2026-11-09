@@ -5167,6 +5167,8 @@ async function loadComments(): Promise<void> {
 		ui.commentsStatus.textContent = comments.length
 			? t(`${comments.length} commenti.`)
 			: "";
+		// la conversazione è già scorsa in fondo: il commento nuovo sta lì
+		ui.commentsList.scrollTop = ui.commentsList.scrollHeight;
 	} catch (error) {
 		ui.commentsStatus.classList.add("is-error");
 		ui.commentsStatus.textContent = readableError(error);
@@ -5233,8 +5235,9 @@ async function sendComment(): Promise<void> {
 	try {
 		await api.addPullComment(pull.number, body);
 		ui.commentsBody.value = "";
-		ui.commentsStatus.textContent = t("Commento inviato.");
 		await loadComments();
+		// loadComments riporta il conteggio: dopo un invio conta di più il fatto che sia andata
+		ui.commentsStatus.textContent = t("Commento inviato.");
 	} catch (error) {
 		ui.commentsStatus.classList.add("is-error");
 		ui.commentsStatus.textContent = readableError(error);
@@ -6099,6 +6102,13 @@ ui.pullsOpenPage.addEventListener("click", () => {
 ui.commentsForm.addEventListener("submit", (event) => {
 	event.preventDefault();
 	void sendComment();
+});
+ui.commentsBody.addEventListener("keydown", (event) => {
+	// Ctrl+Invio invia, Invio va a capo: un commento può essere lungo
+	if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+		event.preventDefault();
+		void sendComment();
+	}
 });
 ui.commentsRefresh.addEventListener("click", () => void loadComments());
 ui.commentsClose.addEventListener("click", () => ui.commentsDialog.close());

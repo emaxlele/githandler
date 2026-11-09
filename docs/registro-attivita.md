@@ -29,7 +29,8 @@
     all'app» era l'ultimo passo che costringeva a uscire dalla finestra.
 -   **Come**: l'app chiede i commenti al servizio del repository con l'account già collegato, per
     GitHub, GitLab, Gitea/Forgejo e Bitbucket; il testo si mostra così com'è, senza interpretare la
-    formattazione del servizio, e un commento vuoto o troppo lungo non viene inviato.
+    formattazione del servizio, e un commento vuoto o troppo lungo non viene inviato. Ctrl+Invio
+    manda il commento e la conversazione scorre all'ultimo messaggio.
 -   **Verifica**: typecheck, 4 test nuovi sulle risposte dei quattro servizi e build; la finestra è
     stata controllata in inglese su un repository di prova.
 -   **Stato**: completato.
