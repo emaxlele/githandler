@@ -86,6 +86,7 @@ Italiano: [README.md](README.md)
 | **`.deb`** (Electron included, `npm run deb`)                                        | ✅             |
 | **AppImage** and **`.rpm`** package (Electron included)                              | ✅             |
 | **AppArmor profile** in the `.deb`                                                   | ✅             |
+| **Flatpak** (manifest and `npm run flatpak`; build not tried here)                   | 🚧            |
 
 ## Interface
 
@@ -249,7 +250,7 @@ to turn it off when enabled through the environment.
 
 ## Install (Linux)
 
-Four ways.
+Five ways.
 
 **`.deb` package**, with the Electron runtime included and the interface libraries (CodeMirror
 included) compiled into the package: no npm dependencies to install:
@@ -286,6 +287,21 @@ sudo dnf install ./release/githandler-0.10.0-1.x86_64.rpm
 
 The layout matches the `.deb`, and dependencies are generated from the executable sonames, so the
 package names stay correct on the distribution that installs it.
+
+**Flatpak**, for users who keep applications inside the sandbox:
+
+```bash
+flatpak install flathub org.freedesktop.Sdk//24.08 org.electronjs.Electron2.BaseApp//24.08
+npm run flatpak
+flatpak install --user ./release/GitHandler-0.10.0-x86_64.flatpak
+```
+
+Building it needs `flatpak-builder`. Inside the sandbox the Electron runtime ships `zypak`,
+so the Chromium sandbox stays on; repositories are read from `home` and from removable
+drives, and push and pull use the user's SSH agent. The AppArmor profile of the `.deb` is not
+needed: Flatpak provides the user namespaces. **Not verified**: `flatpak-builder` is not
+available on this machine, so the manifest and the script are written but the build was never
+run.
 
 **User-profile install**, without sudo and without a package:
 

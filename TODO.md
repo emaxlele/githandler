@@ -198,6 +198,11 @@ minmax(0, 1fr)`), non più contenuto tagliato
             genera lo spec al volo, ricava le dipendenze dai soname e conserva il layout del `.deb`.
             L'AppImage è stata avviata in headless con screenshot, il pacchetto RPM è stato ispezionato
             (modalità, proprietario, dipendenze) ma non installato su una distribuzione RPM.
+    -   [ ] **Flatpak**: `build/githandler.flatpak.yml` e `npm run flatpak` producono un bundle con
+            il runtime Electron2 (che porta `zypak`, quindi il sandbox resta acceso) e i permessi
+            dichiarati (home, unità rimovibili, agente SSH, notifiche, tray, segreti). Scritto ma
+            **non verificato**: `flatpak-builder` non è installabile su questa macchina. L'ingresso
+            su Flathub richiede prima il repository pubblico.
     -   [x] **Worktree**: elenco dal dialog, creazione su un ramo esistente o nuovo, apertura in una
             scheda e rimozione (mai il principale, mai con modifiche non committate); il parser dello
             formato `--porcelain` sta in `src/core/worktrees.ts`

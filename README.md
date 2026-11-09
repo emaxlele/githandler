@@ -86,6 +86,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **`.deb`** (Electron incluso, `npm run deb`)                                                | ✅             |
 | **AppImage** e pacchetto **`.rpm`** (Electron incluso)                                      | ✅             |
 | **Profilo AppArmor** nel `.deb`                                                             | ✅             |
+| **Flatpak** (manifest e `npm run flatpak`; build non provata qui)                           | 🚧            |
 
 ## Interfaccia
 
@@ -251,7 +252,7 @@ Flag di avvio: `--repo <path>`, `--watch` (sorveglianza del repository, o `GITHA
 
 ## Installazione (Linux)
 
-Quattro strade.
+Cinque strade.
 
 **Pacchetto `.deb`**, con il runtime Electron incluso e le librerie dell'interfaccia (CodeMirror
 compreso) compilate dentro il pacchetto: nessuna dipendenza npm da installare:
@@ -288,6 +289,21 @@ sudo dnf install ./release/githandler-0.10.0-1.x86_64.rpm
 
 Il layout è lo stesso del `.deb` e le dipendenze sono ricavate dai soname degli eseguibili, quindi i
 nomi dei pacchetti restano corretti sulla distribuzione che lo installa.
+
+**Flatpak**, per chi tiene le applicazioni dentro il sandbox:
+
+```bash
+flatpak install flathub org.freedesktop.Sdk//24.08 org.electronjs.Electron2.BaseApp//24.08
+npm run flatpak
+flatpak install --user ./release/GitHandler-0.10.0-x86_64.flatpak
+```
+
+Serve `flatpak-builder` per costruirlo. Dentro il sandbox il runtime Electron porta `zypak`,
+quindi il sandbox di Chromium resta acceso; i repository si leggono da `home` e dalle unità
+rimovibili, e push e pull usano l'agente SSH dell'utente. Non serve il profilo AppArmor del
+`.deb`: i namespace utente li fornisce Flatpak. **Non verificato**: `flatpak-builder` non è
+disponibile su questa macchina, quindi manifest e script sono scritti ma la build non è stata
+eseguita.
 
 **Installazione nel profilo utente**, senza sudo e senza pacchetto:
 

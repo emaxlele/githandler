@@ -76,7 +76,8 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
     the primary path and the launcher fallback only when both are unavailable.
 -   ✅ AppImage and `.rpm` packages; the AppImage is the portable option, the RPM follows the `.deb`
     layout and derives its dependencies from the ELF sonames.
--   ⏳ Flatpak, for discovery through Flathub.
+-   🚧 Flatpak: manifest, zypak launcher and `npm run flatpak` ship; the build was not run here
+    because `flatpak-builder` is missing, and a Flathub submission needs the public repository.
 -   ⏳ Signed automatic updates, only after the AppArmor profile exists.
 
 ## Out of scope

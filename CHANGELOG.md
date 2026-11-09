@@ -2,6 +2,25 @@
 
 ## [Non rilasciato]
 
+### Flatpak: manifest, launcher e comando `npm run flatpak`
+
+-   **`build/githandler.flatpak.yml`**: manifest per flatpak-builder sull'app-id
+    `io.github.emaxlele.GitHandler`, con il runtime `org.freedesktop.Platform` e la base
+    `org.electronjs.Electron2.BaseApp` 24.08; il payload (runtime Electron e `dist/`) viaggia come
+    un solo archivio che il manifest scompatta in `/app/githandler`.
+-   **Permessi dichiarati, non impliciti**: `home` e unità rimovibili (`/media`, `/run/media`) per i
+    repository, `ssh-auth` per push e pull, notifiche e tray per le esecuzioni CI, `secrets` per gli
+    account. Niente `--filesystem=host`.
+-   **Sandbox acceso anche dentro Flatpak**: `build/githandler-flatpak.sh` avvia Electron tramite
+    `zypak-wrapper`, che la base app fornisce; nessun `--no-sandbox`, e il profilo AppArmor del
+    `.deb` non serve perché i namespace utente li dà Flatpak.
+-   **`build/package-flatpak.sh`** (`npm run flatpak`) mette insieme bundle, archivio, desktop entry
+    e metainfo AppStream (versione e data lette da `package.json`, così non invecchiano), chiama
+    `flatpak-builder` e lascia `release/GitHandler-<versione>-x86_64.flatpak`.
+-   **Non verificato**: `flatpak` e `flatpak-builder` non sono disponibili né installabili su questa
+    macchina, quindi manifest e script sono scritti e controllati solo nella sintassi (`bash -n`,
+    parsing YAML), non eseguiti. Va dichiarato in README e nel registro.
+
 ### Il pannello della salute dice quanto è grande il repository
 
 -   **Due conteggi in più**: il pannello ora legge i commit raggiungibili da HEAD

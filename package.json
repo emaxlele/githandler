@@ -18,7 +18,8 @@
 		"mcp": "node dist/mcp/index.js",
 		"deb": "bash build/package-deb.sh",
 		"appimage": "bash build/package-appimage.sh",
-		"rpm": "bash build/package-rpm.sh"
+		"rpm": "bash build/package-rpm.sh",
+		"flatpak": "bash build/package-flatpak.sh"
 	},
 	"devDependencies": {
 		"@types/node": "^24.10.1",

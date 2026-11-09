@@ -1,0 +1,64 @@
+# flatpak-builder manifest for GitHandler.
+#
+#   ./build/package-flatpak.sh        → release/GitHandler-<version>-x86_64.flatpak
+#
+# The manifest is not run from this directory: the script copies it next to the sources it
+# generates (the payload tarball with the Electron runtime and dist/, the launcher, the desktop
+# entry, the icons) and asks flatpak-builder to build there. That keeps build/ free of binaries.
+#
+# The Electron runtime comes from the Electron2 base app, which also ships zypak so the Chromium
+# sandbox stays on inside the sandbox.
+app-id: io.github.emaxlele.GitHandler
+runtime: org.freedesktop.Platform
+runtime-version: "24.08"
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: "24.08"
+command: githandler
+separate-locales: false
+
+finish-args:
+    # Interface: Wayland first, X11 as a fallback, plus shared memory and direct rendering.
+    - --socket=wayland
+    - --socket=fallback-x11
+    - --share=ipc
+    - --device=dri
+    # The repositories live on the disk: home and removable media, nothing wider.
+    - --filesystem=home
+    - --filesystem=/media
+    - --filesystem=/run/media
+    # Push, pull and clone over SSH use the user's agent; notifications and the tray need the
+    # desktop portals.
+    - --socket=ssh-auth
+    - --talk-name=org.freedesktop.Notifications
+    - --talk-name=org.kde.StatusNotifierWatcher
+    # Accounts and tokens: the app asks libsecret through the portal when it is available.
+    - --talk-name=org.freedesktop.secrets
+
+modules:
+    - name: githandler
+      buildsystem: simple
+      build-commands:
+          - install -d /app/githandler
+          - tar -xf githandler.tar -C /app/githandler
+          - install -Dm755 githandler-flatpak.sh /app/bin/githandler
+          - install -Dm644 githandler.desktop /app/share/applications/io.github.emaxlele.GitHandler.desktop
+          - install -Dm644 githandler.svg /app/share/icons/hicolor/scalable/apps/io.github.emaxlele.GitHandler.svg
+          - install -Dm644 githandler-256.png /app/share/icons/hicolor/256x256/apps/io.github.emaxlele.GitHandler.png
+          - install -Dm644 githandler.metainfo.xml /app/share/metainfo/io.github.emaxlele.GitHandler.metainfo.xml
+          - install -Dm644 LICENSE /app/share/licenses/io.github.emaxlele.GitHandler/LICENSE
+      sources:
+          - type: file
+            path: githandler.tar
+          - type: file
+            path: githandler-flatpak.sh
+          - type: file
+            path: githandler.desktop
+          - type: file
+            path: githandler.svg
+          - type: file
+            path: githandler-256.png
+          - type: file
+            path: githandler.metainfo.xml
+          - type: file
+            path: LICENSE

@@ -5,6 +5,24 @@
 
 ## 2026-11-10
 
+### Installazione anche tramite Flatpak
+
+-   **Cosa**: c'è un modo in più per installare l'applicazione su Linux: un pacchetto Flatpak, quello
+    che si installa e si aggiorna dal centro software della distribuzione.
+-   **Perché**: chi tiene le applicazioni dentro il sandbox di Flatpak non poteva usarla, e la voce
+    era nella roadmap da tempo.
+-   **Come**: un file di descrizione (`build/githandler.flatpak.yml`) e uno script (`npm run flatpak`)
+    impacchettano l'applicazione con il runtime Electron e dichiarano solo i permessi che servono:
+    leggere i repository dalla cartella personale e dalle unità rimovibili, usare l'agente SSH,
+    mostrare notifiche e icona nella barra. Il sandbox di Chromium resta acceso, perché il runtime
+    fornisce l'adattatore che serve dentro Flatpak.
+-   **Verifica**: sintassi degli script e del file di descrizione controllata; **la build non è stata
+    eseguita** perché `flatpak-builder` non è installabile su questa macchina. Lo dicono il README e
+    il TODO.
+-   **Stato**: scritto, in attesa di prova su una macchina con Flatpak; la pubblicazione su Flathub
+    richiede prima il repository pubblico.
+-   **Riferimento**: commit di questa sessione.
+
 ### Il pannello della salute dice anche quanto è grande il repository
 
 -   **Cosa**: il controllo «Salute del repository» ora conta i commit e i file tracciati e avvisa
