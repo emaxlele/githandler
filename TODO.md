@@ -122,6 +122,9 @@ minmax(0, 1fr)`), non più contenuto tagliato
 -   [x] **Modello del messaggio di commit** (`commit.template`) e **output dei hook** sotto il campo:
         il percorso segue le regole di Git, il modello si taglia a 64 KiB, un errore resta finché non
         si riprova
+-   [x] **Raggiungibilità dei remoti**: dal dialog «Salute del repository» un pulsante contatta ogni
+        remoto con `git ls-remote` (8 s di attesa al massimo) e dice se risponde, quanti rami ha o
+        perché no; un remoto lento non ferma gli altri
 -   [x] **Recupero**: una finestra che mette insieme l'ultima operazione annullabile, gli stash, le
         copie dei file scartati e il reflog, con il pulsante che porta all'azione giusta; il riassunto
         sta in `src/core/recovery.ts` e non cambia niente da solo

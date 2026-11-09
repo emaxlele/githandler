@@ -53,7 +53,9 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
     same per-command permissions, with an audit log of what an agent did.
 -   ✅ Repository health panel: diverged branches, forgotten stashes, outdated submodules, detached
     HEAD.
--   ⏳ Reachability of remotes and repositories that outgrew the layout, in the same panel.
+-   ✅ Reachability of remotes: "Check the remotes" contacts each one with `git ls-remote` and says
+    whether it answers and how many branches it has.
+-   ⏳ Repositories that outgrew the layout, in the same panel.
 -   ✅ Recovery explained: one screen that says what can be recovered and from where — the last
     operation, stashes, copies under `refs/githandler/trash/*`, the reflog.
 

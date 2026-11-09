@@ -155,6 +155,7 @@ const api: GitApi = {
 	undo: () => invokeRepo("git:undo"),
 	commitTemplate: () => invokeRepo("git:commitTemplate"),
 	health: () => invokeRepo("git:health"),
+	remoteChecks: () => invokeRepo("git:remoteChecks"),
 	settings: () => ipcRenderer.invoke("app:settings"),
 	saveSettings: (settings) =>
 		ipcRenderer.invoke("app:settings:save", settings),

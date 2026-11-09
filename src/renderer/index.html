@@ -1492,7 +1492,8 @@
 				<p class="hint">
 					Cose che non impediscono di lavorare ma è meglio sapere:
 					rami divergenti, stash dimenticati, submodule non
-					aggiornati, HEAD staccato.
+					aggiornati, HEAD staccato; su richiesta, anche se i remoti
+					rispondono.
 				</p>
 				<div class="account-repos-head">
 					<strong>Controlli</strong>
@@ -1506,6 +1507,23 @@
 					</button>
 				</div>
 				<ul class="repo-list actions-list" id="health-list"></ul>
+				<div class="account-repos-head">
+					<strong>Remoti</strong>
+					<button
+						type="button"
+						class="btn btn-small"
+						id="health-remotes"
+						title="Contatta ogni remoto con git ls-remote; usa la rete"
+					>
+						Controlla i remoti
+					</button>
+				</div>
+				<ul
+					class="repo-list actions-list remotes-list"
+					id="health-remotes-list"
+				>
+					<li class="muted">Nessun controllo eseguito.</li>
+				</ul>
 				<div class="dialog-actions">
 					<span class="account-status" id="health-status"></span>
 					<button

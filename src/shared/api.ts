@@ -2,6 +2,7 @@ import type { BlameFile } from "../core/blame.ts";
 import type { CheckSummary } from "../core/checks.ts";
 import type { ContentQuery, ContentSearchResult } from "../core/content.ts";
 import type { HealthReport } from "../core/health.ts";
+import type { RemoteCheck } from "../core/remotes.ts";
 import type { WorkflowAction, WorkflowRun } from "../core/actions.ts";
 import type { ForkInfo, ForkSyncResult } from "../core/fork.ts";
 import type { Account, AccountChoice, RemoteRepo } from "../core/providers.ts";
@@ -183,6 +184,8 @@ export interface GitApi {
 	commitTemplate(): Promise<CommitTemplate>;
 	/** Rami divergenti, stash vecchi, submodule non puliti e HEAD staccato. */
 	health(): Promise<HealthReport>;
+	/** Prova a contattare ogni remoto con `git ls-remote`; un errore non ferma gli altri. */
+	remoteChecks(): Promise<RemoteCheck[]>;
 	/** Impostazioni correnti (permessi API, copia dei file non tracciati). */
 	settings(): Promise<Settings>;
 	/** Salva le impostazioni e restituisce la versione normalizzata. */
@@ -324,6 +327,7 @@ export type IpcChannel =
 	| "git:undo"
 	| "git:commitTemplate"
 	| "git:health"
+	| "git:remoteChecks"
 	| "app:watching"
 	| "app:settings"
 	| "app:chooseFolder"

@@ -39,6 +39,10 @@ import {
 } from "../core/log.ts";
 import { assessHealth, type HealthReport } from "../core/health.ts";
 import {
+	summarizeRemoteCheck,
+	type RemoteCheck,
+} from "../core/remotes.ts";
+import {
 	COMMIT_TEMPLATE_LIMIT,
 	commitArgs,
 	limitCommitTemplate,
@@ -1103,6 +1107,37 @@ export class CliGitBackend implements GitBackend {
 			detached: snapshot.info.detached || !info.branch,
 			now: Date.now(),
 		});
+	}
+
+	async remoteChecks(): Promise<RemoteCheck[]> {
+		const info = this.#requireInfo();
+		const names = await runGit(info.root, ["remote"], { allowFailure: true });
+		const remotes = names.stdout
+			.split("\n")
+			.map((line) => line.trim())
+			.filter(Boolean);
+		if (remotes.length === 0) return [];
+		return Promise.all(
+			remotes.map(async (name) => {
+				const url = (
+					await runGit(info.root, ["remote", "get-url", name], {
+						allowFailure: true,
+					})
+				).stdout.trim();
+				const result = await runGit(
+					info.root,
+					["ls-remote", "--heads", name],
+					{ allowFailure: true, timeoutMs: 8_000 }
+				);
+				return summarizeRemoteCheck(
+					name,
+					url,
+					result.code,
+					result.stdout,
+					result.stderr
+				);
+			})
+		);
 	}
 
 	async undo(): Promise<Snapshot> {

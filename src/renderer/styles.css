@@ -2800,6 +2800,11 @@ body.is-empty .workspace {
 	max-height: 44vh;
 }
 
+/* I remoti stanno sotto i controlli: devono lasciare spazio al resto della finestra. */
+.remotes-list {
+	max-height: 20vh;
+}
+
 .file-list li {
 	cursor: pointer;
 }

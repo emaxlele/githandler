@@ -495,6 +495,9 @@ function registerIpc(): void {
 		backendFor(root).commitTemplate()
 	);
 	handle("git:health", (root: string) => backendFor(root).health());
+	handle("git:remoteChecks", (root: string) =>
+		backendFor(root).remoteChecks()
+	);
 	handle("app:watching", async () => watchEnabled && stopWatching !== null);
 	handle("app:settings", () => loadSettings());
 	handle("app:settings:save", async (input: unknown) => {
@@ -1028,6 +1031,11 @@ async function runShots(): Promise<void> {
 				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
 			})()`,
 			target.replace(/\.png$/, "-health.png"),
+		],
+		[`document.getElementById("health-remotes")?.click()`, null],
+		[
+			`new Promise((resolve) => setTimeout(resolve, 900))`,
+			target.replace(/\.png$/, "-health-remotes.png"),
 		],
 		[`document.getElementById("health-dialog")?.close()`, null],
 		[

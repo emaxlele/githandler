@@ -759,14 +759,24 @@ const EN: Record<string, string> = {
 	"Job falliti ri-avviati.": "Failed jobs restarted.",
 	"Salute del repository": "Repository health",
 	"Salute del repository…": "Repository health…",
-	"Cose che non impediscono di lavorare ma è meglio sapere: rami divergenti, stash dimenticati, submodule non aggiornati, HEAD staccato.":
-		"Things that do not stop the work but are better to know: diverged branches, forgotten stashes, outdated submodules, detached HEAD.",
+	"Cose che non impediscono di lavorare ma è meglio sapere: rami divergenti, stash dimenticati, submodule non aggiornati, HEAD staccato; su richiesta, anche se i remoti rispondono.":
+		"Things that do not stop the work but are better to know: diverged branches, forgotten stashes, outdated submodules, detached HEAD; on request, whether the remotes answer.",
 	Controlli: "Checks",
 	"Rilegge ref, stash e submodule": "Re-reads refs, stashes and submodules",
 	"Chiude la finestra della salute del repository":
 		"Closes the repository health window",
 	"Controllo il repository…": "Checking the repository…",
 	"Nessun problema trovato.": "No problems found.",
+	"Controlla i remoti": "Check the remotes",
+	"Contatta ogni remoto con git ls-remote; usa la rete":
+		"Contacts every remote with git ls-remote; uses the network",
+	"Controllo i remoti…": "Checking the remotes…",
+	Remoti: "Remotes",
+	"Nessun remoto configurato.": "No remote configured.",
+	"Nessun controllo eseguito.": "No check run yet.",
+	"indirizzo non disponibile": "address not available",
+	"Raggiungibile · {0} rami": "Reachable · {0} branches",
+	"Non raggiungibile · {0}": "Unreachable · {0}",
 	"HEAD staccato": "Detached HEAD",
 	"I nuovi commit non appartengono a nessun ramo.":
 		"New commits do not belong to any branch.",

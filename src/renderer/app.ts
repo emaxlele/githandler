@@ -52,6 +52,7 @@ import {
 	type WorkflowRun,
 } from "../core/actions.ts";
 import type { HealthReport } from "../core/health.ts";
+import type { RemoteCheck } from "../core/remotes.ts";
 import { summarizeRecovery, type RecoverySummary } from "../core/recovery.ts";
 import type { CheckRun, CheckSummary } from "../core/checks.ts";
 import type { PullList, PullRequest } from "../core/pulls.ts";
@@ -412,6 +413,8 @@ const ui = {
 	healthList: byId("health-list"),
 	healthStatus: byId("health-status"),
 	healthRefresh: byId<HTMLButtonElement>("health-refresh"),
+	healthRemotes: byId<HTMLButtonElement>("health-remotes"),
+	healthRemotesList: byId("health-remotes-list"),
 	healthClose: byId<HTMLButtonElement>("health-close"),
 	recoveryDialog: byId<HTMLDialogElement>("recovery-dialog"),
 	recoveryForm: byId<HTMLFormElement>("recovery-form"),
@@ -5152,6 +5155,7 @@ async function loadHealth(): Promise<void> {
 	ui.healthStatus.textContent = t("Controllo il repository…");
 	ui.healthStatus.classList.remove("is-error");
 	clear(ui.healthList);
+	clear(ui.healthRemotesList);
 	try {
 		renderHealth(await api.health());
 	} catch (error) {
@@ -5235,6 +5239,57 @@ function renderHealth(report: HealthReport): void {
 	ui.healthStatus.textContent = t(
 		total === 1 ? "1 segnalazione." : `${total} segnalazioni.`
 	);
+}
+
+/** I remoti si controllano solo quando lo si chiede: la rete può essere lenta o assente. */
+async function checkRemotes(): Promise<void> {
+	ui.healthRemotes.disabled = true;
+	const label = ui.healthRemotes.textContent;
+	ui.healthRemotes.textContent = t("Controllo i remoti…");
+	clear(ui.healthRemotesList);
+	try {
+		renderRemoteChecks(await api.remoteChecks());
+	} catch (error) {
+		ui.healthRemotesList.appendChild(
+			el("li", "muted", readableError(error))
+		);
+	} finally {
+		ui.healthRemotes.disabled = false;
+		ui.healthRemotes.textContent = label;
+	}
+}
+
+function renderRemoteChecks(checks: RemoteCheck[]): void {
+	clear(ui.healthRemotesList);
+	if (checks.length === 0) {
+		ui.healthRemotesList.appendChild(
+			el("li", "muted", t("Nessun remoto configurato."))
+		);
+		return;
+	}
+	for (const check of checks) {
+		const item = el("li");
+		const text = el("div", "actions-text");
+		text.appendChild(el("span", "actions-name", check.name));
+		text.appendChild(
+			el(
+				"span",
+				"actions-meta",
+				check.url || t("indirizzo non disponibile")
+			)
+		);
+		item.appendChild(text);
+		item.appendChild(
+			el(
+				"span",
+				"actions-meta",
+				check.reachable
+					? t(`Raggiungibile · ${check.heads} rami`)
+					: t(`Non raggiungibile · ${check.error ?? "errore"}`)
+			)
+		);
+		ui.healthRemotesList.appendChild(item);
+	}
 }
 
 /** Salto a un commit qualsiasi: la storia caricata non conta, `selectCommit` chiede il dettaglio a
@@ -5363,6 +5418,7 @@ ui.recoveryRefresh.addEventListener("click", () => void loadRecovery());
 ui.recoveryClose.addEventListener("click", () => ui.recoveryDialog.close());
 ui.healthForm.addEventListener("submit", (event) => event.preventDefault());
 ui.healthRefresh.addEventListener("click", () => void loadHealth());
+ui.healthRemotes.addEventListener("click", () => void checkRemotes());
 ui.healthClose.addEventListener("click", () => ui.healthDialog.close());
 ui.accountOauthClientHelp.addEventListener("click", openOauthClientHelp);
 ui.accountTokenPage.addEventListener("click", openTokenPage);

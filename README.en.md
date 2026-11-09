@@ -70,6 +70,7 @@ Italiano: [README.md](README.md)
 | **Pull request checks** (result and links)                                           | ✅             |
 | **CI notifications from the system tray**                                            | ✅             |
 | **Repository health**: diverged branches, old stashes, submodules, detached HEAD      | ✅             |
+| **Reachable remotes**, checked on request from the health panel                       | ✅             |
 | **Drag a file** out of the window                                                   | ✅             |
 | **Recovery window**: last operation, stashes, copies, reflog                        | ✅             |
 | **Signed commits** (GPG or SSH with the Git key)                                    | ✅             |
@@ -131,7 +132,9 @@ settings:
     by a hook or by the signature stays visible under the field, with the full output.
 -   **Repository health…** (command palette): a read-only check for diverged branches (commits both
     to send and to receive), local branches without upstream, stashes older than 30 days, submodules
-    that are not clean and a detached HEAD. It changes nothing: it says what to look at.
+    that are not clean and a detached HEAD. "Check the remotes" uses `git ls-remote` to say whether
+    each remote answers and how many branches it has, waiting at most 8 seconds per remote. It
+    changes nothing: it says what to look at.
 -   **A single view for changes**: the _Changes_ entry in the sidebar brings them to the whole area,
     without history or lower panel: Staged and Unstaged lists, the diff and the commit box.
     _All Commits_ goes back to history.

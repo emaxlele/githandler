@@ -5,6 +5,19 @@
 
 ## 2026-11-09
 
+### Sapere se i remoti rispondono
+
+-   **Cosa**: nella finestra **«Salute del repository»** c'è ora **«Controlla i remoti»**: per ogni
+    remoto configurato l'app dice se risponde, quanti rami ha o perché non risponde.
+-   **Perché**: richiesta dell'utente — un remoto cambiato o irraggiungibile si scopriva solo al
+    momento del fetch o del push, con un errore che arrivava dopo.
+-   **Come**: il controllo parte solo quando lo si chiede, aspetta al massimo 8 secondi per remoto e
+    non ferma gli altri se uno è lento; la finestra della salute resta veloce e senza rete.
+-   **Verifica**: typecheck, 2 test nuovi (uno puro e uno su un repository con un remoto vero e uno
+    sparito) e build; la finestra è stata controllata in inglese su un repository di prova.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Firmare un commit senza uscire dall'app
 
 -   **Cosa**: accanto a «includi non staged» c'è ora la casella **«firma (GPG)»**: il commit viene

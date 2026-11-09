@@ -2,6 +2,17 @@
 
 ## [Non rilasciato]
 
+### Controllo dei remoti
+
+-   **«Controlla i remoti»** nella finestra della salute: per ogni remoto configurato esegue
+    `git ls-remote --heads` (8 secondi al massimo, un remoto lento non ferma gli altri) e mostra se
+    risponde, quanti rami ha o la prima riga dell'errore. La salute del repository resta veloce e
+    senza rete: il controllo parte solo quando lo si chiede.
+-   **Regola pura in `src/core/remotes.ts`**: `summarizeRemoteCheck` trasforma codice, output ed
+    errore in una riga; il comando e la rete restano nel main.
+-   Test nuovi in `tests/remotes.test.mts` (caso puro e un repository con un remoto vero e uno
+    sparito).
+
 ### Commit firmati con la chiave di Git
 
 -   **Casella «firma (GPG)»** accanto a «includi non staged»: aggiunge `-S` al commit e usa la chiave

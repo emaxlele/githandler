@@ -70,6 +70,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Controlli delle pull request** (esito e collegamenti)                                     | ✅             |
 | **Notifiche CI dalla barra di sistema**                                                     | ✅             |
 | **Salute del repository**: divergenti, stash vecchi, submodule, HEAD staccato                | ✅             |
+| **Remoti raggiungibili**, controllati su richiesta dal pannello della salute                 | ✅             |
 | **Trascinare un file** fuori dalla finestra                                                  | ✅             |
 | **Finestra Recupero**: ultima operazione, stash, copie, reflog                              | ✅             |
 | **Commit firmati** (GPG o SSH con la chiave di Git)                                          | ✅             |
@@ -133,7 +134,9 @@ impostazioni:
     un hook o della firma resta visibile sotto il campo, con l'output completo.
 -   **Salute del repository…** (palette dei comandi): un controllo in sola lettura su rami divergenti
     (commit sia da inviare sia da ricevere), rami locali senza upstream, stash più vecchi di 30
-    giorni, submodule non puliti e HEAD staccato. Non cambia niente: dice cosa guardare.
+    giorni, submodule non puliti e HEAD staccato. «Controlla i remoti» usa `git ls-remote` per dire
+    se ogni remoto risponde e quanti rami ha, con 8 secondi di attesa per ciascuno. Non cambia
+    niente: dice cosa guardare.
 -   **Una vista sola per le modifiche**: la voce _Changes_ della barra laterale le porta a tutta area,
     senza storia né pannello inferiore: le liste Staged e Unstaged, il diff e il riquadro del commit.
     _All Commits_ riporta la storia.
