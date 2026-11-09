@@ -893,6 +893,58 @@ const EN: Record<string, string> = {
 	"1 segnalazione.": "1 warning.",
 	"{0} segnalazioni.": "{0} warnings.",
 	"Repository molto grande": "Very large repository",
+	Aggiornamenti: "Updates",
+	"Aggiornamenti…": "Updates…",
+	"Legge il feed configurato nelle impostazioni e controlla la firma di ogni release. Il pacchetto scaricato viene solo aperto con l'installatore del sistema: l'app non installa niente al posto tuo.":
+		"Reads the feed configured in the settings and checks the signature of every release. The downloaded package is only opened with the system installer: the app installs nothing on your behalf.",
+	"Indirizzo del feed firmato delle release. Vuoto: gli aggiornamenti sono spenti e l'app non contatta nessun server. Il pacchetto scaricato deve avere la firma della chiave pubblicata con l'app, altrimenti viene scartato.":
+		"Address of the signed release feed. Empty: updates are off and the app contacts no server. The downloaded package must carry the signature of the key shipped with the app, otherwise it is discarded.",
+	"Feed degli aggiornamenti": "Update feed",
+	"https://esempio.org/githandler/updates.json":
+		"https://example.org/githandler/updates.json",
+	"Scarica e verifica": "Download and verify",
+	"Scarica il pacchetto e ne controlla la firma e il digest":
+		"Downloads the package and checks its signature and digest",
+	"Apri il pacchetto": "Open the package",
+	"Apre il pacchetto verificato con l'installatore di sistema":
+		"Opens the verified package with the system installer",
+	"Chiude la finestra degli aggiornamenti": "Closes the updates window",
+	"Cerco aggiornamenti…": "Looking for updates…",
+	"Nessun feed degli aggiornamenti configurato nelle impostazioni.":
+		"No update feed configured in the settings.",
+	"Chiave pubblica degli aggiornamenti assente: questa build non riceve aggiornamenti firmati.":
+		"Update public key missing: this build receives no signed updates.",
+	"La firma della release non è valida: aggiornamento ignorato.":
+		"The release signature is not valid: update ignored.",
+	"La release indicata non è più nel feed.":
+		"The release is no longer in the feed.",
+	"La firma della release non corrisponde alla chiave dell'applicazione.":
+		"The release signature does not match the application key.",
+	"Il pacchetto scaricato non ha il digest dichiarato: download interrotto o file sostituito.":
+		"The downloaded package does not have the declared digest: interrupted download or replaced file.",
+	"Il feed degli aggiornamenti deve essere un indirizzo https.":
+		"The update feed must be an https address.",
+	"Percorso del pacchetto non consentito.": "Package path not allowed.",
+	"Il pacchetto supera la dimensione massima accettata.":
+		"The package exceeds the accepted maximum size.",
+	"Feed degli aggiornamenti: {0} {1}": "Update feed: {0} {1}",
+	"Pacchetto: {0} {1}": "Package: {0} {1}",
+	"Pacchetto non raggiungibile: {0}": "Package unreachable: {0}",
+	"Feed degli aggiornamenti non raggiungibile: {0}":
+		"Update feed unreachable: {0}",
+	"Nessun aggiornamento: la versione {0} è la più recente.":
+		"No update: version {0} is the latest.",
+	"Disponibile la versione {0} (qui c'è la {1}).":
+		"Version {0} is available (this is {1}).",
+	"Scaricare e verificare il pacchetto {0}? Il file finisce nella cartella temporanea.":
+		"Download and verify package {0}? The file lands in the temporary folder.",
+	"Scarico il pacchetto…": "Downloading the package…",
+	"Scarico il pacchetto e controllo firma e digest…":
+		"Downloading the package and checking signature and digest…",
+	"Pacchetto verificato: {0} con la firma giusta.":
+		"Package verified: {0} with the right signature.",
+	"Apro il pacchetto con l'installatore di sistema.":
+		"Opening the package with the system installer.",
 	"oltre le dimensioni misurate: la storia arriva a pagine e l'elenco dei file si legge una cartella alla volta.":
 		"beyond the measured sizes: history arrives in pages and the file list is read one folder at a time.",
 	commit: "commits",

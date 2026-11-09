@@ -203,6 +203,13 @@ minmax(0, 1fr)`), non più contenuto tagliato
             dichiarati (home, unità rimovibili, agente SSH, notifiche, tray, segreti). Scritto ma
             **non verificato**: `flatpak-builder` non è installabile su questa macchina. L'ingresso
             su Flathub richiede prima il repository pubblico.
+    -   [ ] **Aggiornamenti firmati**: `src/core/update.ts` legge un feed `https` e ogni release
+            porta una firma Ed25519 (versione, indirizzo e digest nel testo firmato) e il digest
+            SHA-256 del pacchetto; il download verifica entrambi e finisce in una cartella temporanea
+            dell'app, dove solo il pulsante «Apri» lo passa all'installatore di sistema. La chiave
+            pubblica sta in `build/update-key.pub` e viaggia con i pacchetti; senza chiave o senza
+            feed la finestra dice «non configurato». Manca la prova con un feed pubblicato: servono
+            la chiave e un repository di release.
     -   [x] **Worktree**: elenco dal dialog, creazione su un ramo esistente o nuovo, apertura in una
             scheda e rimozione (mai il principale, mai con modifiche non committate); il parser dello
             formato `--porcelain` sta in `src/core/worktrees.ts`

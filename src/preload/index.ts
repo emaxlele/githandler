@@ -178,6 +178,10 @@ const api: GitApi = {
 	rebaseInteractive: (base, steps, head) =>
 		invokeRepo("git:rebaseInteractive", base, steps, head),
 	settings: () => ipcRenderer.invoke("app:settings"),
+	checkUpdates: () => ipcRenderer.invoke("app:updateCheck"),
+	downloadUpdate: (version) =>
+		ipcRenderer.invoke("app:updateDownload", version),
+	openUpdate: (path) => ipcRenderer.invoke("app:updateOpen", path),
 	saveSettings: (settings) =>
 		ipcRenderer.invoke("app:settings:save", settings),
 	trashUsage: () => invokeRepo("app:trashUsage"),

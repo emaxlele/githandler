@@ -3,22 +3,16 @@ import type { CheckSummary } from "../core/checks.ts";
 import type { ContentQuery, ContentSearchResult } from "../core/content.ts";
 import type { HealthReport } from "../core/health.ts";
 import type { RemoteCheck } from "../core/remotes.ts";
-import type {
-	RebaseCandidate,
-	RebaseStep,
-} from "../core/rebase.ts";
+import type { RebaseCandidate, RebaseStep } from "../core/rebase.ts";
 import type { TreeEntry } from "../core/tree.ts";
+import type { DownloadedUpdate, UpdateCheck } from "../core/update.ts";
 import type { WorktreeInfo } from "../core/worktrees.ts";
 import type {
 	WorkflowAction,
 	WorkflowInfo,
 	WorkflowRun,
 } from "../core/actions.ts";
-import type {
-	ForkInfo,
-	ForkPending,
-	ForkSyncResult,
-} from "../core/fork.ts";
+import type { ForkInfo, ForkPending, ForkSyncResult } from "../core/fork.ts";
 import type { Account, AccountChoice, RemoteRepo } from "../core/providers.ts";
 import type { PullComment } from "../core/comments.ts";
 import type { ReviewSummary } from "../core/reviews.ts";
@@ -124,7 +118,10 @@ export interface GitApi {
 	/** Cosa cambierebbe un sync sul ramo scelto: commit in arrivo e commit locali. */
 	forkPreview(branch?: string): Promise<ForkPending>;
 	/** Porta nel ramo locale i commit dell'originale (`merge` o `rebase`, mai forza). */
-	syncFork(mode: "merge" | "rebase", branch?: string): Promise<ForkSyncResult>;
+	syncFork(
+		mode: "merge" | "rebase",
+		branch?: string
+	): Promise<ForkSyncResult>;
 	/** Ultime esecuzioni delle GitHub Actions del repository. */
 	workflowRuns(): Promise<WorkflowRun[]>;
 	/** Ri-esegue tutti o solo i job falliti, oppure annulla un'esecuzione. */
@@ -222,6 +219,12 @@ export interface GitApi {
 	health(): Promise<HealthReport>;
 	/** Prova a contattare ogni remoto con `git ls-remote`; un errore non ferma gli altri. */
 	remoteChecks(): Promise<RemoteCheck[]>;
+	/** Cerca un aggiornamento firmato nel feed configurato; `release` è null se non serve nulla. */
+	checkUpdates(): Promise<UpdateCheck>;
+	/** Scarica il pacchetto della versione indicata, lo verifica e ne restituisce il percorso. */
+	downloadUpdate(version: string): Promise<DownloadedUpdate>;
+	/** Apre con l'installatore di sistema un pacchetto già verificato. */
+	openUpdate(path: string): Promise<void>;
 	/** I worktree del repository, il principale per primo. */
 	worktrees(): Promise<WorktreeInfo[]>;
 	/** Aggiunge un worktree; crea il ramo se non esiste. */
@@ -431,6 +434,9 @@ export type IpcChannel =
 	| "repo:openCommitInBrowser"
 	| "app:settings:save"
 	| "app:trashUsage"
+	| "app:updateCheck"
+	| "app:updateDownload"
+	| "app:updateOpen"
 	| "term:run"
 	| "term:kill"
 	| "panel:detach"

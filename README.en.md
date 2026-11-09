@@ -72,6 +72,7 @@ Italiano: [README.md](README.md)
 | **CI notifications from the system tray**                                            | ✅             |
 | **Repository health**: diverged branches, old stashes, submodules, detached HEAD     | ✅             |
 | **Reachable remotes**, checked on request from the health panel                      | ✅             |
+| **Signed updates** (https feed, Ed25519 signature, the installer opens it)           | 🚧            |
 | **Drag a file** out of the window                                                    | ✅             |
 | **Recovery window**: last operation, stashes, copies, reflog                         | ✅             |
 | **Worktrees**: list, create, open in a tab, remove                                   | ✅             |
@@ -119,6 +120,12 @@ settings:
     reset, rebase) with selector, abbreviated SHA and date; "Go to the commit" opens that commit in
     the panel. "Go to commit by SHA…", from the palette, reaches any commit even outside the loaded
     history page. Neither changes the repository.
+-   **Updates…** (command palette): reads the `https` feed configured in the settings, compares
+    versions and shows the latest release with its notes. "Download and verify" checks the Ed25519
+    signature of the release and the digest of the package; "Open the package" hands it to the
+    system installer. Nothing installs itself and an empty feed means off: no network request until
+    it is configured. Format, signing and limits in
+    [docs/aggiornamenti-firmati.md](docs/aggiornamenti-firmati.md).
 -   **Recovery…** (command palette): one screen that says what can still be brought back — the last
     undoable operation, the stashes, the copies of discarded files and the reflog — with the button
     that leads to the right action. It changes nothing by itself.

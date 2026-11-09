@@ -72,6 +72,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Notifiche CI dalla barra di sistema**                                                     | ✅             |
 | **Salute del repository**: divergenti, stash vecchi, submodule, HEAD staccato               | ✅             |
 | **Remoti raggiungibili**, controllati su richiesta dal pannello della salute                | ✅             |
+| **Aggiornamenti firmati** (feed https, firma Ed25519, apre l'installatore)                  | 🚧            |
 | **Trascinare un file** fuori dalla finestra                                                 | ✅             |
 | **Finestra Recupero**: ultima operazione, stash, copie, reflog                              | ✅             |
 | **Worktree**: elenco, creazione, apertura in una scheda, rimozione                          | ✅             |
@@ -120,6 +121,12 @@ impostazioni:
     reset, rebase) con selettore, SHA abbreviato e data; «Vai al commit» apre quel commit nel
     pannello. «Vai al commit per SHA…», dalla palette, raggiunge qualsiasi commit anche fuori dalla
     pagina di storia caricata. Nessuna delle due cambia il repository.
+-   **Aggiornamenti…** (palette dei comandi): legge il feed `https` configurato nelle
+    impostazioni, confronta le versioni e mostra l'ultima release con le note. «Scarica e verifica»
+    controlla la firma Ed25519 della release e il digest del pacchetto; «Apri il pacchetto» lo passa
+    all'installatore del sistema. Niente si installa da solo e il feed vuoto è spento: nessuna
+    richiesta di rete finché non lo si configura. Formato, firma e limiti in
+    [docs/aggiornamenti-firmati.md](docs/aggiornamenti-firmati.md).
 -   **Recupero…** (palette dei comandi): una schermata sola che dice cosa si può ancora riportare
     indietro — l'ultima operazione annullabile, gli stash, le copie dei file scartati e il reflog —
     con il pulsante che porta all'azione giusta. Non cambia niente da sola.

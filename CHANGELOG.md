@@ -2,6 +2,28 @@
 
 ## [Non rilasciato]
 
+### Aggiornamenti firmati: feed, verifica, apertura del pacchetto
+
+-   **Un feed `https` nelle impostazioni** (sezione _Aggiornamenti_): vuoto significa spento, e
+    l'app non contatta nessun server. La palette dei comandi ha **Aggiornamenti…**: legge il feed,
+    confronta le versioni e mostra l'ultima release più nuova con le note.
+-   **La firma decide, non l'indirizzo**: ogni release è firmata con **Ed25519** sul testo canonico
+    (`githandler-update/1`, versione, indirizzo, digest) e la verifica usa la chiave pubblica
+    pubblicata con l'app in `build/update-key.pub`. Una release con firma che non torna viene
+    ignorata, anche se il feed è raggiungibile.
+-   **Doppio controllo sul file**: dopo il download il digest SHA-256 deve essere quello dichiarato;
+    in caso contrario il file non viene scritto. Timeout di 30 secondi e tetto di 512 MiB.
+-   **Niente installazioni automatiche**: il pacchetto verificato finisce in
+    `<temp>/githandler-updates` e il pulsante «Apri il pacchetto» lo passa all'installatore del
+    sistema; l'app rifiuta qualunque percorso fuori da quella cartella.
+-   **Nuovo comando per chi pubblica**: `build/sign-update.mjs` calcola digest e firma di un
+    pacchetto e stampa la voce JSON da mettere nel feed. Formato, chiavi e limiti in
+    [docs/aggiornamenti-firmati.md](docs/aggiornamenti-firmati.md).
+-   Test in `tests/update.test.mts`: confronto delle versioni (comprese le pre-rilascio), feed con
+    voci rotte, firma sbagliata, digest sbagliato, errore del server e indirizzo in chiaro, con
+    `fetch` sostituito. **Non provato con un feed pubblicato**: mancano una chiave e un repository
+    di release.
+
 ### Flatpak: manifest, launcher e comando `npm run flatpak`
 
 -   **`build/githandler.flatpak.yml`**: manifest per flatpak-builder sull'app-id

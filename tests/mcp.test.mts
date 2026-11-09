@@ -41,6 +41,7 @@ let settings: Settings = {
 	defaultRoot: null,
 	trash: defaultTrash,
 	repoAccounts: {},
+	updates: { feedUrl: "" },
 };
 /** Le voci che il server scriverebbe nell'audit log: qui restano in memoria. */
 const audits: AuditRecord[] = [];
@@ -223,13 +224,13 @@ test("la policy delle impostazioni filtra tools/list e tools/call", async () => 
 		return result.tools;
 	};
 
-	settings = { api: { mode: "off", tools: [] }, locale: "auto", appearance: defaultAppearance, defaultRoot: null, trash: defaultTrash, repoAccounts: {} };
+	settings = { api: { mode: "off", tools: [] }, locale: "auto", appearance: defaultAppearance, defaultRoot: null, trash: defaultTrash, repoAccounts: {}, updates: { feedUrl: "" } };
 	assert.deepEqual(await list(), []);
 	const denied = await callTool("repo_status");
 	assert.equal(denied.isError, true);
 	assert.match(denied.content[0]!.text, /not enabled/);
 
-	settings = { api: { mode: "read", tools: [] }, locale: "auto", appearance: defaultAppearance, defaultRoot: null, trash: defaultTrash, repoAccounts: {} };
+	settings = { api: { mode: "read", tools: [] }, locale: "auto", appearance: defaultAppearance, defaultRoot: null, trash: defaultTrash, repoAccounts: {}, updates: { feedUrl: "" } };
 	assert.equal((await list()).length, 5);
 
 	settings = {
@@ -239,6 +240,7 @@ test("la policy delle impostazioni filtra tools/list e tools/call", async () => 
 		defaultRoot: null,
 		trash: defaultTrash,
 		repoAccounts: {},
+		updates: { feedUrl: "" },
 	};
 	assert.deepEqual(
 		(await list()).map((tool) => tool.name),
@@ -249,10 +251,10 @@ test("la policy delle impostazioni filtra tools/list e tools/call", async () => 
 	assert.equal((await callTool("blame", { path: "a.txt" })).isError, undefined);
 
 	// una policy con tool che non esistono non li inventa
-	settings = { api: { mode: "custom", tools: [] }, locale: "auto", appearance: defaultAppearance, defaultRoot: null, trash: defaultTrash, repoAccounts: {} };
+	settings = { api: { mode: "custom", tools: [] }, locale: "auto", appearance: defaultAppearance, defaultRoot: null, trash: defaultTrash, repoAccounts: {}, updates: { feedUrl: "" } };
 	assert.deepEqual(await list(), []);
 
-	settings = { api: { mode: "all", tools: [] }, locale: "auto", appearance: defaultAppearance, defaultRoot: null, trash: defaultTrash, repoAccounts: {} };
+	settings = { api: { mode: "all", tools: [] }, locale: "auto", appearance: defaultAppearance, defaultRoot: null, trash: defaultTrash, repoAccounts: {}, updates: { feedUrl: "" } };
 });
 
 test("i tool che scrivono non compaiono con la sola lettura", async () => {
@@ -263,6 +265,7 @@ test("i tool che scrivono non compaiono con la sola lettura", async () => {
 		defaultRoot: null,
 		trash: defaultTrash,
 		repoAccounts: {},
+		updates: { feedUrl: "" },
 	};
 	const denied = await callTool("stage", { paths: ["a.txt"] });
 	assert.equal(denied.isError, true);
@@ -275,6 +278,7 @@ test("i tool che scrivono non compaiono con la sola lettura", async () => {
 		defaultRoot: null,
 		trash: defaultTrash,
 		repoAccounts: {},
+		updates: { feedUrl: "" },
 	};
 });
 

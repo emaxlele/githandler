@@ -78,7 +78,10 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
     layout and derives its dependencies from the ELF sonames.
 -   🚧 Flatpak: manifest, zypak launcher and `npm run flatpak` ship; the build was not run here
     because `flatpak-builder` is missing, and a Flathub submission needs the public repository.
--   ⏳ Signed automatic updates, only after the AppArmor profile exists.
+-   🚧 Signed updates: an `https` feed of releases signed with Ed25519, verified against the
+    public key shipped with the app, with the digest of the package checked after the download. The
+    app never installs by itself: the verified package goes to the system installer. No key and no
+    feed are published yet, so the feature reports itself as unconfigured.
 
 ## Out of scope
 

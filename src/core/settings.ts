@@ -77,6 +77,14 @@ export interface AppearanceSettings {
 	syntax: boolean;
 }
 
+export interface UpdatesSettings {
+	/**
+	 * Indirizzo `https` del feed firmato delle release. Vuoto = aggiornamenti spenti: l'app non
+	 * contatta nessun server finché l'utente non lo configura.
+	 */
+	feedUrl: string;
+}
+
 export interface Settings {
 	api: ApiPolicy;
 	locale: LocalePreference;
@@ -92,6 +100,7 @@ export interface Settings {
 	 * Serve quando due account stanno sullo stesso host e il remoto non basta a distinguerli.
 	 */
 	repoAccounts: Record<string, string>;
+	updates: UpdatesSettings;
 }
 
 export const MEBIBYTE = 1024 * 1024;
@@ -140,6 +149,7 @@ export function defaultSettings(): Settings {
 		trash: { ...TRASH_DEFAULTS },
 		defaultRoot: null,
 		repoAccounts: {},
+		updates: { feedUrl: "" },
 	};
 }
 
@@ -239,6 +249,7 @@ export function normalizeSettings(data: unknown): Settings {
 		? [...new Set(apiRaw.tools.filter(isApiTool))]
 		: [];
 
+	const updatesRaw = asRecord(record.updates);
 	const trashRaw = asRecord(record.trash);
 	const legacyEnabled =
 		typeof record.trashUntracked === "boolean"
@@ -260,6 +271,7 @@ export function normalizeSettings(data: unknown): Settings {
 		appearance: normalizeAppearance(record.appearance),
 		defaultRoot,
 		repoAccounts,
+		updates: { feedUrl: normalizeFeedUrl(updatesRaw?.feedUrl) },
 		trash: {
 			enabled,
 			maxBytes: clampInt(
@@ -279,6 +291,14 @@ export function normalizeSettings(data: unknown): Settings {
 			),
 		},
 	};
+}
+
+/** Feed degli aggiornamenti: solo `https`, tutto il resto vale «spento». */
+function normalizeFeedUrl(value: unknown): string {
+	if (typeof value !== "string") return "";
+	const trimmed = value.trim();
+	if (!/^https:\/\/[^\s]+$/i.test(trimmed)) return "";
+	return trimmed.length > 2048 ? "" : trimmed;
 }
 
 /**

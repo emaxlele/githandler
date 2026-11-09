@@ -856,6 +856,28 @@
 					<p class="hint" id="trash-usage"></p>
 				</section>
 
+				<section class="settings-section">
+					<h3>Aggiornamenti</h3>
+					<p class="hint">
+						Indirizzo del feed firmato delle release. Vuoto: gli
+						aggiornamenti sono spenti e l'app non contatta nessun
+						server. Il pacchetto scaricato deve avere la firma
+						della chiave pubblicata con l'app, altrimenti viene
+						scartato.
+					</p>
+					<label class="feed-field">
+						<span>Feed degli aggiornamenti</span>
+						<div class="field-row">
+							<input
+								id="setting-update-feed"
+								placeholder="https://esempio.org/githandler/updates.json"
+								autocomplete="off"
+								spellcheck="false"
+							/>
+						</div>
+					</label>
+				</section>
+
 				<div class="settings-actions">
 					<button
 						type="button"
@@ -1664,6 +1686,48 @@
 						class="btn"
 						id="health-close"
 						title="Chiude la finestra della salute del repository"
+					>
+						Chiudi
+					</button>
+				</div>
+			</form>
+		</dialog>
+
+		<dialog class="dialog" id="update-dialog">
+			<form id="update-form">
+				<h2>Aggiornamenti</h2>
+				<p class="hint">
+					Legge il feed configurato nelle impostazioni e controlla la
+					firma di ogni release. Il pacchetto scaricato viene solo
+					aperto con l'installatore del sistema: l'app non installa
+					niente al posto tuo.
+				</p>
+				<p class="update-status" id="update-status"></p>
+				<pre class="update-notes" id="update-notes" hidden></pre>
+				<div class="dialog-actions">
+					<button
+						type="button"
+						class="btn"
+						id="update-download"
+						title="Scarica il pacchetto e ne controlla la firma e il digest"
+						hidden
+					>
+						Scarica e verifica
+					</button>
+					<button
+						type="button"
+						class="btn"
+						id="update-open"
+						title="Apre il pacchetto verificato con l'installatore di sistema"
+						hidden
+					>
+						Apri il pacchetto
+					</button>
+					<button
+						type="button"
+						class="btn"
+						id="update-close"
+						title="Chiude la finestra degli aggiornamenti"
 					>
 						Chiudi
 					</button>

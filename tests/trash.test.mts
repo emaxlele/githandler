@@ -66,6 +66,7 @@ function trashSettings(
 		defaultRoot: null,
 		trash: { ...defaultSettings().trash, ...patch },
 		repoAccounts: {},
+		updates: { feedUrl: "" },
 	};
 }
 

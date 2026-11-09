@@ -52,6 +52,11 @@ node -e '
 	fs.writeFileSync(process.argv[1], JSON.stringify(out, null, "\t") + "\n");
 ' "$app/resources/app/package.json"
 
+# La chiave pubblica degli aggiornamenti firmati viaggia con l'app, se il progetto ne ha una.
+if [ -f build/update-key.pub ]; then
+	install -Dm644 build/update-key.pub "$app/resources/app/build/update-key.pub"
+fi
+
 cat >"$pkg/usr/bin/githandler" <<'LAUNCHER'
 #!/usr/bin/env bash
 # Avvio di GitHandler installato in /opt.

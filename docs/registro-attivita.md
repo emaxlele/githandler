@@ -5,6 +5,28 @@
 
 ## 2026-11-10
 
+### Aggiornamenti firmati: il controllo c'è, l'installazione resta in mano all'utente
+
+-   **Cosa**: l'applicazione ora può accorgersi che esiste una versione nuova e scaricarla, ma solo
+    se il pacchetto porta una firma che corrisponde alla chiave pubblicata insieme all'app. La
+    finestra **Aggiornamenti…** mostra la versione disponibile e le note, e il pulsante «Apri il
+    pacchetto» la passa all'installatore del sistema.
+-   **Perché**: senza un modo per aggiornare, chi installa il pacchetto deve accorgersi da solo che
+    ne esiste uno nuovo, e fidarsi del primo file che trova. La firma dice da dove arriva il file
+    prima che qualcuno lo apra.
+-   **Come**: l'indirizzo del feed si mette nelle impostazioni (vuoto = spento, nessuna richiesta di
+    rete); ogni release è firmata con una chiave Ed25519 che copre versione, indirizzo e impronta
+    del pacchetto, e dopo il download l'impronta del file deve combaciare. Niente si installa da
+    solo: il file verificato viene solo aperto con l'installatore. C'è anche un comando per chi
+    pubblica (`build/sign-update.mjs`), e la procedura sta in `docs/aggiornamenti-firmati.md`.
+-   **Verifica**: typecheck, 284 test (8 nuovi, con una coppia di chiavi generata al momento e la
+    rete sostituita da una risposta finta), build e screenshot della finestra in inglese. **Non
+    provato con un feed pubblicato**: servono la chiave e un repository di release, quindi la
+    funzione per ora dice «non configurato».
+-   **Stato**: scritto e provato nei suoi controlli; manca la prova su un feed reale e la decisione
+    su chiave e repository di release.
+-   **Riferimento**: commit di questa sessione.
+
 ### Installazione anche tramite Flatpak
 
 -   **Cosa**: c'è un modo in più per installare l'applicazione su Linux: un pacchetto Flatpak, quello

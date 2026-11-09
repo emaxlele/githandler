@@ -156,6 +156,7 @@ test("la serializzazione si rilegge uguale", () => {
 			quotaBytes: 2 * 1024 * MEBIBYTE,
 		},
 		repoAccounts: { "/tmp/repo": "github:github.com:emaxlele" },
+		updates: { feedUrl: "https://example.org/updates.json" },
 	};
 	assert.deepEqual(parseSettings(serializeSettings(settings)), settings);
 });
@@ -215,6 +216,7 @@ test("senza file valgono i default; salvare e rileggere conserva i valori", asyn
 			quotaBytes: 512 * MEBIBYTE,
 		},
 		repoAccounts: {},
+		updates: { feedUrl: "" },
 	};
 	await saveSettings(custom);
 	assert.deepEqual(await loadSettings(), custom);
@@ -273,4 +275,34 @@ test("l'aspetto torna ai default campo per campo", () => {
 	assert.equal(mixed.appearance.density, "compact");
 	assert.equal(mixed.appearance.fontScale, defaults.fontScale);
 	assert.equal(mixed.appearance.syntax, defaults.syntax);
+});
+
+test("il feed degli aggiornamenti accetta solo https", () => {
+	// un indirizzo in chiaro vale «spento»: non c'è un modo per leggerlo comunque
+	for (const feedUrl of [
+		"http://example.org/updates.json",
+		"ftp://example.org/updates.json",
+		"/percorso/locale.json",
+		"example.org/updates.json",
+		"  ",
+	]) {
+		assert.deepEqual(
+			normalizeSettings({ updates: { feedUrl } }).updates,
+			{ feedUrl: "" }
+		);
+	}
+
+	// il campo assente o di un tipo sbagliato è «spento», non un errore
+	assert.deepEqual(normalizeSettings({}).updates, { feedUrl: "" });
+	assert.deepEqual(normalizeSettings({ updates: "no" }).updates, {
+		feedUrl: "",
+	});
+
+	const kept = normalizeSettings({
+		updates: { feedUrl: "  https://example.org/githandler/updates.json " },
+	});
+	assert.equal(
+		kept.updates.feedUrl,
+		"https://example.org/githandler/updates.json"
+	);
 });

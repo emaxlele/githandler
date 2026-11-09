@@ -461,6 +461,13 @@ const ui = {
 	healthRemotes: byId<HTMLButtonElement>("health-remotes"),
 	healthRemotesList: byId("health-remotes-list"),
 	healthClose: byId<HTMLButtonElement>("health-close"),
+	updateDialog: byId<HTMLDialogElement>("update-dialog"),
+	updateStatus: byId("update-status"),
+	updateNotes: byId("update-notes"),
+	updateDownload: byId<HTMLButtonElement>("update-download"),
+	updateOpen: byId<HTMLButtonElement>("update-open"),
+	updateClose: byId<HTMLButtonElement>("update-close"),
+	settingUpdateFeed: byId<HTMLInputElement>("setting-update-feed"),
 	recoveryDialog: byId<HTMLDialogElement>("recovery-dialog"),
 	recoveryForm: byId<HTMLFormElement>("recovery-form"),
 	recoveryList: byId("recovery-list"),
@@ -879,7 +886,10 @@ function applySnapshot(snapshot: Snapshot): void {
 	const previousHead = state.snapshot?.commits[0]?.sha ?? null;
 	state.snapshot = snapshot;
 	// un commit nuovo cambia l'albero di HEAD: le cartelle già lette vanno rilette
-	if (!state.selectedCommit && previousHead !== (snapshot.commits[0]?.sha ?? null)) {
+	if (
+		!state.selectedCommit &&
+		previousHead !== (snapshot.commits[0]?.sha ?? null)
+	) {
 		state.lazyTree.clear();
 		state.lazyLoading.clear();
 	}
@@ -1269,6 +1279,7 @@ function fillSettings(settings: Settings): void {
 	ui.settingDensity.value = settings.appearance.density;
 	ui.settingFontScale.value = settings.appearance.fontScale;
 	ui.settingSyntax.checked = settings.appearance.syntax;
+	ui.settingUpdateFeed.value = settings.updates.feedUrl;
 	setBaseFolder(settings.defaultRoot);
 	ui.settingTrash.checked = settings.trash.enabled;
 	ui.settingTrashBytes.value = String(toMebibytes(settings.trash.maxBytes));
@@ -1298,6 +1309,7 @@ function collectSettings(): Settings {
 		appearance: readAppearanceFromForm(),
 		defaultRoot: ui.settingBase.value.trim() || null,
 		repoAccounts: savedRepoAccounts,
+		updates: { feedUrl: ui.settingUpdateFeed.value.trim() },
 		trash: {
 			enabled: ui.settingTrash.checked,
 			maxBytes: readMebibytes(
@@ -1637,7 +1649,9 @@ function treeFiles(
 /** Badge di stato per un percorso, quando il file è modificato o fa parte del commit. */
 function treeStatus(path: string): string | null {
 	if (state.selectedCommit) {
-		return state.commitFiles.find((file) => file.path === path)?.status ?? null;
+		return (
+			state.commitFiles.find((file) => file.path === path)?.status ?? null
+		);
 	}
 	const entry = state.snapshot?.status.entries.find(
 		(item) => item.path === path
@@ -1685,11 +1699,7 @@ function renderLazyTree(): void {
 		if (!entries) {
 			if (!state.lazyLoading.has(path)) void loadTreeDir(path);
 			fragment.appendChild(
-				el(
-					"div",
-					"muted tree-loading",
-					t("Leggo la cartella…")
-				)
+				el("div", "muted tree-loading", t("Leggo la cartella…"))
 			);
 			return;
 		}
@@ -4747,7 +4757,9 @@ async function loadWorkflows(): Promise<void> {
 			const option = el(
 				"option",
 				"",
-				workflow.path ? `${workflow.name} — ${workflow.path}` : workflow.name
+				workflow.path
+					? `${workflow.name} — ${workflow.path}`
+					: workflow.name
 			) as HTMLOptionElement;
 			option.value = workflow.id;
 			ui.dispatchWorkflow.appendChild(option);
@@ -5460,7 +5472,9 @@ async function sendComment(): Promise<void> {
 	const body = ui.commentsBody.value.trim();
 	if (!body) {
 		ui.commentsStatus.classList.add("is-error");
-		ui.commentsStatus.textContent = t("Scrivi il commento prima di inviarlo.");
+		ui.commentsStatus.textContent = t(
+			"Scrivi il commento prima di inviarlo."
+		);
 		return;
 	}
 	ui.commentsSend.disabled = true;
@@ -5690,11 +5704,7 @@ function renderWorktrees(entries: WorktreeInfo[]): void {
 		const item = el("li");
 		const text = el("div", "actions-text");
 		text.appendChild(
-			el(
-				"span",
-				"actions-name",
-				entry.branch ?? t("HEAD staccato")
-			)
+			el("span", "actions-name", entry.branch ?? t("HEAD staccato"))
 		);
 		const notes = [
 			entry.path,
@@ -5740,7 +5750,9 @@ function renderWorktrees(entries: WorktreeInfo[]): void {
 		ui.worktreeList.appendChild(item);
 	}
 	ui.worktreeStatus.textContent =
-		entries.length === 1 ? t("1 worktree.") : t(`${entries.length} worktree.`);
+		entries.length === 1
+			? t("1 worktree.")
+			: t(`${entries.length} worktree.`);
 }
 
 async function createWorktree(): Promise<void> {
@@ -5845,12 +5857,8 @@ function renderRebase(): void {
 		row.appendChild(el("span", "rebase-order", String(index + 1)));
 
 		const text = el("div", "rebase-text");
-		text.appendChild(
-			el("span", "rebase-subject", subjectOf(step.message))
-		);
-		text.appendChild(
-			el("span", "rebase-meta", step.sha.slice(0, 8))
-		);
+		text.appendChild(el("span", "rebase-subject", subjectOf(step.message)));
+		text.appendChild(el("span", "rebase-meta", step.sha.slice(0, 8)));
 		if (step.action === "reword") {
 			const area = el(
 				"textarea",
@@ -6232,6 +6240,97 @@ function renderRemoteChecks(checks: RemoteCheck[]): void {
 	}
 }
 
+// ── aggiornamenti firmati ───────────────────────────────────────────────────
+
+/** Il pacchetto verificato, quando c'è: il pulsante «Apri» compare solo dopo i controlli. */
+let verifiedUpdate: string | null = null;
+
+async function openUpdates(): Promise<void> {
+	if (!ui.updateDialog.open) ui.updateDialog.showModal();
+	verifiedUpdate = null;
+	ui.updateDownload.hidden = true;
+	ui.updateOpen.hidden = true;
+	ui.updateNotes.hidden = true;
+	ui.updateNotes.textContent = "";
+	await checkForUpdates();
+}
+
+/**
+ * La ricerca non cambia niente sul disco: legge il feed, confronta le versioni e mostra o l'ultima
+ * release (con le note) o che non c'è niente da fare. Un errore resta nel riquadro, senza chiudere
+ * la finestra: può essere un feed spento, assente o irraggiungibile.
+ */
+async function checkForUpdates(): Promise<void> {
+	ui.updateStatus.classList.remove("is-error");
+	ui.updateStatus.textContent = t("Cerco aggiornamenti…");
+	try {
+		const result = await api.checkUpdates();
+		if (!result.release) {
+			ui.updateStatus.textContent = t(
+				`Nessun aggiornamento: la versione ${result.current} è la più recente.`
+			);
+			return;
+		}
+		const release = result.release;
+		ui.updateStatus.textContent = t(
+			`Disponibile la versione ${release.version} (qui c'è la ${result.current}).`
+		);
+		if (release.notes) {
+			ui.updateNotes.textContent = release.notes;
+			ui.updateNotes.hidden = false;
+		}
+		ui.updateDownload.hidden = false;
+		ui.updateDownload.dataset.version = release.version;
+	} catch (error) {
+		ui.updateStatus.classList.add("is-error");
+		ui.updateStatus.textContent = t(readableError(error));
+	}
+}
+
+async function downloadUpdatePackage(button: HTMLButtonElement): Promise<void> {
+	const version = button.dataset.version ?? "";
+	if (!version) return;
+	if (
+		!askConfirm(
+			`Scaricare e verificare il pacchetto ${version}? Il file finisce nella cartella temporanea.`
+		)
+	)
+		return;
+	const label = button.textContent;
+	button.disabled = true;
+	button.textContent = t("Scarico il pacchetto…");
+	ui.updateStatus.classList.remove("is-error");
+	ui.updateStatus.textContent = t(
+		"Scarico il pacchetto e controllo firma e digest…"
+	);
+	try {
+		const downloaded = await api.downloadUpdate(version);
+		verifiedUpdate = downloaded.path;
+		ui.updateOpen.hidden = false;
+		ui.updateStatus.textContent = t(
+			`Pacchetto verificato: ${formatBytes(
+				downloaded.bytes
+			)} con la firma giusta.`
+		);
+	} catch (error) {
+		ui.updateStatus.classList.add("is-error");
+		ui.updateStatus.textContent = t(readableError(error));
+	} finally {
+		button.disabled = false;
+		button.textContent = label;
+	}
+}
+
+async function openUpdatePackage(): Promise<void> {
+	if (!verifiedUpdate) return;
+	try {
+		await api.openUpdate(verifiedUpdate);
+		toast("Apro il pacchetto con l'installatore di sistema.", "ok");
+	} catch (error) {
+		toast(t(readableError(error)));
+	}
+}
+
 /** Salto a un commit qualsiasi: la storia caricata non conta, `selectCommit` chiede il dettaglio a
  * Git. Lo SHA accorciato va bene, ma deve sembrare uno SHA e non un'opzione.
  */
@@ -6438,6 +6537,12 @@ ui.healthForm.addEventListener("submit", (event) => event.preventDefault());
 ui.healthRefresh.addEventListener("click", () => void loadHealth());
 ui.healthRemotes.addEventListener("click", () => void checkRemotes());
 ui.healthClose.addEventListener("click", () => ui.healthDialog.close());
+ui.updateClose.addEventListener("click", () => ui.updateDialog.close());
+ui.updateDownload.addEventListener(
+	"click",
+	() => void downloadUpdatePackage(ui.updateDownload)
+);
+ui.updateOpen.addEventListener("click", () => void openUpdatePackage());
 ui.accountOauthClientHelp.addEventListener("click", openOauthClientHelp);
 ui.accountTokenPage.addEventListener("click", openTokenPage);
 // chiudere il dialogo ferma l'attesa: nessun ciclo che continua senza finestra
@@ -6700,7 +6805,8 @@ ui.treeList.addEventListener("click", (event) => {
 				state.lazyExpanded.add(path);
 				if (!state.lazyTree.has(path)) void loadTreeDir(path);
 			}
-		} else if (state.treeCollapsed.has(path)) state.treeCollapsed.delete(path);
+		} else if (state.treeCollapsed.has(path))
+			state.treeCollapsed.delete(path);
 		else state.treeCollapsed.add(path);
 		if (state.snapshot) renderTree(state.snapshot);
 		return;
@@ -7040,6 +7146,14 @@ const COMMANDS: PaletteCommand[] = [
 		keywords: "reflog head cronologia movimenti",
 		enabled: repoReady,
 		run: () => void openReflog(),
+	},
+	{
+		id: "updates",
+		group: "Progetto",
+		label: "Aggiornamenti…",
+		keywords: "aggiornamenti update versioni release firma",
+		enabled: () => true,
+		run: () => void openUpdates(),
 	},
 	{
 		id: "worktrees",

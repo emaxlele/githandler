@@ -10,8 +10,8 @@ import {
 	screen,
 	shell,
 } from "electron";
-import { writeFile } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { mkdir, writeFile } from "node:fs/promises";
+import { basename, join, resolve, sep } from "node:path";
 
 import {
 	CHANGED_CHANNEL,
@@ -84,7 +84,34 @@ import { originRemote } from "./remote.ts";
 import { cloneRepository, initRepository, type Identity } from "./repos.ts";
 import { loadSettings, saveSettings } from "./settings.ts";
 import { startCiNotifier, type CiNotifier } from "./tray.ts";
+import { downloadUpdate, fetchFeed, readUpdateKey } from "./update.ts";
+import { checkUpdate, verifyRelease } from "../core/update.ts";
 import { startWatcher } from "./watcher.ts";
+
+/** Dove finiscono i pacchetti verificati: una cartella dell'app, non una qualsiasi. */
+function updateTempDirectory(): string {
+	return join(app.getPath("temp"), "githandler-updates");
+}
+
+/**
+ * Feed e chiave pubblica: senza l'uno o l'altra gli aggiornamenti firmati non esistono, e l'app lo
+ * dice invece di scaricare qualcosa di cui non può provare la provenienza.
+ */
+async function updateContext(): Promise<{ feedUrl: string; key: string }> {
+	const settings = await loadSettings();
+	if (!settings.updates.feedUrl)
+		throw new Error(
+			"Nessun feed degli aggiornamenti configurato nelle impostazioni."
+		);
+	const key = await readUpdateKey(
+		join(app.getAppPath(), "build", "update-key.pub")
+	);
+	if (!key)
+		throw new Error(
+			"Chiave pubblica degli aggiornamenti assente: questa build non riceve aggiornamenti firmati."
+		);
+	return { feedUrl: settings.updates.feedUrl, key };
+}
 
 const argv = process.argv.slice(1);
 const argValue = (name: string): string | null => {
@@ -545,6 +572,37 @@ function registerIpc(): void {
 	});
 	handle("app:trashUsage", (root: string) => backendFor(root).trashUsage());
 
+	// Aggiornamenti: il feed è solo un elenco, la fiducia arriva dalla firma Ed25519 di ogni
+	// release. Chiave pubblica e indirizzo restano fuori dal renderer.
+	handle("app:updateCheck", async () => {
+		const { feedUrl, key } = await updateContext();
+		const result = checkUpdate(await fetchFeed(feedUrl), app.getVersion());
+		if (result.release && !verifyRelease(result.release, key))
+			throw new Error(
+				"La firma della release non è valida: aggiornamento ignorato."
+			);
+		return result;
+	});
+	handle("app:updateDownload", async (version: string) => {
+		const { feedUrl, key } = await updateContext();
+		const feed = await fetchFeed(feedUrl);
+		const release = feed.releases.find((item) => item.version === version);
+		if (!release)
+			throw new Error("La release indicata non è più nel feed.");
+		const directory = updateTempDirectory();
+		await mkdir(directory, { recursive: true });
+		return downloadUpdate(release, key, directory);
+	});
+	handle("app:updateOpen", async (path: string) => {
+		// Il percorso arriva dal renderer: deve stare nella cartella temporanea degli aggiornamenti.
+		const directory = resolve(updateTempDirectory());
+		const resolved = resolve(path);
+		if (!resolved.startsWith(`${directory}${sep}`))
+			throw new Error("Percorso del pacchetto non consentito.");
+		const error = await shell.openPath(resolved);
+		if (error) throw new Error(error);
+	});
+
 	// Cartella scelta per i campi «Sfoglia…»: il renderer non vede il filesystem, chiede qui.
 	handle("app:chooseFolder", async (title?: string, start?: string) => {
 		if (!window) return null;
@@ -604,10 +662,8 @@ function registerIpc(): void {
 	handle("pulls:comments", (root: string, number: number) =>
 		pullComments(root, number)
 	);
-	handle(
-		"pulls:comment",
-		(root: string, number: number, body: string) =>
-			addPullComment(root, number, body)
+	handle("pulls:comment", (root: string, number: number, body: string) =>
+		addPullComment(root, number, body)
 	);
 	handle("pulls:reviews", (root: string, number: number) =>
 		pullReviews(root, number)
@@ -1068,6 +1124,17 @@ async function runShots(): Promise<void> {
 		],
 		[
 			`(() => {
+				const form = document.getElementById("settings-form");
+				form?.scrollTo({ top: form.scrollHeight });
+				document
+					.getElementById("setting-update-feed")
+					?.scrollIntoView({ block: "center" });
+				return new Promise((resolve) => setTimeout(resolve, 300));
+			})()`,
+			target.replace(/\.png$/, "-settings-updates.png"),
+		],
+		[
+			`(() => {
 				document.getElementById("settings-dialog")?.close();
 				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
 				const input = document.getElementById("palette-input");
@@ -1100,6 +1167,19 @@ async function runShots(): Promise<void> {
 			target.replace(/\.png$/, "-pulls.png"),
 		],
 		[`document.getElementById("pulls-dialog")?.close()`, null],
+
+		[
+			`(() => {
+				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+				const input = document.getElementById("palette-input");
+				input.value = "aggiornamenti";
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+				return new Promise((resolve) => setTimeout(resolve, 600));
+			})()`,
+			target.replace(/\.png$/, "-updates.png"),
+		],
+		[`document.getElementById("update-dialog")?.close()`, null],
 
 		[
 			`(() => {
