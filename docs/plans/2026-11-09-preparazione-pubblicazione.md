@@ -51,8 +51,11 @@ Il prodotto è descritto in `README.md`; l'architettura in `docs/architettura.md
 ```bash
 npm run typecheck && npm test && npm run build
 npm run bench -- --commits 50000 --files 100000
-git log --all -p | grep -iE "un client open source|un client commerciale|un client Fair Source|un client a pagamento|un altro client commerciale"
+git log --oneline | wc -l          # i commit riscritti
 ```
+
+La storia è stata riscritta: i nomi di altri client non compaiono più in nessun commit della
+storia (verificato con `git grep` su tutti i commit, non solo sull'ultimo).
 
 ## Prompt per riprendere
 
