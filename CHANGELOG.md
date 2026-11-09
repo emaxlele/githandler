@@ -2,6 +2,14 @@
 
 ## [Non rilasciato]
 
+### Commit firmati con la chiave di Git
+
+-   **Casella «firma (GPG)»** accanto a «includi non staged»: aggiunge `-S` al commit e usa la chiave
+    già configurata in Git (GPG o SSH), senza che l'app gestisca o conservi chiavi. Un errore di
+    firma finisce nel riquadro persistente sotto il campo, come un hook.
+-   **Argomenti in `commitArgs`** (`src/core/commit.ts`): `-a` e `-S` compaiono solo quando servono,
+    quindi la regola si prova senza chiavi né rete.
+
 ### Il pannello staccato ricorda l'ultimo commit
 
 -   **Cambio repository nel pannello**: quando la finestra principale passa a un altro repository, la

@@ -777,6 +777,9 @@ const EN: Record<string, string> = {
 	"Submodule non aggiornato": "Outdated submodule",
 	"Non inizializzato": "Not initialized",
 	"Trascina fuori per copiare il file.": "Drag out to copy the file.",
+	"Firma il commit con la chiave già configurata in Git (-S); l'app non gestisce chiavi":
+		"Signs the commit with the key already configured in Git (-S); the app does not manage keys",
+	"firma (GPG)": "sign (GPG)",
 	Recupero: "Recovery",
 	"Recupero…": "Recovery…",
 	"Cosa si può ancora riportare indietro: l'ultima operazione, gli stash, le copie dei file scartati e gli spostamenti di HEAD nel reflog.":

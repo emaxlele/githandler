@@ -5,6 +5,19 @@
 
 ## 2026-11-09
 
+### Firmare un commit senza uscire dall'app
+
+-   **Cosa**: accanto a «includi non staged» c'è ora la casella **«firma (GPG)»**: il commit viene
+    firmato con la chiave già configurata in Git (GPG o SSH).
+-   **Perché**: richiesta dell'utente — chi firma i commit doveva passare dal terminale per ogni
+    commit, pur avendo la chiave già pronta.
+-   **Come**: l'app si limita ad aggiungere l'opzione di firma a Git; non crea, non legge e non
+    conserva chiavi. Se la firma non riesce, l'errore resta visibile sotto il campo con l'output
+    completo.
+-   **Verifica**: typecheck, test sugli argomenti del commit e build.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Il pannello dei dettagli ricorda dov'era
 
 -   **Cosa**: quando la finestra principale passa a un altro repository, la finestra dei dettagli

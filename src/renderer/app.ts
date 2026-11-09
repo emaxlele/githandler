@@ -461,6 +461,7 @@ const ui = {
 	commitMessage: byId<HTMLTextAreaElement>("commit-message"),
 	commitError: byId<HTMLPreElement>("commit-error"),
 	commitAll: byId<HTMLInputElement>("commit-all"),
+	commitSign: byId<HTMLInputElement>("commit-sign"),
 	btnCommit: byId<HTMLButtonElement>("btn-commit"),
 	btnStageAll: byId<HTMLButtonElement>("btn-stage-all"),
 	btnUnstageAll: byId<HTMLButtonElement>("btn-unstage-all"),
@@ -2238,7 +2239,11 @@ async function doCommit(): Promise<void> {
 	ui.commitError.classList.add("hidden");
 	let snapshot: Snapshot | null;
 	try {
-		snapshot = await api.commit(message, ui.commitAll.checked);
+		snapshot = await api.commit(
+			message,
+			ui.commitAll.checked,
+			ui.commitSign.checked
+		);
 	} catch (error) {
 		showCommitError(readableError(error));
 		return;

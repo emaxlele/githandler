@@ -116,6 +116,9 @@ minmax(0, 1fr)`), non più contenuto tagliato
         parte selezionata `git stash push --include-untracked -- <path>…` salva solo quelli e lascia
         gli altri nel working tree. I path sono verificati nel main (niente `..`, path assoluti o
         nomi che sembrano opzioni).
+-   [x] **Commit firmati**: la casella «firma (GPG)» accanto a «includi non staged» aggiunge `-S` e
+        usa la chiave già configurata in Git (GPG o SSH); l'app non gestisce né conserva chiavi, e un
+        errore di firma resta visibile sotto il campo
 -   [x] **Modello del messaggio di commit** (`commit.template`) e **output dei hook** sotto il campo:
         il percorso segue le regole di Git, il modello si taglia a 64 KiB, un errore resta finché non
         si riprova

@@ -381,8 +381,10 @@ function registerIpc(): void {
 	handle("git:discard", (root: string, paths: string[]) =>
 		backendFor(root).discard(paths)
 	);
-	handle("git:commit", (root: string, message: string, all: boolean) =>
-		backendFor(root).commit(message, all)
+	handle(
+		"git:commit",
+		(root: string, message: string, all: boolean, sign?: boolean) =>
+			backendFor(root).commit(message, all, sign === true)
 	);
 	handle("git:checkout", (root: string, branch: string) =>
 		backendFor(root).checkout(branch)

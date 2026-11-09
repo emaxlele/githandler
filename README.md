@@ -72,6 +72,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Salute del repository**: divergenti, stash vecchi, submodule, HEAD staccato                | ✅             |
 | **Trascinare un file** fuori dalla finestra                                                  | ✅             |
 | **Finestra Recupero**: ultima operazione, stash, copie, reflog                              | ✅             |
+| **Commit firmati** (GPG o SSH con la chiave di Git)                                          | ✅             |
 | **Avanzamento di rete** (clone, fetch, pull, push)                                          | ✅             |
 | **Temi** chiaro / scuro / OLED, densità e dimensione del testo                              | ✅             |
 | **Aggiornamento automatico** (`--watch`)                                                    | ✅             |
@@ -127,8 +128,9 @@ impostazioni:
 -   **Ricerca nel contenuto** (`git grep`): un dialog a parte cerca nei file tracciati, con testo
     letterale o espressione regolare e l'opzione delle maiuscole; ogni risultato mostra file, riga e
     testo, e si apre nell'app del sistema. L'elenco si ferma a 1.000 corrispondenze e lo dice.
--   **Commit**: il campo del messaggio parte dal modello configurato in Git (`commit.template`) e un
-    rifiuto di un hook o della firma GPG resta visibile sotto il campo, con l'output completo.
+-   **Commit**: il campo del messaggio parte dal modello configurato in Git (`commit.template`); la
+    casella «firma (GPG)» aggiunge `-S` e usa la chiave già configurata (GPG o SSH). Un rifiuto di
+    un hook o della firma resta visibile sotto il campo, con l'output completo.
 -   **Salute del repository…** (palette dei comandi): un controllo in sola lettura su rami divergenti
     (commit sia da inviare sia da ricevere), rami locali senza upstream, stash più vecchi di 30
     giorni, submodule non puliti e HEAD staccato. Non cambia niente: dice cosa guardare.

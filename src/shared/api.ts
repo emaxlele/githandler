@@ -57,7 +57,8 @@ export interface GitApi {
 	applyPatch(path: string, patch: string, mode: PatchMode): Promise<Snapshot>;
 	unstage(paths: string[]): Promise<Snapshot>;
 	discard(paths: string[]): Promise<Snapshot>;
-	commit(message: string, all: boolean): Promise<Snapshot>;
+	/** Crea un commit; `all` include le modifiche tracciate (`-a`), `sign` firma (`-S`). */
+	commit(message: string, all: boolean, sign?: boolean): Promise<Snapshot>;
 	checkout(branch: string): Promise<Snapshot>;
 	createBranch(name: string): Promise<Snapshot>;
 	fetch(): Promise<Snapshot>;

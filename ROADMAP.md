@@ -43,7 +43,8 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 -   ✅ Drag a file out of the window.
 -   ⏳ Lazy tree in the file view, syntax highlighting.
 -   ✅ Commit message templates (`commit.template`) and hook/signature output visible in the UI.
--   ⏳ Signed commits guided from the app (the key and Git configuration stay the user's).
+-   ✅ Signed commits: a "sign (GPG)" switch adds `-S`, so the key already configured in Git signs
+    the commit; the app never handles keys.
 -   ✅ Themes and preferences: light / dark / OLED, density, text size.
 
 ## 5. Differentiators

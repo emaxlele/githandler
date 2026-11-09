@@ -40,6 +40,7 @@ import {
 import { assessHealth, type HealthReport } from "../core/health.ts";
 import {
 	COMMIT_TEMPLATE_LIMIT,
+	commitArgs,
 	limitCommitTemplate,
 	resolveCommitTemplatePath,
 } from "../core/commit.ts";
@@ -147,7 +148,7 @@ export interface GitBackend {
 	applyPatch(path: string, patch: string, mode: PatchMode): Promise<Snapshot>;
 	unstage(paths: string[]): Promise<Snapshot>;
 	discard(paths: string[]): Promise<Snapshot>;
-	commit(message: string, all: boolean): Promise<Snapshot>;
+	commit(message: string, all: boolean, sign?: boolean): Promise<Snapshot>;
 	checkout(branch: string): Promise<Snapshot>;
 	createBranch(name: string): Promise<Snapshot>;
 	fetch(onProgress?: ProgressListener): Promise<Snapshot>;
@@ -613,15 +614,18 @@ export class CliGitBackend implements GitBackend {
 		}
 	}
 
-	async commit(message: string, all: boolean): Promise<Snapshot> {
+	async commit(
+		message: string,
+		all: boolean,
+		sign = false
+	): Promise<Snapshot> {
 		const info = this.#requireInfo();
 		if (!message.trim()) throw new Error("Il messaggio di commit è vuoto.");
 
 		const subject = message.split("\n")[0]!.trim();
 		const entry = await this.#record("commit", `Commit: ${subject}`);
 
-		const args = ["commit", "-F", "-"];
-		if (all) args.splice(1, 0, "-a");
+		const args = commitArgs(all, sign);
 		try {
 			await runGit(info.root, args, { input: message });
 		} catch (error) {

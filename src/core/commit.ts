@@ -49,3 +49,15 @@ export function limitCommitTemplate(text: string): CommitTemplate {
 		truncated: true,
 	};
 }
+
+/**
+ * Argomenti di `git commit`: il messaggio arriva da stdin. `-a` include le modifiche tracciate,
+ * `-S` firma con la chiave già configurata in Git (GPG o SSH): l'app non gestisce chiavi.
+ */
+export function commitArgs(all: boolean, sign: boolean): string[] {
+	const args = ["commit"];
+	if (all) args.push("-a");
+	if (sign) args.push("-S");
+	args.push("-F", "-");
+	return args;
+}

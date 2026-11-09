@@ -8,6 +8,7 @@ import { promisify } from "node:util";
 
 import {
 	COMMIT_TEMPLATE_LIMIT,
+	commitArgs,
 	limitCommitTemplate,
 	resolveCommitTemplatePath,
 } from "../src/core/commit.ts";
@@ -97,4 +98,11 @@ test("il backend legge commit.template e sopporta un file mancante", async () =>
 		text: "",
 		truncated: false,
 	});
+});
+
+test("gli argomenti del commit: -a e -S solo quando servono", () => {
+	assert.deepEqual(commitArgs(false, false), ["commit", "-F", "-"]);
+	assert.deepEqual(commitArgs(true, false), ["commit", "-a", "-F", "-"]);
+	assert.deepEqual(commitArgs(false, true), ["commit", "-S", "-F", "-"]);
+	assert.deepEqual(commitArgs(true, true), ["commit", "-a", "-S", "-F", "-"]);
 });
