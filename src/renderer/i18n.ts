@@ -234,8 +234,8 @@ const EN: Record<string, string> = {
 		"Files tracked in HEAD. Double-click to open with the associated application.",
 	"Apri nel browser": "Open in the browser",
 	"GitHub Actions": "GitHub Actions",
-	"Ultime esecuzioni del repository. «Ri-esegui» ripete i job falliti; «Annulla» ferma un'esecuzione in corso.":
-		"Latest runs of the repository. «Re-run» repeats the failed jobs; «Cancel» stops a running one.",
+	"Ultime esecuzioni del repository. «Riprova i falliti» ripete solo i job falliti, «Ri-esegui» l'intero workflow; «Annulla» ferma un'esecuzione in corso.":
+		"Latest runs of the repository. «Retry failed jobs» repeats only the failed ones, «Re-run» the whole workflow; «Cancel» stops a running one.",
 	Esecuzioni: "Runs",
 	Titolo: "Title",
 	Valore: "Value",
@@ -753,6 +753,10 @@ const EN: Record<string, string> = {
 	"Annullare questa esecuzione?": "Cancel this run?",
 	"Esecuzione annullata.": "Run cancelled.",
 	"Esecuzione ri-avviata.": "Run restarted.",
+	"Riprova i falliti": "Retry failed jobs",
+	"Riprova solo i job falliti, senza ripetere quelli già passati.":
+		"Retries only the failed jobs, without repeating the ones that already passed.",
+	"Job falliti ri-avviati.": "Failed jobs restarted.",
 	"Accesso non riuscito.": "Sign-in failed.",
 	"Accesso fatto.": "Signed in.",
 	"Impostazioni salvate.": "Settings saved.",

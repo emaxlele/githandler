@@ -1,7 +1,7 @@
 import type { BlameFile } from "../core/blame.ts";
 import type { CheckSummary } from "../core/checks.ts";
 import type { ContentQuery, ContentSearchResult } from "../core/content.ts";
-import type { WorkflowRun } from "../core/actions.ts";
+import type { WorkflowAction, WorkflowRun } from "../core/actions.ts";
 import type { ForkInfo, ForkSyncResult } from "../core/fork.ts";
 import type { Account, AccountChoice, RemoteRepo } from "../core/providers.ts";
 import type { NewPullRequest, PullList, PullRequest } from "../core/pulls.ts";
@@ -103,8 +103,8 @@ export interface GitApi {
 	syncFork(mode: "merge" | "rebase"): Promise<ForkSyncResult>;
 	/** Ultime esecuzioni delle GitHub Actions del repository. */
 	workflowRuns(): Promise<WorkflowRun[]>;
-	/** Ri-esegue o annulla un'esecuzione (`rerun` solo se è finita). */
-	workflowRunAction(id: string, action: "rerun" | "cancel"): Promise<void>;
+	/** Ri-esegue tutti o solo i job falliti, oppure annulla un'esecuzione. */
+	workflowRunAction(id: string, action: WorkflowAction): Promise<void>;
 	/** Pull request aperte del repository, con la parola e la pagina web del servizio. */
 	pullRequests(): Promise<PullList>;
 	/** Apre una pull request dai due rami indicati. */

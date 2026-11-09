@@ -2,6 +2,7 @@ import {
 	parseWorkflowRuns,
 	workflowRunActionUrl,
 	workflowRunsUrl,
+	type WorkflowAction,
 	type WorkflowRun,
 } from "../core/actions.ts";
 import {
@@ -90,11 +91,11 @@ export async function listWorkflowRuns(root: string): Promise<WorkflowRun[]> {
 	return parseWorkflowRuns(await response.json().catch(() => null));
 }
 
-/** `rerun` ri-esegue i job falliti (come il pulsante «Re-run»), `cancel` ferma un'esecuzione. */
+/** `rerun` ripete tutti i job, `rerun-failed` solo quelli falliti, `cancel` ferma un'esecuzione. */
 export async function runWorkflowAction(
 	root: string,
 	id: string,
-	action: "rerun" | "cancel"
+	action: WorkflowAction
 ): Promise<void> {
 	const context = await contextFor(root);
 	const account = context.account;

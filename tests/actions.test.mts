@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+	canRerunFailed,
 	describeRun,
 	parseWorkflowRuns,
 	workflowRunActionUrl,
@@ -32,6 +33,16 @@ test("indirizzi delle esecuzioni: lista, ri-esecuzione e annullamento", () => {
 	assert.equal(
 		workflowRunActionUrl(account, "emaxlele", "githandler", "123", "rerun"),
 		"https://api.github.com/repos/emaxlele/githandler/actions/runs/123/rerun"
+	);
+	assert.equal(
+		workflowRunActionUrl(
+			account,
+			"emaxlele",
+			"githandler",
+			"123",
+			"rerun-failed"
+		),
+		"https://api.github.com/repos/emaxlele/githandler/actions/runs/123/rerun-failed-jobs"
 	);
 	assert.equal(
 		workflowRunActionUrl(account, "emaxlele", "githandler", "123", "cancel"),
@@ -122,4 +133,30 @@ test("lo stato mostrato è quello che si vuole leggere", () => {
 		}),
 		"queued"
 	);
+});
+
+test("«riprova i falliti» solo dove c'è un fallimento da riprovare", () => {
+	const base = {
+		id: "1",
+		name: "CI",
+		branch: "main",
+		event: "push",
+		createdAt: "",
+		url: "",
+	};
+	const run = (status: string, conclusion: string | null) => ({
+		...base,
+		status,
+		conclusion,
+	});
+	assert.equal(canRerunFailed(run("completed", "failure")), true);
+	assert.equal(canRerunFailed(run("completed", "timed_out")), true);
+	assert.equal(canRerunFailed(run("completed", "startup_failure")), true);
+	assert.equal(canRerunFailed(run("completed", "action_required")), true);
+	assert.equal(canRerunFailed(run("completed", "success")), false);
+	assert.equal(canRerunFailed(run("completed", "cancelled")), false);
+	assert.equal(canRerunFailed(run("completed", "skipped")), false);
+	// un'esecuzione ancora in corso non ha job falliti da riprovare
+	assert.equal(canRerunFailed(run("in_progress", null)), false);
+	assert.equal(canRerunFailed(run("queued", "failure")), false);
 });

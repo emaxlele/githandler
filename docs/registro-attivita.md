@@ -5,6 +5,19 @@
 
 ## 2026-11-09
 
+### Riprovare solo quello che è andato storto
+
+-   **Cosa**: nella finestra delle **GitHub Actions**, quando un'esecuzione è fallita compare
+    **«Riprova i falliti»**: ripartono solo i job rossi, mentre quelli già passati non vengono
+    ripetuti. «Ri-esegui» resta accanto per rifare l'intero workflow.
+-   **Perché**: richiesta dell'utente — su un workflow lungo, ripetere tutto per un solo job fallito
+    spreca tempo e minuti di esecuzione.
+-   **Come**: usa l'endpoint dedicato di GitHub per i job falliti, e il pulsante compare solo dove c'è
+    davvero qualcosa da riprovare (fallimento, timeout, avvio fallito o intervento richiesto).
+-   **Verifica**: typecheck, test dedicati (endpoint e casi di stato) e build.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Un promemoria quando i dettagli sono in un'altra finestra
 
 -   **Cosa**: quando il pannello dei dettagli viene aperto in una **finestra separata**, nella barra in

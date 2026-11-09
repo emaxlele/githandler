@@ -42,7 +42,7 @@ Italiano: [README.md](README.md)
 | **“Sign in” with the token already on the machine** (`gh`, credential helper)        | ✅             |
 | **Account chosen per repository** (header chip)                                      | ✅             |
 | **Fork: detect the original and sync**                                               | ✅             |
-| **GitHub Actions**: runs, re-run, cancel                                             | ✅             |
+| **GitHub Actions**: runs, retry failed jobs, re-run, cancel                          | ✅             |
 | **Repository files** (filterable list, browser)                                      | ✅             |
 | **Export HEAD as a zip**                                                             | ✅             |
 | History with swimlane graph, paginated (2,000/page)                                  | ✅             |
@@ -330,8 +330,9 @@ From the right-click menu on the repository tab:
     window is titled _merge request_. No new token: it uses the account already chosen for the
     repository. _Checks_ reads the workflow results on the head commit of the request — green, red
     or pending, with the detail and a link to each one.
--   **GitHub Actions…**: latest runs with workflow, status, branch and event; _Re-run_ (failed jobs of
-    a completed run), _Cancel_ (a running one), _Open_ in the browser. GitHub only.
+-   **GitHub Actions…**: latest runs with workflow, status, branch and event; _Retry failed jobs_
+    (only the red ones, after a failure), _Re-run_ (the whole workflow), _Cancel_ (a running one),
+    _Open_ in the browser. GitHub only.
 -   **Open a repository file…**: filterable list of files tracked in HEAD, opened from the system or
     in the browser (Gitea included).
 -   **Export HEAD as a zip archive…**: `git archive`, so `export-ignore` and the repository filters

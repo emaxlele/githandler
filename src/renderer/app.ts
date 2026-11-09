@@ -45,7 +45,12 @@ import {
 	type AccountChoice,
 	type RemoteRepo,
 } from "../core/providers.ts";
-import { describeRun, type WorkflowRun } from "../core/actions.ts";
+import {
+	canRerunFailed,
+	describeRun,
+	type WorkflowAction,
+	type WorkflowRun,
+} from "../core/actions.ts";
 import type { CheckRun, CheckSummary } from "../core/checks.ts";
 import type { PullList, PullRequest } from "../core/pulls.ts";
 import type { ReflogEntry } from "../core/reflog.ts";
@@ -4444,6 +4449,22 @@ function renderWorkflowRuns(): void {
 			);
 			actions.appendChild(cancel);
 		} else {
+			// dopo un fallimento la mossa utile è riprovare solo i job falliti
+			if (canRerunFailed(run)) {
+				const failed = el(
+					"button",
+					"btn btn-small",
+					"Riprova i falliti"
+				) as HTMLButtonElement;
+				failed.type = "button";
+				failed.title =
+					"Riprova solo i job falliti, senza ripetere quelli già passati.";
+				failed.addEventListener(
+					"click",
+					() => void workflowAction(run.id, "rerun-failed")
+				);
+				actions.appendChild(failed);
+			}
 			const rerun = el(
 				"button",
 				"btn btn-small",
@@ -4480,7 +4501,7 @@ function renderWorkflowRuns(): void {
 
 async function workflowAction(
 	id: string,
-	action: "rerun" | "cancel"
+	action: WorkflowAction
 ): Promise<void> {
 	if (action === "cancel" && !askConfirm("Annullare questa esecuzione?"))
 		return;
@@ -4491,6 +4512,8 @@ async function workflowAction(
 	toast(
 		action === "cancel"
 			? "Esecuzione annullata."
+			: action === "rerun-failed"
+			? "Job falliti ri-avviati."
 			: "Esecuzione ri-avviata.",
 		"ok"
 	);

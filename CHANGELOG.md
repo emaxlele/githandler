@@ -2,6 +2,17 @@
 
 ## [Non rilasciato]
 
+### Riprovare solo i job falliti
+
+-   **«Riprova i falliti»** nelle GitHub Actions: dopo un'esecuzione conclusa con `failure`,
+    `timed_out`, `startup_failure` o `action_required` si riprovano solo i job rossi, senza ripetere
+    quelli già passati. «Ri-esegui» resta per ripetere l'intero workflow.
+-   **Endpoint distinto**: `workflowRunActionUrl` mappa `rerun-failed` su `rerun-failed-jobs`, accanto a
+    `rerun` e `cancel`; l'id resta validato come numerico.
+-   **Quando ha senso**: `canRerunFailed` decide in base a `status` e `conclusion`, così un'esecuzione
+    ancora in corso o conclusa bene non mostra il pulsante.
+-   Test nuovi in `tests/actions.test.mts` (endpoint e combinazioni di stato).
+
 ### Indicatore del pannello staccato
 
 -   Mentre i dettagli sono in una finestra separata, la toolbar mostra un chip **«Dettagli ↗»**: un

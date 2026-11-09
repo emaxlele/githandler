@@ -72,19 +72,46 @@ export function parseWorkflowRuns(payload: unknown): WorkflowRun[] {
 	return runs;
 }
 
-/** Indirizzo per ri-eseguire o annullare un'esecuzione: l'id deve essere numerico. */
+/** Azioni possibili su un'esecuzione: tutte quelle che l'API di GitHub espone come POST. */
+export type WorkflowAction = "rerun" | "rerun-failed" | "cancel";
+
+/**
+ * Indirizzo per ri-eseguire un'esecuzione: `rerun` ripete tutti i job, `rerun-failed` solo quelli
+ * falliti (GitHub li espone come due endpoint, e «Re-run failed jobs» è il pulsante dei fallimenti).
+ * L'id deve essere numerico, così non può diventare un pezzo di percorso arbitrario.
+ */
 export function workflowRunActionUrl(
 	account: Account,
 	namespace: string,
 	name: string,
 	id: string,
-	action: "rerun" | "cancel"
+	action: WorkflowAction
 ): string {
 	if (!/^\d+$/.test(id)) throw new Error(`Esecuzione non valida: ${id}`);
 	const base = account.apiBase.replace(/\/+$/, "");
-	return `${base}/repos/${namespace}/${name}/actions/runs/${id}/${
-		action === "rerun" ? "rerun" : "cancel"
-	}`;
+	const path =
+		action === "rerun"
+			? "rerun"
+			: action === "rerun-failed"
+			? "rerun-failed-jobs"
+			: "cancel";
+	return `${base}/repos/${namespace}/${name}/actions/runs/${id}/${path}`;
+}
+
+/** Conclusioni in cui «ri-esegui i job falliti» ha senso: c'è almeno un job da riprovare. */
+const RERUN_FAILED_CONCLUSIONS = new Set([
+	"failure",
+	"timed_out",
+	"startup_failure",
+	"action_required",
+]);
+
+export function canRerunFailed(run: WorkflowRun): boolean {
+	return (
+		run.status === "completed" &&
+		run.conclusion !== null &&
+		RERUN_FAILED_CONCLUSIONS.has(run.conclusion)
+	);
 }
 
 /** Etichetta breve dello stato: quello che l'utente vuole vedere in una riga. */

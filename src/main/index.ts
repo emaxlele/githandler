@@ -50,6 +50,7 @@ import {
 	setRepoAccount,
 } from "./accounts.ts";
 import { listWorkflowRuns, runWorkflowAction } from "./actions.ts";
+import type { WorkflowAction } from "../core/actions.ts";
 import { createPull, listPulls, pullChecks } from "./pulls.ts";
 import { exportArchive } from "./export.ts";
 import { forkInfo, syncFork } from "./fork.ts";
@@ -515,10 +516,8 @@ function registerIpc(): void {
 	handle("pulls:checks", (root: string, sha: string) =>
 		pullChecks(root, sha)
 	);
-	handle(
-		"actions:run",
-		(root: string, id: string, action: "rerun" | "cancel") =>
-			runWorkflowAction(root, id, action)
+	handle("actions:run", (root: string, id: string, action: WorkflowAction) =>
+		runWorkflowAction(root, id, action)
 	);
 
 	// Accesso dal browser: il token resta nel main, la finestra riceve solo l'esito.

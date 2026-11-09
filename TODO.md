@@ -55,8 +55,8 @@ Stato al 2026-11-09 (v0.10.0). Le voci spuntate sono in `CHANGELOG.md`.
         menu di scelta
 -   [x] **Fork**: parent dall'API dei 4 provider, remoto `upstream` creato al primo sync, `fetch` +
         `merge`/`rebase` del ramo predefinito, nessuna forza, HEAD staccato = errore detto
--   [x] **GitHub Actions**: ultime esecuzioni, ri-esecuzione e annullamento dal menu della scheda, con
-        il token dell'account risolto
+-   [x] **GitHub Actions**: ultime esecuzioni, **riprova i job falliti** (`rerun-failed-jobs`), intera
+        ri-esecuzione e annullamento dal menu della scheda, con il token dell'account risolto
 -   [x] **Elenco dei file tracciati** (`git ls-tree -r -z`, `ls-files` senza HEAD) filtrabile, con
         apertura dal sistema o nel browser; link web ai file anche per Gitea (`/src/branch/<ref>/…`)
 -   [x] **Esporta HEAD in uno zip** con `git archive`, senza dipendenze nuove
@@ -174,12 +174,12 @@ minmax(0, 1fr)`), non più contenuto tagliato
         c'è già sulla macchina
 -   [ ] Fork: scegliere un ramo dell'originale diverso da quello predefinito, e mostrare quanti commit
         si sono ricevuti prima del merge invece che solo dopo
--   [ ] Actions: `rerun-failed-jobs` (oggi `rerun` ripete tutti i job) e i workflow con input;
-        l'annullamento è offerto solo alle esecuzioni non concluse
+-   [ ] Actions: workflow con input e con più tentativi per esecuzione; l'annullamento è offerto solo
+        alle esecuzioni non concluse
 -   [ ] Pannello staccato: quando la finestra principale cambia repository, la finestra dei dettagli
         dovrebbe riaprire l'ultimo commit guardato in quel repository invece del primo della storia
         (oggi segue il repository e aspetta la pubblicazione successiva)
--   [ ] Indicatore nella finestra principale che i dettagli sono in una finestra separata, oltre al
+-   [x] **Indicatore nella finestra principale** che i dettagli sono in una finestra separata, oltre al
         rientro che avviene chiudendola
 
 ## Bloccato
