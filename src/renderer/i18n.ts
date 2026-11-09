@@ -726,6 +726,22 @@ const EN: Record<string, string> = {
 	"author: · file: · regex: · change: · diff: · lines:1,40:file":
 		"author: · file: · regex: · change: · diff: · lines:1,40:file",
 	"1 risultato": "1 result",
+	"Ogni spostamento di HEAD, dal più recente: commit, checkout, reset, rebase. «Vai al commit» apre quel commit nel pannello; non cambia il repository.":
+		"Every move of HEAD, newest first: commit, checkout, reset, rebase. \"Go to the commit\" opens that commit in the panel; it does not change the repository.",
+	"Aggiornamenti di HEAD": "HEAD updates",
+	"Rilegge la coda del reflog": "Re-reads the reflog tail",
+	"Chiude la finestra del reflog": "Closes the reflog window",
+	"Leggo il reflog…": "Reading the reflog…",
+	"Reflog vuoto.": "Empty reflog.",
+	"{0} voci.": "{0} entries.",
+	"Apre questo commit nel pannello dei dettagli.":
+		"Opens this commit in the details panel.",
+	"SHA del commit": "Commit SHA",
+	"Uno SHA è fatto di cifre esadecimali: per esempio 1a2b3c4.":
+		"A SHA is made of hexadecimal digits, for example 1a2b3c4.",
+	"Mostra gli spostamenti di HEAD e ne apre un commit.":
+		"Shows the moves of HEAD and opens one of its commits.",
+	"Vai al commit per SHA…": "Go to commit by SHA…",
 	Nuova: "New",
 	"Ramo di partenza": "Source branch",
 	"Ramo di arrivo": "Target branch",

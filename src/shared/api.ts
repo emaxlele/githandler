@@ -2,13 +2,10 @@ import type { BlameFile } from "../core/blame.ts";
 import type { WorkflowRun } from "../core/actions.ts";
 import type { ForkInfo, ForkSyncResult } from "../core/fork.ts";
 import type { Account, AccountChoice, RemoteRepo } from "../core/providers.ts";
-import type {
-	NewPullRequest,
-	PullList,
-	PullRequest,
-} from "../core/pulls.ts";
+import type { NewPullRequest, PullList, PullRequest } from "../core/pulls.ts";
 import type { PatchMode } from "../core/patch.ts";
 import type { ResetMode } from "../core/ops.ts";
+import type { ReflogEntry } from "../core/reflog.ts";
 import type { Settings, TrashUsage } from "../core/settings.ts";
 import type {
 	Commit,
@@ -153,7 +150,10 @@ export interface GitApi {
 	/** Le tre versioni di un conflitto e il testo attuale del file. */
 	conflictDetail(path: string): Promise<ConflictDetail>;
 	/** Tiene la versione di un lato per l'intero file. */
-	resolveConflictFile(path: string, side: "ours" | "theirs"): Promise<Snapshot>;
+	resolveConflictFile(
+		path: string,
+		side: "ours" | "theirs"
+	): Promise<Snapshot>;
 	/** Scrive il risultato scelto dall'utente; il file resta da segnare come risolto. */
 	writeResolvedFile(path: string, text: string): Promise<void>;
 	/** Segna i file come risolti (`git add`). */
@@ -162,6 +162,8 @@ export interface GitApi {
 	continueOperation(): Promise<Snapshot>;
 	/** Ricerca nella storia: testo libero, `author:`, `file:`. */
 	search(query: string): Promise<Commit[]>;
+	/** Spostamenti di HEAD (commit, checkout, reset…), dal più recente. */
+	reflog(limit?: number): Promise<ReflogEntry[]>;
 	/** Pagina successiva della storia, a partire da `skip`. */
 	moreCommits(skip: number): Promise<CommitPage>;
 	/** Attribuzione riga per riga di un file. */
@@ -298,6 +300,7 @@ export type IpcChannel =
 	| "git:markResolved"
 	| "git:continueOperation"
 	| "git:search"
+	| "git:reflog"
 	| "git:moreCommits"
 	| "git:blame"
 	| "git:undo"

@@ -65,6 +65,7 @@ Italiano: [README.md](README.md)
 | **Global undo** (commit, checkout, discard, merge)                            | ✅             |
 | **Recoverable untracked files** (Git objects)                                 | ✅             |
 | **History search**: text, `author:`, `file:`, `regex:`, `change:`, `diff:`, `lines:` | ✅             |
+| **Reflog** in the app and "go to commit" by SHA                               | ✅             |
 | **Automatic refresh** (`--watch`)                                             | ✅             |
 | **Blame in the UI** (virtualized panel)                                       | ✅             |
 | **Resizable, collapsible, detachable panel**                                  | ✅             |
@@ -91,6 +92,10 @@ The window follows the layout of established desktop Git clients, with its own d
 -   **Sidebar**: repository name, _Changes_ with a count, _All Commits_, a search filter and refs split
     into Branches / Remotes / Tags. The count hides at zero, is green when everything is staged and
     amber when something is left out.
+-   **Reflog and a jump to any commit**: "Reflog…" lists the moves of HEAD (commit, checkout,
+    reset, rebase) with selector, abbreviated SHA and date; "Go to the commit" opens that commit in
+    the panel. "Go to commit by SHA…", from the palette, reaches any commit even outside the loaded
+    history page. Neither changes the repository.
 -   **Search with a small language**: free text is literal and case-insensitive; `author:` and
     `file:` filter author and path; `regex:` searches the message with an extended regular
     expression, `change:` the commits where the number of occurrences of a text changed (`-S`),

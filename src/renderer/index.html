@@ -1361,6 +1361,40 @@
 			</form>
 		</dialog>
 
+		<dialog class="dialog dialog-wide" id="reflog-dialog">
+			<form id="reflog-form">
+				<h2>Reflog</h2>
+				<p class="hint">
+					Ogni spostamento di HEAD, dal più recente: commit, checkout,
+					reset, rebase. «Vai al commit» apre quel commit nel
+					pannello; non cambia il repository.
+				</p>
+				<div class="account-repos-head">
+					<strong>Aggiornamenti di HEAD</strong>
+					<button
+						type="button"
+						class="btn btn-small"
+						id="reflog-refresh"
+						title="Rilegge la coda del reflog"
+					>
+						Aggiorna
+					</button>
+				</div>
+				<ul class="repo-list actions-list" id="reflog-list"></ul>
+				<div class="dialog-actions">
+					<span class="account-status" id="reflog-status"></span>
+					<button
+						type="button"
+						class="btn"
+						id="reflog-close"
+						title="Chiude la finestra del reflog"
+					>
+						Chiudi
+					</button>
+				</div>
+			</form>
+		</dialog>
+
 		<dialog class="dialog" id="input-dialog">
 			<form method="dialog" id="input-form">
 				<h2 id="input-title">Titolo</h2>

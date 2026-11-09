@@ -5,6 +5,23 @@
 
 ## 2026-11-09
 
+### Si può vedere dove era HEAD, e saltare a un commit qualsiasi
+
+-   **Cosa**: c'è una finestra **«Reflog»** che mostra, dalla più recente, ogni volta che il
+    repository è "saltato" da un commit all'altro — un commit, un cambio di ramo, un reset, un
+    rebase — con la data e il pulsante per aprire quel commit nel pannello. Dalla palette c'è anche
+    **«Vai al commit per SHA…»**, che porta a un commit qualsiasi scrivendone il codice, anche se non
+    è nella pagina di storia caricata.
+-   **Perché**: richiesta dell'utente — l'«Annulla» dell'app fa già la cosa giusta, ma finora non si
+    poteva vedere cosa aveva fatto; ora la cronologia è esplicita e consultabile prima di decidere.
+-   **Come**: la lettura sta in `src/core/reflog.ts` e passa dallo stesso backend della UI; il limite
+    è di 200 voci per apertura. Guardare il reflog e saltare a un commit **non modificano** il
+    repository: cambiano solo cosa si vede nel pannello.
+-   **Verifica**: typecheck, **200 test** verdi (5 nuovi, con un `reset --hard` vero e un repository
+    senza commit) e build; screenshot del dialogo in inglese e prova del salto a un commit.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### La ricerca nella storia trova di più
 
 -   **Cosa**: al campo di ricerca della storia si sono aggiunte quattro domande che prima si potevano

@@ -39,6 +39,7 @@ import {
 } from "../core/providers.ts";
 import { describeRun, type WorkflowRun } from "../core/actions.ts";
 import type { PullList, PullRequest } from "../core/pulls.ts";
+import type { ReflogEntry } from "../core/reflog.ts";
 import { deviceFlow, tokenPageUrl } from "../core/oauth.ts";
 import type {
 	AccountInput,
@@ -332,6 +333,12 @@ const ui = {
 	pullsNewSource: byId<HTMLInputElement>("pulls-new-source"),
 	pullsNewTarget: byId<HTMLInputElement>("pulls-new-target"),
 	pullsCreate: byId<HTMLButtonElement>("pulls-create"),
+	reflogDialog: byId<HTMLDialogElement>("reflog-dialog"),
+	reflogForm: byId<HTMLFormElement>("reflog-form"),
+	reflogList: byId("reflog-list"),
+	reflogStatus: byId("reflog-status"),
+	reflogRefresh: byId<HTMLButtonElement>("reflog-refresh"),
+	reflogClose: byId<HTMLButtonElement>("reflog-close"),
 	btnUndo: byId<HTMLButtonElement>("btn-undo"),
 	btnRefresh: byId<HTMLButtonElement>("btn-refresh"),
 	btnFetch: byId<HTMLButtonElement>("btn-fetch"),
@@ -1718,6 +1725,7 @@ async function selectCommit(sha: string): Promise<void> {
 	state.treePath = null;
 	setTab("commit");
 	logView.select(sha);
+	logView.reveal(sha);
 
 	// i tre dati arrivano da git separatamente: chiederli insieme evita tre attese in fila
 	const [details, files, stat] = await Promise.all([
@@ -3180,6 +3188,11 @@ ui.repoTabs.addEventListener("contextmenu", (event) => {
 			hint: "Elenca le pull request aperte e ne crea una da due rami già inviati.",
 			action: onRepo(openPulls),
 		},
+		{
+			label: "Reflog…",
+			hint: "Mostra gli spostamenti di HEAD e ne apre un commit.",
+			action: onRepo(openReflog),
+		},
 		"separator",
 		{
 			label: "Chiudi la scheda",
@@ -4409,6 +4422,100 @@ async function createPullFromForm(): Promise<void> {
 	}
 }
 
+// ── reflog e «vai al commit» ────────────────────────────────────────────────
+
+let reflogCache: ReflogEntry[] = [];
+
+async function openReflog(): Promise<void> {
+	if (!ui.reflogDialog.open) ui.reflogDialog.showModal();
+	await loadReflog();
+}
+
+async function loadReflog(): Promise<void> {
+	ui.reflogRefresh.disabled = true;
+	ui.reflogStatus.textContent = t("Leggo il reflog…");
+	ui.reflogStatus.classList.remove("is-error");
+	clear(ui.reflogList);
+	try {
+		reflogCache = await api.reflog(200);
+		renderReflog();
+	} catch (error) {
+		reflogCache = [];
+		ui.reflogStatus.classList.add("is-error");
+		ui.reflogStatus.textContent = readableError(error);
+	} finally {
+		ui.reflogRefresh.disabled = false;
+	}
+}
+
+function renderReflog(): void {
+	clear(ui.reflogList);
+	if (reflogCache.length === 0) {
+		ui.reflogList.appendChild(el("li", "muted", t("Reflog vuoto.")));
+		ui.reflogStatus.textContent = "";
+		return;
+	}
+	for (const entry of reflogCache) renderReflogItem(entry);
+	ui.reflogStatus.textContent = t(`${reflogCache.length} voci.`);
+}
+
+function renderReflogItem(entry: ReflogEntry): void {
+	const item = el("li");
+	const description = el("div", "actions-text");
+	description.appendChild(
+		el("span", "actions-name", `${entry.short} · ${entry.action}`)
+	);
+	const when = Date.parse(entry.date);
+	description.appendChild(
+		el(
+			"span",
+			"actions-meta",
+			`${entry.selector}${
+				Number.isFinite(when) ? ` · ${shortDate(when)}` : ""
+			}`
+		)
+	);
+	item.appendChild(description);
+
+	const actions = el("div", "actions-actions");
+	const open = el(
+		"button",
+		"btn btn-small",
+		t("Vai al commit")
+	) as HTMLButtonElement;
+	open.type = "button";
+	open.title = t("Apre questo commit nel pannello dei dettagli.");
+	open.addEventListener("click", () => {
+		ui.reflogDialog.close();
+		void selectCommit(entry.sha);
+	});
+	actions.appendChild(open);
+	item.appendChild(actions);
+	ui.reflogList.appendChild(item);
+}
+
+/**
+ * Salto a un commit qualsiasi: la storia caricata non conta, `selectCommit` chiede il dettaglio a
+ * Git. Lo SHA accorciato va bene, ma deve sembrare uno SHA e non un'opzione.
+ */
+async function goToCommitBySha(): Promise<void> {
+	const value = await askInput({
+		title: t("Vai al commit"),
+		label: t("SHA del commit"),
+	});
+	if (value === null) return;
+	const sha = value.trim();
+	if (!/^[0-9a-f]{4,64}$/i.test(sha)) {
+		toast(t("Uno SHA è fatto di cifre esadecimali: per esempio 1a2b3c4."));
+		return;
+	}
+	// se lo SHA accorciato è già nella pagina caricata si usa quello completo, così la riga si accende
+	const known = state.commits.find((commit) =>
+		commit.sha.toLowerCase().startsWith(sha.toLowerCase())
+	);
+	await selectCommit(known?.sha ?? sha);
+}
+
 // ── eventi ───────────────────────────────────────────────────────────────────
 
 ui.btnOpen.addEventListener("click", () => void openRepository());
@@ -4500,6 +4607,10 @@ ui.pullsOpenPage.addEventListener("click", () => {
 	if (pullsCache?.webUrl)
 		void guard("Browser", () => api.openExternal(pullsCache!.webUrl));
 });
+
+ui.reflogForm.addEventListener("submit", (event) => event.preventDefault());
+ui.reflogRefresh.addEventListener("click", () => void loadReflog());
+ui.reflogClose.addEventListener("click", () => ui.reflogDialog.close());
 ui.accountOauthClientHelp.addEventListener("click", openOauthClientHelp);
 ui.accountTokenPage.addEventListener("click", openTokenPage);
 // chiudere il dialogo ferma l'attesa: nessun ciclo che continua senza finestra
@@ -5035,6 +5146,22 @@ const COMMANDS: PaletteCommand[] = [
 		keywords: "pull request merge request pr mr richieste",
 		enabled: repoReady,
 		run: () => void openPulls(),
+	},
+	{
+		id: "reflog",
+		group: "Storia",
+		label: "Reflog…",
+		keywords: "reflog head cronologia movimenti",
+		enabled: repoReady,
+		run: () => void openReflog(),
+	},
+	{
+		id: "goto-commit",
+		group: "Storia",
+		label: "Vai al commit per SHA…",
+		keywords: "sha commit vai raggiungi",
+		enabled: repoReady,
+		run: () => void goToCommitBySha(),
 	},
 	{
 		id: "tab-commit",

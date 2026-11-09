@@ -140,6 +140,7 @@ const api: GitApi = {
 	markResolved: (paths) => invokeRepo("git:markResolved", paths),
 	continueOperation: () => invokeRepo("git:continueOperation"),
 	search: (query) => invokeRepo("git:search", query),
+	reflog: (limit) => invokeRepo("git:reflog", limit),
 	moreCommits: (skip) => invokeRepo("git:moreCommits", skip),
 	blame: (path, start, end) => invokeRepo("git:blame", path, start, end),
 	undo: () => invokeRepo("git:undo"),

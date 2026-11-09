@@ -65,6 +65,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Undo generale** (commit, checkout, scarto, merge)              | ✅             |
 | **File non tracciati recuperabili** (oggetti Git)                | ✅             |
 | **Ricerca nella storia**: testo, `author:`, `file:`, `regex:`, `change:`, `diff:`, `lines:` | ✅             |
+| **Reflog** nell'app e «vai al commit» per SHA                    | ✅             |
 | **Aggiornamento automatico** (`--watch`)                         | ✅             |
 | **Blame nella UI** (pannello virtualizzato)                      | ✅             |
 | **Pannello ridimensionabile, a icona, in finestra**              | ✅             |
@@ -91,6 +92,10 @@ La finestra segue la disposizione dei client Git desktop affermati, con un tema 
 -   **Barra laterale**: nome del repository, _Changes_ con il conteggio, _All Commits_, filtro di
     ricerca e i ref divisi in Branches / Remotes / Tags. Il conteggio si nasconde a zero, è verde quando
     tutto è in stage e ambra quando resta qualcosa fuori.
+-   **Reflog e salto a un commit**: «Reflog…» elenca gli spostamenti di HEAD (commit, checkout,
+    reset, rebase) con selettore, SHA abbreviato e data; «Vai al commit» apre quel commit nel
+    pannello. «Vai al commit per SHA…», dalla palette, raggiunge qualsiasi commit anche fuori dalla
+    pagina di storia caricata. Nessuna delle due cambia il repository.
 -   **Ricerca con un linguaggio minimo**: il testo libero è letterale e non guarda le maiuscole;
     `author:` e `file:` filtrano autore e percorso; `regex:` cerca un'espressione regolare nel
     messaggio, `change:` i commit in cui cambia il numero di occorrenze di un testo (`-S`), `diff:` i

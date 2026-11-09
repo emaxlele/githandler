@@ -2,6 +2,22 @@
 
 ## [Non rilasciato]
 
+### Reflog e salto a qualsiasi commit
+
+-   **Finestra «Reflog»**: gli ultimi 200 spostamenti di HEAD (commit, checkout, reset, rebase) con
+    selettore (`HEAD@{3}`), SHA abbreviato, azione e data; _Vai al commit_ apre quel commit nel
+    pannello dei dettagli. Si apre dal menu della scheda del repository e dalla palette.
+-   **«Vai al commit per SHA…»**: raggiunge qualsiasi commit, anche fuori dalla pagina di storia
+    caricata. Accetta lo SHA abbreviato; se è già nella pagina, la riga si accende.
+-   **Core nuovo** `src/core/reflog.ts`: `reflogArgs` (limite 1–1000) e `parseReflog`, che ricava
+    l'indice dall'ordine perché `--date` toglie il numero dal selettore, e scarta le righe rotte.
+-   **Backend** `reflog(limit)`: legge con lo stesso backend della UI; un repository senza commit
+    restituisce un elenco vuoto, non un errore. Un reflog di 200 voci costa una sola chiamata a Git.
+-   **Sola lettura**: guardare il reflog non muove nulla; il salto a un commit cambia solo la
+    selezione nel pannello.
+-   Test nuovi in `tests/reflog.test.mts` (5 casi): argomenti, parser con date e righe rotte, reflog
+    vero dopo un `reset --hard`, repository senza commit.
+
 ### Ricerca nella storia, con un linguaggio più forte
 
 -   **Quattro operatori nuovi** nello stesso campo di ricerca: `regex:` cerca un'espressione regolare

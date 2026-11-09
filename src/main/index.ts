@@ -370,6 +370,9 @@ function registerIpc(): void {
 	handle("git:search", (root: string, query: string) =>
 		backendFor(root).search(parseHistoryQuery(query))
 	);
+	handle("git:reflog", (root: string, limit?: number) =>
+		backendFor(root).reflog(limit)
+	);
 	handle("git:moreCommits", (root: string, skip: number) =>
 		backendFor(root).historyPage(skip)
 	);
@@ -869,6 +872,30 @@ async function runShots(): Promise<void> {
 			target.replace(/\.png$/, "-pulls.png"),
 		],
 		[`document.getElementById("pulls-dialog")?.close()`, null],
+		[
+			`(() => {
+				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+				const input = document.getElementById("palette-input");
+				input.value = "reflog";
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+			})()`,
+			target.replace(/\.png$/, "-reflog.png"),
+		],
+		[`document.getElementById("reflog-dialog")?.close()`, null],
+		[
+			`(() => {
+				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+				const input = document.getElementById("palette-input");
+				input.value = "vai al commit";
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+				const field = document.getElementById("input-field");
+				field.value = "ee3e984";
+				document.getElementById("input-form").requestSubmit();
+			})()`,
+			target.replace(/\.png$/, "-goto.png"),
+		],
 		[
 			`(() => {
 				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));

@@ -32,6 +32,7 @@ import {
 import { hostFromUrl } from "../core/providers.ts";
 import { parseStatus, statusArgs } from "../core/status.ts";
 import { patchTargetsOnly, type PatchMode } from "../core/patch.ts";
+import { reflogArgs, parseReflog, type ReflogEntry } from "../core/reflog.ts";
 import { historyArgs, type HistoryQuery } from "../core/search.ts";
 import {
 	cherryPickArgs,
@@ -156,6 +157,8 @@ export interface GitBackend {
 	checkoutTracking(remoteRef: string, local: string): Promise<Snapshot>;
 	/** Ricerca nella storia: testo libero, `author:`, `file:`. */
 	search(query: HistoryQuery, limit?: number): Promise<Commit[]>;
+	/** Spostamenti di HEAD, dal più recente. */
+	reflog(limit?: number): Promise<ReflogEntry[]>;
 	/** Pagina successiva della storia, a partire da `skip`. */
 	historyPage(skip: number, limit?: number): Promise<CommitPage>;
 	/** Metadati di un commit qualsiasi, anche fuori dalla pagina di storia caricata. */
@@ -916,6 +919,14 @@ export class CliGitBackend implements GitBackend {
 			allowFailure: true,
 		});
 		return parseLog(result.stdout);
+	}
+
+	async reflog(limit = 200): Promise<ReflogEntry[]> {
+		const info = this.#requireInfo();
+		const result = await runGit(info.root, reflogArgs(limit), {
+			allowFailure: true,
+		});
+		return parseReflog(result.stdout);
 	}
 
 	async historyPage(

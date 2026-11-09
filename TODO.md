@@ -119,7 +119,8 @@ minmax(0, 1fr)`), non più contenuto tagliato
     -   [x] **Ricerca più forte**: `regex:` sul messaggio, `change:` (`-S`), `diff:` (`-G`),
             `lines:` (`log -L`); il testo libero resta letterale
     -   [ ] Ricerca nel contenuto dei file (`git grep`), strumento a parte
-    -   [ ] Pannello reflog / cronologia undo e «vai al commit per SHA»
+    -   [x] **Pannello reflog** e «vai al commit per SHA»: gli spostamenti di HEAD si vedono,
+            con selettore, SHA e data, e ogni voce apre il commit nel pannello
 -   [x] **Pull request / merge request**: elenco delle aperte (GitHub, GitLab, Gitea/Forgejo,
         Bitbucket), creazione da due rami già inviati, apertura nel browser, bozza; dal menu della
         scheda e dalla palette
