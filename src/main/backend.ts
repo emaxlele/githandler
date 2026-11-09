@@ -72,6 +72,8 @@ import type {
 	CommitFile,
 	CommitPage,
 	CommitStat,
+	ConflictDetail,
+	ConflictFile,
 	DiffFile,
 	RefInfo,
 	RepoInfo,
@@ -171,6 +173,43 @@ function refFingerprint(refs: RefInfo[]): string {
 	return refs
 		.map((ref) => `${ref.kind}\u0000${ref.name}\u0000${ref.sha}`)
 		.join("\u0001");
+}
+
+interface Stages {
+	base: boolean;
+	ours: boolean;
+	theirs: boolean;
+}
+
+/**
+ * `git ls-files -u -z` scrive un record per ogni stage di ogni file in conflitto:
+ * `<mode> <sha> <stage>\t<path>\0`. L'assenza di uno stage dice che quel lato ha cancellato il file.
+ */
+function parseUnmergedStages(raw: string): Map<string, Stages> {
+	const out = new Map<string, Stages>();
+	for (const record of raw.split("\u0000")) {
+		const tab = record.indexOf("\t");
+		if (tab < 0) continue;
+		const fields = record.slice(0, tab).split(" ");
+		const stage = Number(fields[2]);
+		const path = record.slice(tab + 1);
+		if (!path || (stage !== 1 && stage !== 2 && stage !== 3)) continue;
+		const entry = out.get(path) ?? {
+			base: false,
+			ours: false,
+			theirs: false,
+		};
+		if (stage === 1) entry.base = true;
+		if (stage === 2) entry.ours = true;
+		if (stage === 3) entry.theirs = true;
+		out.set(path, entry);
+	}
+	return out;
+}
+
+/** Un blob binario: NUL nei primi 8000 byte, la stessa soglia che usa Git. */
+function isBinary(text: string): boolean {
+	return text.slice(0, 8000).includes("\u0000");
 }
 
 /** Rifiuta path che possano uscire dal repository o diventare opzioni per git. */
@@ -733,6 +772,127 @@ export class CliGitBackend implements GitBackend {
 		const info = this.#requireInfo();
 		await runGit(info.root, checkoutTrackingArgs(remoteRef, local));
 		return this.refresh();
+	}
+
+	/** File in conflitto dell'operazione sospesa, con gli stage presenti nell'indice. */
+	async conflicts(): Promise<ConflictFile[]> {
+		const info = this.#requireInfo();
+		const [status, staged] = await Promise.all([
+			runGit(info.root, statusArgs(), { allowFailure: true }),
+			runGit(info.root, ["ls-files", "-u", "-z"], { allowFailure: true }),
+		]);
+		const codes = new Map<string, { index: string; worktree: string }>();
+		for (const entry of parseStatus(status.stdout).entries) {
+			if (entry.kind === "unmerged")
+				codes.set(entry.path, {
+					index: entry.index,
+					worktree: entry.worktree,
+				});
+		}
+		const stages = parseUnmergedStages(staged.stdout);
+		return [...stages].map(([path, present]) => ({
+			path,
+			index: codes.get(path)?.index ?? "U",
+			worktree: codes.get(path)?.worktree ?? "U",
+			stages: present,
+		}));
+	}
+
+	/** Le tre versioni di un conflitto, più il testo che sta su disco adesso. */
+	async conflictDetail(path: string): Promise<ConflictDetail> {
+		const info = this.#requireInfo();
+		assertSafePath(path);
+		const [tree, present] = await Promise.all([
+			runGit(info.root, ["ls-files", "-u", "-z"], { allowFailure: true }),
+			this.conflicts(),
+		]);
+		const stages =
+			parseUnmergedStages(tree.stdout).get(path) ?? {
+				base: false,
+				ours: false,
+				theirs: false,
+			};
+		const [base, ours, theirs, working] = await Promise.all([
+			this.#stageText(path, 1),
+			this.#stageText(path, 2),
+			this.#stageText(path, 3),
+			readFile(join(info.root, path), "utf8").catch(() => ""),
+		]);
+		return {
+			path,
+			index:
+				present.find((file) => file.path === path)?.index ?? "U",
+			worktree:
+				present.find((file) => file.path === path)?.worktree ?? "U",
+			stages,
+			working,
+			base,
+			ours,
+			theirs,
+			binary: isBinary(base) || isBinary(ours) || isBinary(theirs),
+		};
+	}
+
+	/**
+	 * Tiene la versione di uno dei due lati per un intero file. Se quello stage non esiste il file
+	 * era stato cancellato da quel lato: la scelta diventa una cancellazione, non un contenuto vuoto.
+	 */
+	async resolveConflictFile(
+		path: string,
+		side: "ours" | "theirs"
+	): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		assertSafePath(path);
+		const tree = await runGit(info.root, ["ls-files", "-u", "-z"], {
+			allowFailure: true,
+		});
+		const stages = parseUnmergedStages(tree.stdout).get(path);
+		if (!stages) throw new Error(`Nessun conflitto per ${path}.`);
+		const present = side === "ours" ? stages.ours : stages.theirs;
+		if (present) {
+			await runGit(info.root, ["checkout", `--${side}`, "--", path]);
+			await runGit(info.root, ["add", "--", path]);
+		} else {
+			await runGit(info.root, ["rm", "-f", "--", path]);
+		}
+		return this.refresh();
+	}
+
+	/** Scrive il risultato scelto dall'utente: il file resta da segnare come risolto. */
+	async writeResolvedFile(path: string, text: string): Promise<void> {
+		const info = this.#requireInfo();
+		assertSafePath(path);
+		await writeFile(join(info.root, path), text, "utf8");
+	}
+
+	/** `git add`: il file esce dall'elenco dei conflitti. */
+	async markResolved(paths: string[]): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		for (const path of paths) assertSafePath(path);
+		if (paths.length > 0)
+			await runGit(info.root, ["add", "--", ...paths]);
+		return this.refresh();
+	}
+
+	/** Riprende l'operazione sospesa (`--continue`) senza aprire un editor. */
+	async continueOperation(): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		const operation = await this.#operation(info.gitDir);
+		if (!operation) throw new Error("Nessuna operazione da continuare.");
+		await runGit(info.root, [operation, "--continue"], {
+			timeoutMs: 300_000,
+			env: { GIT_EDITOR: "true" },
+		});
+		return this.refresh();
+	}
+
+	/** Contenuto di uno stage (`:1:`, `:2:`, `:3:`); vuoto quando lo stage non esiste. */
+	async #stageText(path: string, stage: 1 | 2 | 3): Promise<string> {
+		const info = this.#requireInfo();
+		const result = await runGit(info.root, ["show", `:${stage}:${path}`], {
+			allowFailure: true,
+		});
+		return result.code === 0 ? result.stdout : "";
 	}
 
 	/** Operazione interrotta a metà (merge, rebase, cherry-pick), se c'è. */

@@ -2,11 +2,26 @@
 
 ## [Non rilasciato]
 
+### Conflitti risolti dentro l'app
+
+-   **Vista dei conflitti**: quando un merge, rebase o cherry-pick si ferma, si apre un pannello con i
+    file in conflitto, le tre versioni (base, mio, loro) e il testo attuale del file.
+-   **Scelta per file e per hunk**: «usa mio» / «usa loro» su un intero file (anche quando un lato ha
+    cancellato il file), oppure una scelta per ogni conflitto con anteprima affiancata e editor del
+    risultato.
+-   **Segna risolto** (`git add`), **continua** (`--continue` senza aprire un editor) e **annulla
+    operazione**. Dopo la continuazione la finestra torna alla storia aggiornata.
+-   Core nuovo `src/core/conflicts.ts` (parser dei marcatori, anche senza base `diff3`, e
+    ricostruzione del testo) e backend con gli stage 1/2/3; i file binari hanno solo la scelta per
+    file.
+-   **Corretto** un errore della versione bilingue: la richiesta di conferma chiamava se stessa, quindi
+    ogni «sei sicuro?» finiva in un errore invece di aprire la finestra.
+
 ### Interfaccia bilingue
 
 -   **Catalogo di traduzione** (`src/renderer/i18n.ts`): l'italiano è la lingua di partenza e il
     catalogo lo traduce in inglese, con segnaposto per i valori interpolati. La lingua si sceglie in
-    *Impostazioni → Lingua* (`auto` segue il sistema) e il cambio ricarica la finestra.
+    _Impostazioni → Lingua_ (`auto` segue il sistema) e il cambio ricarica la finestra.
 -   La shell statica, i menu contestuali, i toast, le conferme, le etichette create dalla UI, le date e
     i tempi relativi passano dal catalogo; `GITHANDLER_LOCALE=en` (o `--locale en`) forza la lingua
     per screenshot e prove.

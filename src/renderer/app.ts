@@ -19,6 +19,9 @@ import type {
 	DiffFile,
 	RefInfo,
 	Snapshot,
+	ConflictDetail,
+	ConflictFile,
+	RepoOperation,
 	StatusEntry,
 } from "../core/types.ts";
 import { describeUndo } from "../core/undo.ts";
@@ -44,6 +47,12 @@ import type {
 	PanelStateInput,
 	PanelTab,
 } from "../shared/api.ts";
+import {
+	countConflicts,
+	parseConflicts,
+	resolveConflicts,
+	type ConflictChoice,
+} from "../core/conflicts.ts";
 import { BlameView } from "./blame-view.ts";
 import {
 	pickKey,
@@ -72,7 +81,7 @@ setLocale(
 	resolveLocale(
 		(localeOverride === "it" || localeOverride === "en"
 			? localeOverride
-			: (localStorage.getItem(LOCALE_STORAGE_KEY) ?? "auto")) as
+			: localStorage.getItem(LOCALE_STORAGE_KEY) ?? "auto") as
 			| "auto"
 			| "it"
 			| "en"
@@ -384,6 +393,22 @@ const ui = {
 	splitter: byId("bottom-splitter"),
 	btnBottomCollapse: byId<HTMLButtonElement>("btn-bottom-collapse"),
 	btnBottomDetach: byId<HTMLButtonElement>("btn-bottom-detach"),
+	conflictDialog: byId<HTMLDialogElement>("conflict-dialog"),
+	conflictOperation: byId("conflict-operation"),
+	conflictFiles: byId("conflict-files"),
+	conflictPath: byId("conflict-path"),
+	conflictStages: byId("conflict-stages"),
+	conflictHunks: byId("conflict-hunks"),
+	conflictEditor: byId<HTMLTextAreaElement>("conflict-editor"),
+	conflictStatus: byId("conflict-status"),
+	conflictContinue: byId<HTMLButtonElement>("conflict-continue"),
+	conflictUseOurs: byId<HTMLButtonElement>("conflict-use-ours"),
+	conflictUseTheirs: byId<HTMLButtonElement>("conflict-use-theirs"),
+	conflictMark: byId<HTMLButtonElement>("conflict-mark"),
+	conflictApply: byId<HTMLButtonElement>("conflict-apply-hunks"),
+	conflictSave: byId<HTMLButtonElement>("conflict-save"),
+	conflictAbort: byId<HTMLButtonElement>("conflict-abort"),
+	conflictClose: byId<HTMLButtonElement>("conflict-close"),
 	toast: byId("toast"),
 };
 
@@ -455,7 +480,7 @@ function toast(message: string, kind: "error" | "ok" = "error"): void {
 
 /** `window.confirm` con il messaggio tradotto: la conferma è dell'utente, non della lingua. */
 function askConfirm(message: string): boolean {
-	return askConfirm(t(message));
+	return window.confirm(t(message));
 }
 
 /** Il messaggio vero, senza il prefisso che Electron aggiunge agli errori IPC. */
@@ -504,6 +529,17 @@ async function guardRepo<T>(
 			applySnapshot(await api.refresh());
 		} catch (refreshError) {
 			console.warn("stato non rileggibile dopo l'errore:", refreshError);
+		}
+		// Un merge, rebase o cherry-pick che si ferma sui conflitti è un caso previsto:
+		// si apre subito la risoluzione invece di lasciare solo il messaggio di Git.
+		if (state.snapshot?.info.operation) {
+			await openConflicts();
+			if (conflictFiles.length > 0)
+				toast(
+					t(
+						"Operazione fermata dai conflitti: scegli qui sotto la versione da tenere."
+					)
+				);
 		}
 		return null;
 	}
@@ -671,7 +707,7 @@ function renderOperation(snapshot: Snapshot | null): void {
 			: operation === "rebase"
 			? "Rebase in corso"
 			: "Cherry-pick in corso";
-	ui.repoOperation.textContent = t(`${label} · annulla`);
+	ui.repoOperation.textContent = t(`${label} · risolvi`);
 	ui.repoOperation.dataset.operation = operation;
 }
 
@@ -1248,9 +1284,7 @@ function fillChangeList(
 		const acts = el("span", "acts");
 		const toggle = el("button", "icon-btn", staged ? "−" : "+");
 		toggle.dataset.act = staged ? "unstage" : "stage";
-		toggle.title = t(
-			staged ? "Togli dallo stage" : "Aggiungi allo stage"
-		);
+		toggle.title = t(staged ? "Togli dallo stage" : "Aggiungi allo stage");
 		acts.appendChild(toggle);
 
 		const discard = el("button", "icon-btn", "×");
@@ -2447,6 +2481,251 @@ async function abortOperation(): Promise<void> {
 	toast("Operazione annullata.", "ok");
 }
 
+// ── conflitti ───────────────────────────────────────────────────────────────
+
+let conflictFiles: ConflictFile[] = [];
+let conflictDetail: ConflictDetail | null = null;
+
+/** Il testo del conflitto scelto: uno stag una tantum, la UI legge solo questo. */
+async function openConflicts(): Promise<void> {
+	if (!state.snapshot?.info.operation) return;
+	ui.conflictOperation.textContent = operationLabel(
+		state.snapshot.info.operation
+	);
+	ui.conflictStatus.textContent = "";
+	if (!ui.conflictDialog.open) ui.conflictDialog.showModal();
+	await loadConflicts();
+}
+
+function operationLabel(operation: RepoOperation): string {
+	if (operation === "merge") return t("Merge in corso");
+	if (operation === "rebase") return t("Rebase in corso");
+	return t("Cherry-pick in corso");
+}
+
+async function loadConflicts(select?: string): Promise<void> {
+	const files = await guard("Conflitti", () => api.conflicts());
+	if (!files) return;
+	conflictFiles = files;
+	conflictDetail = null;
+	const target =
+		(select && files.some((file) => file.path === select)
+			? select
+			: null) ??
+		files[0]?.path ??
+		null;
+	await selectConflict(target);
+}
+
+function renderConflictFiles(): void {
+	clear(ui.conflictFiles);
+	if (conflictFiles.length === 0) {
+		ui.conflictFiles.appendChild(
+			el("li", "muted", t("Nessun conflitto: puoi continuare."))
+		);
+		return;
+	}
+	for (const file of conflictFiles) {
+		const item = el("li", "", file.path);
+		item.dataset.path = file.path;
+		if (file.path === conflictDetail?.path)
+			item.classList.add("is-selected");
+		item.addEventListener("click", () => void selectConflict(file.path));
+		ui.conflictFiles.appendChild(item);
+	}
+}
+
+async function selectConflict(path: string | null): Promise<void> {
+	conflictDetail = null;
+	ui.conflictHunks.replaceChildren();
+	ui.conflictEditor.value = "";
+	ui.conflictEditor.disabled = path === null;
+	ui.conflictPath.textContent = path ?? "—";
+	ui.conflictStages.textContent = "";
+	ui.conflictContinue.disabled =
+		conflictFiles.length > 0 || !state.snapshot?.info.operation;
+	for (const button of [
+		ui.conflictUseOurs,
+		ui.conflictUseTheirs,
+		ui.conflictMark,
+		ui.conflictApply,
+		ui.conflictSave,
+	]) {
+		button.disabled = path === null;
+	}
+	renderConflictFiles();
+	if (!path) return;
+
+	const detail = await guard("Dettaglio del conflitto", () =>
+		api.conflictDetail(path)
+	);
+	if (!detail) return;
+	conflictDetail = detail;
+	ui.conflictEditor.value = detail.working;
+	ui.conflictStages.textContent = describeStages(detail);
+	ui.conflictEditor.disabled = detail.binary;
+	ui.conflictApply.disabled = detail.binary;
+	ui.conflictSave.disabled = detail.binary;
+	renderConflictHunks(detail);
+	renderConflictFiles();
+}
+
+/** Quali versioni esistono davvero: una cancellazione da un lato si vede qui. */
+function describeStages(detail: ConflictDetail): string {
+	const parts: string[] = [];
+	if (detail.stages.base) parts.push(t("base"));
+	if (detail.stages.ours) parts.push(t("mio"));
+	if (detail.stages.theirs) parts.push(t("loro"));
+	return detail.binary
+		? `${parts.join(" · ")} · ${t("binario")}`
+		: parts.join(" · ");
+}
+
+function renderConflictHunks(detail: ConflictDetail): void {
+	clear(ui.conflictHunks);
+	if (detail.binary) return;
+	const conflicts = parseConflicts(detail.working).filter(
+		(part) => part.kind === "conflict"
+	);
+	if (conflicts.length === 0) {
+		ui.conflictHunks.appendChild(
+			el(
+				"p",
+				"hint",
+				t(
+					"Il file non ha più marcatori: correggi il testo e segnalo come risolto."
+				)
+			)
+		);
+		return;
+	}
+	conflicts.forEach((part, index) => {
+		if (part.kind !== "conflict") return;
+		const box = el("div", "conflict-hunk");
+		box.appendChild(
+			el("div", "conflict-hunk-title", t(`Conflitto ${index + 1}`))
+		);
+		const choices: Array<[ConflictChoice, string]> = [
+			["ours", t("Mio")],
+			["theirs", t("Loro")],
+			["both", t("Entrambi")],
+		];
+		if (part.hunk.base !== null) choices.push(["base", t("Base")]);
+		for (const [value, label] of choices) {
+			const input = el("input");
+			input.type = "radio";
+			input.name = `conflict-hunk-${index}`;
+			input.value = value;
+			const wrap = el("label");
+			wrap.append(input, document.createTextNode(` ${label}`));
+			box.appendChild(wrap);
+		}
+		// Le due versioni una accanto all'altra, con l'etichetta: senza, «DUE DAL RAMO» non dice
+		// da che parte arriva.
+		const preview = el("div", "conflict-hunk-preview");
+		for (const [label, text] of [
+			[t("Mio"), part.hunk.ours],
+			[t("Loro"), part.hunk.theirs],
+		] as const) {
+			const column = el("div");
+			column.append(
+				el("div", "conflict-preview-label", label),
+				pre(text)
+			);
+			preview.appendChild(column);
+		}
+		box.appendChild(preview);
+		ui.conflictHunks.appendChild(box);
+	});
+}
+
+function pre(text: string): HTMLElement {
+	const node = el("pre");
+	node.textContent = text;
+	return node;
+}
+
+/** Ogni conflitto deve avere una scelta: senza, il file resterebbe con i marcatori. */
+function applyConflictChoices(): void {
+	if (!conflictDetail) return;
+	const total = countConflicts(parseConflicts(ui.conflictEditor.value));
+	const choices: ConflictChoice[] = [];
+	for (let index = 0; index < total; index++) {
+		const checked = ui.conflictHunks.querySelector<HTMLInputElement>(
+			`input[name="conflict-hunk-${index}"]:checked`
+		);
+		if (!checked) {
+			toast("Scegli una versione per ogni conflitto.");
+			return;
+		}
+		choices.push(checked.value as ConflictChoice);
+	}
+	const result = resolveConflicts(ui.conflictEditor.value, choices);
+	ui.conflictEditor.value = result.text;
+	toast(
+		"Scelte applicate. Segna il file come risolto quando hai finito.",
+		"ok"
+	);
+}
+
+async function saveConflictText(): Promise<void> {
+	if (!conflictDetail) return;
+	try {
+		await api.writeResolvedFile(
+			conflictDetail.path,
+			ui.conflictEditor.value
+		);
+		toast(
+			"Testo salvato. Segna il file come risolto quando hai finito.",
+			"ok"
+		);
+	} catch (error) {
+		toast(readableError(error));
+	}
+}
+
+async function resolveConflictSide(side: "ours" | "theirs"): Promise<void> {
+	if (!conflictDetail) return;
+	const snapshot = await guard(
+		side === "ours" ? t("Usa mio") : t("Usa loro"),
+		() => api.resolveConflictFile(conflictDetail!.path, side)
+	);
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	await loadConflicts();
+}
+
+async function markConflictResolved(): Promise<void> {
+	if (!conflictDetail) return;
+	const path = conflictDetail.path;
+	const snapshot = await guard(t("Segna risolto"), () =>
+		api.markResolved([path])
+	);
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	await loadConflicts(path);
+}
+
+async function continueConflicts(): Promise<void> {
+	const snapshot = await guard("Continua", () => api.continueOperation());
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	if (snapshot.info.operation === null) {
+		ui.conflictDialog.close();
+		toast("Operazione completata.", "ok");
+		return;
+	}
+	// un rebase può fermarsi di nuovo: si riparte dall'elenco aggiornato
+	ui.conflictOperation.textContent = operationLabel(snapshot.info.operation);
+	await loadConflicts();
+}
+
+async function abortConflicts(): Promise<void> {
+	await abortOperation();
+	if (state.snapshot?.info.operation === null) ui.conflictDialog.close();
+	else await loadConflicts();
+}
+
 let inputResolve: ((value: string | null) => void) | null = null;
 
 /** Sostituto di `window.prompt`, che in Electron non esiste. */
@@ -2699,7 +2978,21 @@ ui.btnPull.addEventListener("click", () => void pullChanges());
 ui.btnPush.addEventListener("click", () => void pushChanges());
 ui.btnStash.addEventListener("click", () => void openStash());
 ui.btnSubmodule.addEventListener("click", () => void openSubmodules());
-ui.repoOperation.addEventListener("click", () => void abortOperation());
+ui.repoOperation.addEventListener("click", () => void openConflicts());
+ui.conflictClose.addEventListener("click", () => ui.conflictDialog.close());
+ui.conflictUseOurs.addEventListener(
+	"click",
+	() => void resolveConflictSide("ours")
+);
+ui.conflictUseTheirs.addEventListener(
+	"click",
+	() => void resolveConflictSide("theirs")
+);
+ui.conflictMark.addEventListener("click", () => void markConflictResolved());
+ui.conflictApply.addEventListener("click", () => applyConflictChoices());
+ui.conflictSave.addEventListener("click", () => void saveConflictText());
+ui.conflictContinue.addEventListener("click", () => void continueConflicts());
+ui.conflictAbort.addEventListener("click", () => void abortConflicts());
 
 ui.stashClose.addEventListener("click", () => ui.stashDialog.close());
 ui.btnStashSave.addEventListener("click", () => {

@@ -15,12 +15,11 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 
 ## 2. Conflicts, without leaving the app
 
-Today a merge, rebase or cherry-pick that stops on a conflict can only be aborted.
-
--   ⏳ Three-way view: mine / theirs / result, per file and per hunk.
--   ⏳ "Use mine" / "Use theirs" on a whole file.
--   ⏳ Editor for files with conflict markers, with the hunks listed.
--   ⏳ "Mark resolved" and "Continue" (`merge --continue`, `rebase --continue`, `cherry-pick --continue`).
+-   ✅ Three-way view: the working file, the two sides of every hunk, one choice per hunk.
+-   ✅ "Use mine" / "Use theirs" on a whole file, including the deletion side of a delete/modify clash.
+-   ✅ Editor for the result, with the hunks listed and their content side by side.
+-   ✅ "Mark resolved" and "Continue" (`merge --continue`, `rebase --continue`, `cherry-pick --continue`),
+    with "Abort" one click away.
 -   ⏳ Interactive rebase (reorder, squash, drop, reword) on top of the existing history view.
 -   ⏳ Worktrees: list, create, open in a tab.
 

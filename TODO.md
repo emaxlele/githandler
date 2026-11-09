@@ -107,11 +107,11 @@ minmax(0, 1fr)`), non più contenuto tagliato
 ## Aperto
 
 -   [ ] Milestone 2 — il diff che conta
-    -   [ ] **Risoluzione dei conflitti in-app**: vista a tre vie (mio / loro / risultato), scelta per
-            file e per hunk, editor, «segna risolto», «continua» per merge, rebase e cherry-pick
+    -   [x] **Risoluzione dei conflitti in-app**: tre versioni (base / mio / loro), scelta per file e
+            per hunk, editor del risultato, «segna risolto», «continua» per merge, rebase e cherry-pick
     -   [ ] Evidenziazione della sintassi (CodeMirror 6, licenza MIT): dipendenza nuova, va decisa
             prima di aggiungerla
-    -   [ ] Interfaccia in italiano **e** inglese (`i18n`), lingua scelta nelle impostazioni
+    -   [x] Interfaccia in italiano **e** inglese (`i18n`), lingua scelta nelle impostazioni
     -   [ ] Command palette (`Ctrl+K`) e scorciatoie documentate
     -   [ ] Ricerca più forte: regex, `-S` (pickaxe), contenuto dei file, `log -L`
     -   [ ] Pannello reflog / cronologia undo e «vai al commit per SHA»

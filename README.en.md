@@ -54,7 +54,9 @@ Italiano: [README.md](README.md)
 | Fetch                                                                         | ✅             |
 | **Pull** (`--ff-only`) and **push** (never forced)                            | ✅             |
 | **Stash** (save, apply, pop, drop)                                            | ✅             |
-| **Merge, rebase, cherry-pick**, abort conflict                                | ✅             |
+| **Merge, rebase, cherry-pick**, abort operation                               | ✅             |
+| **Conflicts resolved in the app** (per file and per hunk, "continue")         | ✅             |
+| **Interface in Italian and English**                                          | ✅             |
 | **Submodules** (list and update)                                              | ✅             |
 | **Integrated terminal** (in the active repository)                            | ✅             |
 | **Several repositories open at once** (tabs)                                  | ✅             |

@@ -85,6 +85,26 @@ export interface StatusEntry {
 	label: string;
 }
 
+/** Un file in conflitto, con le versioni presenti nell'indice (stage 1, 2, 3). */
+export interface ConflictFile {
+	path: string;
+	/** lettere `git status --porcelain=v2`: X = indice, Y = working tree. */
+	index: string;
+	worktree: string;
+	stages: { base: boolean; ours: boolean; theirs: boolean };
+}
+
+export interface ConflictDetail extends ConflictFile {
+	/** Contenuto attuale del file su disco, marcatori compresi. */
+	working: string;
+	/** Versioni dall'indice; vuote quando lo stage corrispondente non esiste. */
+	ours: string;
+	theirs: string;
+	base: string;
+	/** Almeno una versione non è testo: niente vista a tre vie, solo la scelta per file. */
+	binary: boolean;
+}
+
 export interface WorkingTree {
 	oid: string | null;
 	branch: string | null;

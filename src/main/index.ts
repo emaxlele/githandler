@@ -344,6 +344,24 @@ function registerIpc(): void {
 	handle("git:abortOperation", (root: string) =>
 		backendFor(root).abortOperation()
 	);
+	handle("git:conflicts", (root: string) => backendFor(root).conflicts());
+	handle("git:conflictDetail", (root: string, path: string) =>
+		backendFor(root).conflictDetail(path)
+	);
+	handle(
+		"git:resolveConflictFile",
+		(root: string, path: string, side: "ours" | "theirs") =>
+			backendFor(root).resolveConflictFile(path, side)
+	);
+	handle("git:writeResolvedFile", (root: string, path: string, text: string) =>
+		backendFor(root).writeResolvedFile(path, text)
+	);
+	handle("git:markResolved", (root: string, paths: string[]) =>
+		backendFor(root).markResolved(paths)
+	);
+	handle("git:continueOperation", (root: string) =>
+		backendFor(root).continueOperation()
+	);
 	handle("git:search", (root: string, query: string) =>
 		backendFor(root).search(query)
 	);
@@ -693,6 +711,11 @@ function createWindow(): void {
 	window.once("ready-to-show", () => window?.show());
 
 	if (shotsMode) {
+		if (process.env.GITHANDLER_SHOTS_DEBUG === "1") {
+			window.webContents.on("console-message", (_event, level, message) => {
+				process.stdout.write(`renderer[${level}]: ${message}\n`);
+			});
+		}
 		window.webContents.once("did-finish-load", () => void runShots());
 	}
 
@@ -822,10 +845,13 @@ async function runShots(): Promise<void> {
 			script: string,
 			file: string | null
 		): Promise<void> => {
-			if (script !== "undefined")
-				await window!.webContents
+			if (script !== "undefined") {
+				const result = await window!.webContents
 					.executeJavaScript(script)
-					.catch(() => undefined);
+					.catch((error) => `errore: ${cleanError(error)}`);
+				if (process.env.GITHANDLER_SHOTS_DEBUG === "1")
+					process.stdout.write(`debug: ${String(result)}\n`);
+			}
 			await wait(900);
 			if (!file) return;
 			const image = await window!.webContents.capturePage();
@@ -841,6 +867,67 @@ async function runShots(): Promise<void> {
 			.catch(() => true);
 		if (empty) return;
 		for (const [script, file] of steps) await shoot(script, file);
+
+		// Il dialogo dei conflitti si prova solo su un repository che ne ha davvero uno: lo
+		// scenario si attiva con GITHANDLER_SHOTS_CONFLICT=1 e un ramo chiamato `conflitto`.
+		if (process.env.GITHANDLER_SHOTS_CONFLICT === "1") {
+			await shoot(
+				`(() => {
+					document.getElementById("settings-dialog")?.close();
+					window.confirm = () => true;
+				})()`,
+				null
+			);
+			await shoot(
+				`(() => {
+					const item = [...document.querySelectorAll("#list-branches li")]
+						.find((node) => node.textContent?.includes("conflitto"));
+					item?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, clientX: 230, clientY: 300 }));
+				})()`,
+				null
+			);
+			await shoot(
+				`(() => {
+					const entry = [...document.querySelectorAll("#ctx-menu .ctx-item")]
+						.find((node) => (node.textContent ?? "").startsWith("Merge"));
+					entry?.click();
+				})()`,
+				null
+			);
+			await shoot(
+				`new Promise((resolve) => setTimeout(resolve, 2000))`,
+				target.replace(/\.png$/, "-conflict.png")
+			);
+			// Risoluzione dall'interfaccia: scelta per hunk, salvataggio, «segna risolto»,
+			// scelta per file e «continua» fino al commit di merge.
+			await shoot(
+				`(() => {
+					document.querySelector('input[name="conflict-hunk-0"][value="theirs"]')?.click();
+					document.getElementById("conflict-apply-hunks")?.click();
+				})()`,
+				null
+			);
+			await shoot(
+				`document.getElementById("conflict-save")?.click()`,
+				null
+			);
+			await shoot(
+				`document.getElementById("conflict-mark")?.click()`,
+				target.replace(/\.png$/, "-conflict-marked.png")
+			);
+			await shoot(
+				`document.getElementById("conflict-use-theirs")?.click()`,
+				null
+			);
+			await shoot(
+				`(() => {
+					const button = document.getElementById("conflict-continue");
+					if (button?.disabled) return console.error("continua disabilitato");
+					button?.click();
+				})()`,
+				target.replace(/\.png$/, "-conflict-done.png")
+			);
+		}
 	} catch (error) {
 		process.stderr.write(`screenshot fallito: ${cleanError(error)}\n`);
 	} finally {

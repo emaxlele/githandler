@@ -5,6 +5,29 @@
 
 ## 2026-11-09
 
+### Conflitti risolti senza uscire dall'app
+
+-   **Cosa**: quando un'operazione Git si ferma perché due modifiche toccano la stessa riga (merge,
+    rebase o cherry-pick), l'app apre un pannello per **risolvere il conflitto lì dentro**: elenco dei
+    file, le due versioni affiancate, la scelta di quale tenere per ogni punto, la possibilità di
+    correggere il testo a mano, «segna risolto», «continua» e, se serve, «annulla operazione». Prima
+    l'unica strada era annullare.
+-   **Perché**: richiesta dell'utente — è il passaggio che rende l'app usabile tutti i giorni: senza,
+    al primo conflitto bisogna tornare al terminale.
+-   **Come**: il programma legge dall'archivio Git le tre versioni del file (originale comune, mia,
+    loro) e il testo attuale, mostra i conflitti uno per uno e ricostruisce il file con le scelte. Per
+    un file intero si può tenere una delle due versioni, compreso il caso in cui una parte ha
+    cancellato il file. «Continua» riprende l'operazione senza aprire un editor.
+-   **Verifica**: typecheck, **162 test** verdi (7 sul parser dei conflitti, 6 su un merge vero in un
+    repository temporaneo) e build; uno scenario di screenshot crea un conflitto reale, lo risolve
+    dall'interfaccia e verifica che il merge sia stato completato. Controllate le schermate in
+    italiano e in inglese.
+-   **Corretto anche**: la finestra di conferma («sei sicuro?») chiamava se stessa e andava in errore;
+    trovato proprio durante queste prove e sistemato.
+-   **Stato**: completato. Restano fuori i casi rari: file binari (solo scelta per file) e conflitti
+    dentro sottomoduli.
+-   **Riferimento**: commit di questa sessione.
+
 ### Interfaccia in italiano e in inglese
 
 -   **Cosa**: l'interfaccia dell'app può ora essere usata in **italiano o in inglese**. La lingua si

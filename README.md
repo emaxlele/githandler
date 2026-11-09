@@ -54,7 +54,9 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | Fetch                                                            | ✅             |
 | **Pull** (`--ff-only`) e **push** (mai con forza)                | ✅             |
 | **Stash** (salva, applica, pop, elimina)                         | ✅             |
-| **Merge, rebase, cherry-pick**, annulla conflitto                | ✅             |
+| **Merge, rebase, cherry-pick**, annulla operazione               | ✅             |
+| **Conflitti risolti nell'app** (per file e per hunk, «continua»)  | ✅             |
+| **Interfaccia in italiano e in inglese**                          | ✅             |
 | **Submodule** (elenco e aggiornamento)                           | ✅             |
 | **Terminale integrato** (nel repository attivo)                  | ✅             |
 | **Più repository aperti insieme** (schede)                       | ✅             |

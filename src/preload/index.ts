@@ -129,6 +129,14 @@ const api: GitApi = {
 	checkoutTracking: (remoteRef, local) =>
 		invokeRepo("git:checkoutTracking", remoteRef, local),
 	abortOperation: () => invokeRepo("git:abortOperation"),
+	conflicts: () => invokeRepo("git:conflicts"),
+	conflictDetail: (path) => invokeRepo("git:conflictDetail", path),
+	resolveConflictFile: (path, side) =>
+		invokeRepo("git:resolveConflictFile", path, side),
+	writeResolvedFile: (path, text) =>
+		invokeRepo("git:writeResolvedFile", path, text),
+	markResolved: (paths) => invokeRepo("git:markResolved", paths),
+	continueOperation: () => invokeRepo("git:continueOperation"),
 	search: (query) => invokeRepo("git:search", query),
 	moreCommits: (skip) => invokeRepo("git:moreCommits", skip),
 	blame: (path, start, end) => invokeRepo("git:blame", path, start, end),

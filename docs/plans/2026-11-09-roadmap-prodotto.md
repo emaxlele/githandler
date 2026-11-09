@@ -35,21 +35,24 @@ Architettura in `docs/architettura.md`; misure in `docs/backend-performance.md`.
 
 ## Fase 2 — Conflitti in-app
 
--   [ ] `src/core/conflicts.ts`: parser dei marcatori (`<<<<<<<`, `|||||||`, `=======`, `>>>>>>>`) in
+-   [x] `src/core/conflicts.ts`: parser dei marcatori (`<<<<<<<`, `|||||||`, `=======`, `>>>>>>>`) in
         segmenti `{ ours, base, theirs }`, e ricostruzione del testo con una scelta per segmento
         (`ours` | `theirs` | `both` | `base`). Test su file con più conflitti, senza base (`diff3`
         disattivato), con marcatori incompleti.
--   [ ] Backend: `conflictFiles()` (path, tipo di conflitto dalle stage 1/2/3, binario), `conflictDetail(path)`
-        (base, ours, theirs, testo del working tree normalizzato con `git checkout --conflict=diff3`),
-        `resolveConflict(path, choices)` e `writeResolved(path, text)`, `markResolved(paths)`,
-        `continueOperation()` (`git merge|rebase|cherry-pick --continue` con `GIT_EDITOR=true`).
--   [ ] Percorsi validati come le altre scritture; nessuna scrittura fuori dal repository.
--   [ ] IPC e `shared/api.ts` per le nuove operazioni; preload aggiornato.
--   [ ] UI: pannello dei conflitti quando `info.operation` non è nullo. Elenco dei file, vista a tre
+-   [x] Backend: `conflicts()` (path, tipo di conflitto dalle stage 1/2/3, binario),
+        `conflictDetail(path)` (base, ours, theirs e testo del working tree), `writeResolvedFile(path,
+        text)`, `resolveConflictFile(path, side)`, `markResolved(paths)`, `continueOperation()`
+        (`git merge|rebase|cherry-pick --continue` con `GIT_EDITOR=true`)
+-   [x] Percorsi validati come le altre scritture; nessuna scrittura fuori dal repository
+-   [x] IPC e `shared/api.ts` per le nuove operazioni; preload aggiornato
+-   [x] UI: pannello dei conflitti quando `info.operation` non è nullo. Elenco dei file, vista a tre
         vie per file di testo, scelta per hunk, «usa mio» / «usa loro» per file, editor del risultato,
-        «segna risolto», «continua», «annulla operazione».
--   [ ] Conflitti di cancellazione/modifica e file binari: solo scelta per file, spiegata.
--   [ ] Dopo «continua», refresh e uscita dal pannello quando l'operazione è conclusa.
+        «segna risolto», «continua», «annulla operazione»
+-   [x] Conflitti di cancellazione/modifica e file binari: solo scelta per file, spiegata
+-   [x] Dopo «continua», refresh e uscita dal pannello quando l'operazione è conclusa
+-   [x] Scenario di verifica in `build/shots.sh` (`GITHANDLER_SHOTS_CONFLICT=1`): conflitto vero,
+        risoluzione dall'interfaccia e merge completato
+-   [x] Corretto `askConfirm` (chiamava se stesso) trovato durante le prove della UI
 
 ## Fase 3 — Command palette e scorciatoie
 

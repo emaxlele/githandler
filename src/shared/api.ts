@@ -11,6 +11,8 @@ import type {
 	CommitFile,
 	CommitPage,
 	CommitStat,
+	ConflictDetail,
+	ConflictFile,
 	DiffFile,
 	Snapshot,
 	StashEntry,
@@ -137,6 +139,18 @@ export interface GitApi {
 	checkoutTracking(remoteRef: string, local: string): Promise<Snapshot>;
 	/** Annulla un merge, rebase o cherry-pick sospeso a metà. */
 	abortOperation(): Promise<Snapshot>;
+	/** File in conflitto dell'operazione sospesa. */
+	conflicts(): Promise<ConflictFile[]>;
+	/** Le tre versioni di un conflitto e il testo attuale del file. */
+	conflictDetail(path: string): Promise<ConflictDetail>;
+	/** Tiene la versione di un lato per l'intero file. */
+	resolveConflictFile(path: string, side: "ours" | "theirs"): Promise<Snapshot>;
+	/** Scrive il risultato scelto dall'utente; il file resta da segnare come risolto. */
+	writeResolvedFile(path: string, text: string): Promise<void>;
+	/** Segna i file come risolti (`git add`). */
+	markResolved(paths: string[]): Promise<Snapshot>;
+	/** Riprende l'operazione sospesa dopo la risoluzione. */
+	continueOperation(): Promise<Snapshot>;
 	/** Ricerca nella storia: testo libero, `author:`, `file:`. */
 	search(query: string): Promise<Commit[]>;
 	/** Pagina successiva della storia, a partire da `skip`. */
@@ -268,6 +282,12 @@ export type IpcChannel =
 	| "git:deleteBranch"
 	| "git:checkoutTracking"
 	| "git:abortOperation"
+	| "git:conflicts"
+	| "git:conflictDetail"
+	| "git:resolveConflictFile"
+	| "git:writeResolvedFile"
+	| "git:markResolved"
+	| "git:continueOperation"
 	| "git:search"
 	| "git:moreCommits"
 	| "git:blame"

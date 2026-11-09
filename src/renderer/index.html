@@ -1275,6 +1275,85 @@
 
 		<div class="ctx-menu hidden" id="ctx-menu" role="menu"></div>
 
+		<dialog class="dialog dialog-wide conflict-dialog" id="conflict-dialog">
+			<div class="conflict-head">
+				<h2>Risolvi i conflitti</h2>
+				<span class="muted" id="conflict-operation">—</span>
+			</div>
+			<p class="hint">
+				Scegli per ogni file la versione da tenere, oppure correggi il
+				risultato e segnalo come risolto. «Continua» riprende
+				l'operazione quando non resta nessun conflitto.
+			</p>
+			<div class="conflict-body">
+				<ul class="conflict-files" id="conflict-files"></ul>
+				<div class="conflict-main">
+					<div class="conflict-file-head">
+						<strong id="conflict-path">—</strong>
+						<span class="muted" id="conflict-stages"></span>
+					</div>
+					<div class="conflict-actions">
+						<button
+							type="button"
+							class="btn"
+							id="conflict-use-ours"
+						>
+							Usa mio
+						</button>
+						<button
+							type="button"
+							class="btn"
+							id="conflict-use-theirs"
+						>
+							Usa loro
+						</button>
+						<button type="button" class="btn" id="conflict-mark">
+							Segna risolto
+						</button>
+					</div>
+					<div class="conflict-hunks" id="conflict-hunks"></div>
+					<textarea
+						id="conflict-editor"
+						spellcheck="false"
+						aria-label="Risultato del file"
+					></textarea>
+					<div class="conflict-editor-actions">
+						<button
+							type="button"
+							class="btn"
+							id="conflict-apply-hunks"
+						>
+							Applica le scelte
+						</button>
+						<button type="button" class="btn" id="conflict-save">
+							Salva il testo
+						</button>
+					</div>
+				</div>
+			</div>
+			<div class="dialog-actions">
+				<button
+					type="button"
+					class="btn btn-danger"
+					id="conflict-abort"
+				>
+					Annulla operazione
+				</button>
+				<span class="account-status" id="conflict-status"></span>
+				<button
+					type="button"
+					class="btn btn-primary"
+					id="conflict-continue"
+					disabled
+				>
+					Continua
+				</button>
+				<button type="button" class="btn" id="conflict-close">
+					Chiudi
+				</button>
+			</div>
+		</dialog>
+
 		<div class="toast hidden" id="toast"></div>
 		<script src="./app.js"></script>
 	</body>
