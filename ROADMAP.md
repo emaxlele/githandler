@@ -28,8 +28,9 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 
 -   ✅ Pull request / merge request: list the open ones, open them, create one from two branches.
 -   ✅ Review comments: read the conversation and answer, without leaving the app.
--   ✅ Approve a pull request from the app; withdrawing an approval and "request changes" stay on
-    the service, because the APIs do not expose them the same way.
+-   ✅ Reviews: who approved, who asked for changes, and the actions each service allows the author
+    — approve everywhere, request changes on GitHub, Gitea and Bitbucket, withdraw an approval on
+    GitLab and Bitbucket. A missing action means the service does not offer it.
 -   ✅ Checks: status per pull request, with a link to the run.
 -   ✅ GitHub Actions: list the runs, retry the failed jobs, re-run or cancel, and start a workflow
     with its inputs on the chosen branch or tag.

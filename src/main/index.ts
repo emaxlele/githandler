@@ -67,6 +67,8 @@ import {
 	pullChecks,
 	pullComments,
 	pullReviews,
+	requestPullChanges,
+	withdrawPullApproval,
 } from "./pulls.ts";
 import { exportArchive } from "./export.ts";
 import { forkBranches, forkInfo, forkPreview, syncFork } from "./fork.ts";
@@ -612,6 +614,14 @@ function registerIpc(): void {
 	);
 	handle("pulls:approve", (root: string, number: number) =>
 		approvePull(root, number)
+	);
+	handle(
+		"pulls:request-changes",
+		(root: string, number: number, message: string) =>
+			requestPullChanges(root, number, message)
+	);
+	handle("pulls:withdraw-approval", (root: string, number: number) =>
+		withdrawPullApproval(root, number)
 	);
 	handle("actions:run", (root: string, id: string, action: WorkflowAction) =>
 		runWorkflowAction(root, id, action)

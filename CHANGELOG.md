@@ -2,6 +2,30 @@
 
 ## [Non rilasciato]
 
+### Revisioni delle pull request: approvare, chiedere modifiche, ritirare
+
+-   **Il pannello _Revisioni_ dice di più**: oltre a chi ha approvato mostra anche chi ha chiesto
+    modifiche, e sotto lo stato compaiono i pulsanti delle azioni.
+-   **Solo le azioni che il servizio offre**: approvare su tutti e quattro; «Chiedi modifiche» su
+    GitHub, Gitea e Bitbucket; «Ritira l'approvazione» su GitLab e Bitbucket. GitLab non ha lo stato
+    «modifiche richieste» e GitHub e Gitea richiedono permessi da maintainer per dismissare una
+    review: là il pulsante non compare, invece di finire in un errore di permessi.
+-   **Ogni azione chiede conferma** perché cambia qualcosa che gli altri vedono; dopo il `POST` lo
+    stato viene riletto, perché le risposte dei servizi sono troppo diverse per essere la verità.
+-   **GitHub e Gitea: vale l'ultima review di ogni persona.** Chi ha approvato e poi chiesto
+    modifiche non conta più come approvazione (e viceversa); le review ritirate o respinte
+    (`DISMISSED`, `dismissed`) sono ignorate. Gitea scrive `REQUEST_CHANGES`, GitHub
+    `CHANGES_REQUESTED`: sono lo stesso stato.
+-   **Messaggio**: obbligatorio per GitHub e Gitea (max 60.000 caratteri), non inviato a Bitbucket,
+    che ha l'endpoint `request-changes`; il ritiro è `unapprove` su GitLab e `DELETE .../approve` su
+    Bitbucket.
+-   **L'approvazione resta com'era**: GitHub usa `event: APPROVE`, Gitea il participio `APPROVED`,
+    GitLab e Bitbucket un endpoint dedicato senza corpo; su una richiesta chiusa o già approvata il
+    pulsante non compare.
+-   Tutto il resto nel core (`supportsReviewAction`, `reviewActionRequest`,
+    `parseReviewSummary`), trasporto in `src/main/pulls.ts`, IPC `pulls:request-changes` e
+    `pulls:withdraw-approval`. Test in `tests/reviews.test.mts`.
+
 ### AppImage, pacchetto RPM e profilo AppArmor
 
 -   **AppImage** (`npm run appimage`): immagine x86_64 con Electron dentro, icona PNG 256×256 e
@@ -36,21 +60,6 @@
     colori subito e salta la tokenizzazione ai disegni successivi. I colori seguono i tre temi.
 -   **Costo misurato**: ~30 ms per 3.000 righe di TypeScript, ~5 ms per 200 hunk piccoli.
 -   Test nuovi in `tests/syntax.test.mts`; impostazione coperta da `tests/settings.test.mts`.
-
-### Approvazione delle pull request
-
--   **Nuovo pulsante «Revisioni»** su ogni richiesta: legge chi ha approvato — review per GitHub e
-    Gitea, `approved_by` per GitLab, `participants` per Bitbucket — e permette di approvare dopo una
-    conferma, perché l'approvazione è visibile sul servizio. Su una richiesta chiusa o già approvata
-    il pulsante non compare.
--   **Una sola operazione, quella che tutti sanno fare** in `src/core/reviews.ts` (`reviewsUrl`,
-    `approveUrl`, `approvePayload`, `parseReviewSummary`): GitHub usa `event: APPROVE`, Gitea il
-    participio `APPROVED`, GitLab e Bitbucket un endpoint dedicato senza corpo.
--   **Stato riletto dopo il `POST`**: la risposta cambia troppo fra i servizi, quindi la verità è
-    sempre la lettura successiva. Un'approvazione respinta o ritirata non conta.
--   **Fuori**: ritirare l'approvazione e «chiedi modifiche», che le quattro API non espongono allo
-    stesso modo.
--   Test nuovi in `tests/reviews.test.mts`.
 
 ### Avvio di un workflow e tentativi delle esecuzioni
 

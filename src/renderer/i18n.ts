@@ -1002,18 +1002,34 @@ const EN: Record<string, string> = {
 	"Invio il commento…": "Sending the comment…",
 	"Commento inviato.": "Comment sent.",
 	Revisioni: "Reviews",
-	"Legge chi ha approvato la richiesta e permette di approvarla.":
-		"Reads who approved the request and lets you approve it.",
+	"Legge chi ha approvato la richiesta e permette di approvarla o chiedere modifiche.":
+		"Reads who approved the request and lets you approve it or ask for changes.",
 	"Leggo le approvazioni…": "Reading the approvals…",
 	"Approvata da te.": "Approved by you.",
 	"{0} approvazioni.": "{0} approvals.",
 	"Nessuna approvazione.": "No approvals.",
+	"Modifiche richieste": "Changes requested",
 	Approva: "Approve",
 	"Approva la richiesta sul servizio.":
 		"Approves the request on the service.",
 	"Approvare la pull request #{0}? L'approvazione è visibile sul servizio.":
 		"Approve pull request #{0}? The approval is visible on the service.",
 	"Pull request approvata.": "Pull request approved.",
+	"Chiedi modifiche": "Request changes",
+	"Chiede modifiche sul servizio.": "Requests changes on the service.",
+	"Motivo delle modifiche richieste (visibile sul servizio)":
+		"Reason for the requested changes (visible on the service)",
+	"Scrivi il motivo delle modifiche richieste.":
+		"Write the reason for the requested changes.",
+	"Chiedere modifiche alla pull request #{0}? Lo stato cambia sul servizio.":
+		"Request changes on pull request #{0}? The state changes on the service.",
+	"Modifiche richieste inviate.": "Change request sent.",
+	"Ritira l'approvazione": "Withdraw approval",
+	"Ritira l'approvazione sul servizio.":
+		"Withdraws the approval on the service.",
+	"Ritirare l'approvazione della pull request #{0}? Lo stato cambia sul servizio.":
+		"Withdraw the approval of pull request #{0}? The state changes on the service.",
+	"Approvazione ritirata.": "Approval withdrawn.",
 	Invia: "Send",
 };
 

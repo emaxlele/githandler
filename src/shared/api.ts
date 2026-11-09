@@ -147,6 +147,10 @@ export interface GitApi {
 	pullReviews(number: number): Promise<ReviewSummary>;
 	/** Approva la pull request e restituisce lo stato aggiornato. */
 	approvePull(number: number): Promise<ReviewSummary>;
+	/** Chiede modifiche con un messaggio; non disponibile su GitLab. */
+	requestPullChanges(number: number, message: string): Promise<ReviewSummary>;
+	/** Ritira l'approvazione; non disponibile su GitHub e Gitea. */
+	withdrawPullApproval(number: number): Promise<ReviewSummary>;
 	/** File tracciati nel ref indicato (o in HEAD); serve al selettore dei file. */
 	listRepoFiles(ref?: string | null): Promise<RepoFileList>;
 	/** Salva il contenuto di HEAD in un archivio zip scelto dall'utente. */
@@ -414,6 +418,8 @@ export type IpcChannel =
 	| "pulls:comment"
 	| "pulls:reviews"
 	| "pulls:approve"
+	| "pulls:request-changes"
+	| "pulls:withdraw-approval"
 	| "repo:listFiles"
 	| "repo:exportZip"
 	| "repo:openFileInBrowser"

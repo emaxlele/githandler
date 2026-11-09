@@ -115,6 +115,10 @@ const api: GitApi = {
 	addPullComment: (number, body) => invokeRepo("pulls:comment", number, body),
 	pullReviews: (number) => invokeRepo("pulls:reviews", number),
 	approvePull: (number) => invokeRepo("pulls:approve", number),
+	requestPullChanges: (number, message) =>
+		invokeRepo("pulls:request-changes", number, message),
+	withdrawPullApproval: (number) =>
+		invokeRepo("pulls:withdraw-approval", number),
 	listRepoFiles: (ref) => invokeRepo("repo:listFiles", ref),
 	exportZip: () => invokeRepo("repo:exportZip"),
 	openFileInBrowser: (path, ref) =>

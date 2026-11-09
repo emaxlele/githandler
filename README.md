@@ -56,7 +56,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Stash** (salva anche solo alcuni file, applica, pop, elimina)                             | ✅             |
 | **Merge, rebase, cherry-pick**, annulla operazione                                          | ✅             |
 | **Rebase interattivo**: riordina, squash/fixup, reword, drop                                | ✅             |
-| **Pull request / merge request**: elenco, creazione, discussione e approvazione             | ✅             |
+| **Pull request / merge request**: elenco, creazione, discussione e revisioni                | ✅             |
 | **Conflitti risolti nell'app** (per file e per hunk, «continua»)                            | ✅             |
 | **Interfaccia in italiano e in inglese**                                                    | ✅             |
 | **Palette dei comandi** (`Ctrl+K`) e scorciatoie documentate                                | ✅             |
@@ -387,9 +387,12 @@ Dal menu del tasto destro sulla scheda del repository:
     per il repository. _Controlli_ legge l'esito dei workflow sul commit in testa alla richiesta —
     verde, rosso o in corso, con il dettaglio e il collegamento a ciascuno. _Discussione_ mostra i
     commenti della conversazione, dal più vecchio, e ne pubblica di nuovi; il testo resta testo, la
-    formattazione del servizio si vede nella pagina web. _Revisioni_ dice chi ha approvato e
-    permette di approvare con una conferma, per tutti e quattro i servizi; ritirare l'approvazione e
-    «chiedi modifiche» restano nella pagina web, perché le API non le espongono allo stesso modo.
+    formattazione del servizio si vede nella pagina web. _Revisioni_ dice chi ha approvato e chi ha
+    chiesto modifiche, e offre le azioni che il servizio permette: approvare su tutti e quattro,
+    chiedere modifiche su GitHub, Gitea e Bitbucket, ritirare l'approvazione su GitLab e Bitbucket.
+    Ogni azione chiede una conferma, perché cambia lo stato visibile sul servizio. GitHub e Gitea non
+    lasciano ritirare un'approvazione senza permessi da maintainer, e GitLab non ha lo stato
+    «modifiche richieste»: lì il pulsante non compare, invece di finire in un errore.
 -   **GitHub Actions…**: ultime esecuzioni con workflow, stato, ramo, evento e tentativo; _Riprova i
     falliti_ (solo i job rossi, dopo un fallimento), _Ri-esegui_ (l'intero workflow), _Annulla_ (una
     in corso), _Apri_ nel browser. _Avvia un workflow…_ fa partire un workflow sul ramo o tag scelto,

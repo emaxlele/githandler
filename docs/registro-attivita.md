@@ -5,6 +5,24 @@
 
 ## 2026-11-10
 
+### Approvare, chiedere modifiche e ritirare un'approvazione dall'app
+
+-   **Cosa**: il pannello _Revisioni_ di una pull request ora dice anche chi ha chiesto modifiche e
+    offre i pulsanti per approvare, chiedere modifiche o ritirare la propria approvazione. I pulsanti
+    compaiono solo dove il servizio (GitHub, GitLab, Gitea, Bitbucket) permette davvero l'azione:
+    niente comandi che finiscono in un errore di permessi.
+-   **Perché**: prima si poteva solo approvare, e per chiedere modifiche o togliere un'approvazione
+    bisognava aprire il browser. Era il lavoro rimasto aperto sulle revisioni.
+-   **Come**: le tre richieste sono descritte una volta sola nel core, con le differenze dei quattro
+    servizi (testo obbligatorio o assente, indirizzi e verbi diversi); ogni azione chiede conferma,
+    perché cambia qualcosa che gli altri vedono, e poi rilegge lo stato dal servizio. Per GitHub e
+    Gitea vale l'ultima revisione di ogni persona: chi ha approvato e poi chiesto modifiche non
+    risulta più come approvazione.
+-   **Verifica**: typecheck, 274 test (10 sulle revisioni, con gli indirizzi e i corpi dei quattro
+    servizi e i casi limite del messaggio), build e controllo della finestra con gli screenshot.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Installazione anche fuori da Ubuntu
 
 -   **Cosa**: oltre al pacchetto `.deb` ci sono ora un **AppImage** portabile (un solo file da

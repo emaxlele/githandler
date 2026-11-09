@@ -43,6 +43,7 @@ import {
 	reposPageSize,
 	type Account,
 	type AccountChoice,
+	type ProviderId,
 	type RemoteRepo,
 } from "../core/providers.ts";
 import {
@@ -64,7 +65,7 @@ import type { WorktreeInfo } from "../core/worktrees.ts";
 import { summarizeRecovery, type RecoverySummary } from "../core/recovery.ts";
 import type { CheckRun, CheckSummary } from "../core/checks.ts";
 import type { PullComment } from "../core/comments.ts";
-import type { ReviewSummary } from "../core/reviews.ts";
+import { supportsReviewAction, type ReviewSummary } from "../core/reviews.ts";
 import type { PullList, PullRequest } from "../core/pulls.ts";
 import type { ReflogEntry } from "../core/reflog.ts";
 import { deviceFlow, tokenPageUrl } from "../core/oauth.ts";
@@ -4997,7 +4998,8 @@ function renderPulls(): void {
 		ui.pullsStatus.textContent = "";
 		return;
 	}
-	for (const pull of list) renderPullItem(pull);
+	const provider = pullsCache?.provider ?? "github";
+	for (const pull of list) renderPullItem(pull, provider);
 	ui.pullsStatus.textContent = t(`${list.length} aperte.`);
 }
 
@@ -5008,7 +5010,7 @@ function checkStateClass(state: CheckRun["state"]): string {
 	return "";
 }
 
-function renderPullItem(pull: PullRequest): void {
+function renderPullItem(pull: PullRequest, provider: ProviderId): void {
 	const item = el("li");
 	const description = el("div", "actions-text");
 	const title = `${pull.draft ? `[${t("bozza")}] ` : ""}#${pull.number} · ${
@@ -5077,11 +5079,11 @@ function renderPullItem(pull: PullRequest): void {
 	) as HTMLButtonElement;
 	reviewsButton.type = "button";
 	reviewsButton.title = t(
-		"Legge chi ha approvato la richiesta e permette di approvarla."
+		"Legge chi ha approvato la richiesta e permette di approvarla o chiedere modifiche."
 	);
 	reviewsButton.addEventListener(
 		"click",
-		() => void loadPullReviews(pull, reviewsButton, reviews)
+		() => void loadPullReviews(pull, provider, reviewsButton, reviews)
 	);
 	actions.appendChild(reviewsButton);
 
@@ -5121,6 +5123,7 @@ async function loadPullChecks(
 
 async function loadPullReviews(
 	pull: PullRequest,
+	provider: ProviderId,
 	button: HTMLButtonElement,
 	container: HTMLElement
 ): Promise<void> {
@@ -5132,7 +5135,7 @@ async function loadPullReviews(
 	);
 	try {
 		const summary = await api.pullReviews(pull.number);
-		renderReviewSummary(pull, summary, container);
+		renderReviewSummary(pull, provider, summary, container);
 	} catch (error) {
 		clear(container);
 		container.appendChild(
@@ -5145,10 +5148,12 @@ async function loadPullReviews(
 
 /**
  * Lo stato si dice in una riga; i nomi sotto, perché «2 approvazioni» da solo non dice di chi.
- * Il pulsante compare solo su una richiesta aperta e solo se l'utente non ha già approvato.
+ * I pulsanti compaiono solo su una richiesta aperta e solo per le azioni che quel servizio offre
+ * all'autore: niente pulsanti che finirebbero in un errore di permessi.
  */
 function renderReviewSummary(
 	pull: PullRequest,
+	provider: ProviderId,
 	summary: ReviewSummary,
 	container: HTMLElement
 ): void {
@@ -5169,21 +5174,74 @@ function renderReviewSummary(
 		container.appendChild(
 			el("div", "check-line", summary.approvers.join(", "))
 		);
+	if (summary.changesRequested.length > 0)
+		container.appendChild(
+			el(
+				"div",
+				"checks-summary is-pending",
+				`${t("Modifiche richieste")}: ${summary.changesRequested.join(
+					", "
+				)}`
+			)
+		);
 
-	if (pull.state !== "open" || summary.approved) return;
-	const approve = el(
-		"button",
-		"btn btn-small",
-		t("Approva")
-	) as HTMLButtonElement;
-	approve.type = "button";
-	approve.title = t("Approva la richiesta sul servizio.");
-	approve.addEventListener("click", () => void approvePull(pull, container));
-	container.appendChild(approve);
+	if (pull.state !== "open") return;
+	const buttons = el("div", "review-actions");
+
+	if (!summary.approved) {
+		const approve = el(
+			"button",
+			"btn btn-small",
+			t("Approva")
+		) as HTMLButtonElement;
+		approve.type = "button";
+		approve.title = t("Approva la richiesta sul servizio.");
+		approve.addEventListener(
+			"click",
+			() => void approvePull(pull, provider, container)
+		);
+		buttons.appendChild(approve);
+	}
+
+	if (supportsReviewAction(provider, "request-changes")) {
+		const request = el(
+			"button",
+			"btn btn-small",
+			t("Chiedi modifiche")
+		) as HTMLButtonElement;
+		request.type = "button";
+		request.title = t("Chiede modifiche sul servizio.");
+		request.addEventListener(
+			"click",
+			() => void requestChanges(pull, provider, container)
+		);
+		buttons.appendChild(request);
+	}
+
+	if (
+		summary.approved &&
+		supportsReviewAction(provider, "withdraw-approval")
+	) {
+		const withdraw = el(
+			"button",
+			"btn btn-small",
+			t("Ritira l'approvazione")
+		) as HTMLButtonElement;
+		withdraw.type = "button";
+		withdraw.title = t("Ritira l'approvazione sul servizio.");
+		withdraw.addEventListener(
+			"click",
+			() => void withdrawApproval(pull, provider, container)
+		);
+		buttons.appendChild(withdraw);
+	}
+
+	if (buttons.childElementCount > 0) container.appendChild(buttons);
 }
 
 async function approvePull(
 	pull: PullRequest,
+	provider: ProviderId,
 	container: HTMLElement
 ): Promise<void> {
 	if (
@@ -5196,8 +5254,72 @@ async function approvePull(
 		return;
 	try {
 		const summary = await api.approvePull(pull.number);
-		renderReviewSummary(pull, summary, container);
+		renderReviewSummary(pull, provider, summary, container);
 		toast(t("Pull request approvata."), "ok");
+	} catch (error) {
+		clear(container);
+		container.appendChild(
+			el("div", "checks-summary is-bad", readableError(error))
+		);
+	}
+}
+
+async function requestChanges(
+	pull: PullRequest,
+	provider: ProviderId,
+	container: HTMLElement
+): Promise<void> {
+	let message = "";
+	// Bitbucket non allega un testo alla richiesta: lì il motivo sta nella discussione.
+	if (provider !== "bitbucket") {
+		const value = await askInput({
+			title: "Chiedi modifiche",
+			label: "Motivo delle modifiche richieste (visibile sul servizio)",
+		});
+		if (value === null) return;
+		message = value.trim();
+		if (!message) {
+			toast(t("Scrivi il motivo delle modifiche richieste."), "error");
+			return;
+		}
+	}
+	if (
+		!askConfirm(
+			t(
+				`Chiedere modifiche alla pull request #${pull.number}? Lo stato cambia sul servizio.`
+			)
+		)
+	)
+		return;
+	try {
+		const summary = await api.requestPullChanges(pull.number, message);
+		renderReviewSummary(pull, provider, summary, container);
+		toast(t("Modifiche richieste inviate."), "ok");
+	} catch (error) {
+		clear(container);
+		container.appendChild(
+			el("div", "checks-summary is-bad", readableError(error))
+		);
+	}
+}
+
+async function withdrawApproval(
+	pull: PullRequest,
+	provider: ProviderId,
+	container: HTMLElement
+): Promise<void> {
+	if (
+		!askConfirm(
+			t(
+				`Ritirare l'approvazione della pull request #${pull.number}? Lo stato cambia sul servizio.`
+			)
+		)
+	)
+		return;
+	try {
+		const summary = await api.withdrawPullApproval(pull.number);
+		renderReviewSummary(pull, provider, summary, container);
+		toast(t("Approvazione ritirata."), "ok");
 	} catch (error) {
 		clear(container);
 		container.appendChild(

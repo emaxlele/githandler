@@ -33,6 +33,7 @@ import {
 	approvePayload,
 	approveUrl,
 	parseReviewSummary,
+	reviewActionRequest,
 	reviewsUrl,
 	type ReviewSummary,
 } from "../core/reviews.ts";
@@ -218,18 +219,29 @@ export async function addPullComment(
 	return parseComment(context.account, created);
 }
 
-/** Chi ha approvato una pull request, per i quattro servizi. */
-export async function pullReviews(
-	root: string,
+/** Legge lo stato delle approvazioni: è anche la verità dopo ogni azione. */
+async function readReviewSummary(
+	context: PullsContext,
 	number: number
 ): Promise<ReviewSummary> {
-	const context = await contextFor(root);
 	const payload = await request(
 		context,
 		reviewsUrl(context.account, context.namespace, context.name, number),
 		{ method: "GET" }
 	);
-	return parseReviewSummary(context.account, payload, context.account.username);
+	return parseReviewSummary(
+		context.account,
+		payload,
+		context.account.username
+	);
+}
+
+/** Chi ha approvato una pull request, per i quattro servizi. */
+export async function pullReviews(
+	root: string,
+	number: number
+): Promise<ReviewSummary> {
+	return readReviewSummary(await contextFor(root), number);
 }
 
 /**
@@ -254,12 +266,54 @@ export async function approvePull(
 			  }
 			: { method: "POST" }
 	);
-	const payload = await request(
-		context,
-		reviewsUrl(context.account, context.namespace, context.name, number),
-		{ method: "GET" }
+	return readReviewSummary(context, number);
+}
+
+/** Chiede modifiche dove il servizio lo offre, poi rilegge lo stato. */
+export async function requestPullChanges(
+	root: string,
+	number: number,
+	message: string
+): Promise<ReviewSummary> {
+	const context = await contextFor(root);
+	const action = reviewActionRequest(
+		context.account,
+		context.namespace,
+		context.name,
+		number,
+		"request-changes",
+		message
 	);
-	return parseReviewSummary(context.account, payload, context.account.username);
+	if (!action) throw new Error("Il servizio non offre «chiedi modifiche».");
+	await request(context, action.url, {
+		method: action.method,
+		...(action.body
+			? {
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(action.body),
+			  }
+			: {}),
+	});
+	return readReviewSummary(context, number);
+}
+
+/** Ritira l'approvazione dove il servizio lo permette all'autore, poi rilegge lo stato. */
+export async function withdrawPullApproval(
+	root: string,
+	number: number
+): Promise<ReviewSummary> {
+	const context = await contextFor(root);
+	const action = reviewActionRequest(
+		context.account,
+		context.namespace,
+		context.name,
+		number,
+		"withdraw-approval"
+	);
+	if (!action)
+		throw new Error("Il servizio non offre il ritiro dell'approvazione.");
+	await request(context, action.url, { method: action.method });
+	return readReviewSummary(context, number);
 }
 
 export async function createPull(

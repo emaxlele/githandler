@@ -162,12 +162,12 @@ minmax(0, 1fr)`), non più contenuto tagliato
 -   [x] **Commenti delle pull request**: la finestra _Discussione_ legge la conversazione dal più
         vecchio e ne pubblica di nuovi, per GitHub, GitLab, Gitea/Forgejo e Bitbucket; il testo si
         mostra com'è (mai HTML), gli indirizzi e il corpo passano da `src/core/comments.ts`
--   [x] **Approvazione delle pull request**: _Revisioni_ legge chi ha approvato (review per GitHub
-        e Gitea, `approved_by` per GitLab, `participants` per Bitbucket) e permette di approvare con
-        una conferma; ritirare l'approvazione e «chiedi modifiche» restano fuori perché le quattro
-        API non le espongono allo stesso modo
--   [ ] «Chiedi modifiche» e ritiro dell'approvazione, se e come si possono offrire su tutti e
-        quattro i servizi senza comportamenti diversi
+-   [x] **Revisioni delle pull request**: _Revisioni_ legge chi ha approvato e chi ha chiesto
+        modifiche (review per GitHub e Gitea, `approved_by` per GitLab, `participants` per
+        Bitbucket) e offre solo le azioni che il servizio permette: approvare su tutti e quattro,
+        chiedere modifiche su GitHub, Gitea e Bitbucket, ritirare l'approvazione su GitLab e
+        Bitbucket. Ogni azione chiede conferma; su GitHub e Gitea l'ultima review di ogni persona
+        decide lo stato, così chi ha approvato e poi chiesto modifiche non resta un'approvazione
 -   [x] **Stato dei check per pull request**: esito complessivo e singoli controlli (GitHub,
         GitLab, Gitea/Forgejo, Bitbucket), con apertura nel browser; il colore non è mai verde senza
         un successo

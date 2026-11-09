@@ -5,11 +5,13 @@
  * `event: APPROVE`, GitLab e Bitbucket hanno un endpoint `approve` dedicato. Lo stato si legge da
  * fonti diverse: review per GitHub e Gitea, `approved_by` per GitLab, `participants` per Bitbucket.
  *
- * Qui si offre una sola operazione, quella che tutti e quattro sanno fare: approvare. Ritirare
- * l'approvazione non è disponibile ovunque, quindi resta nella pagina web del servizio.
+ * Delle tre azioni possibili, solo l'approvazione esiste ovunque. «Chiedi modifiche» manca su
+ * GitLab, che non ha quello stato; ritirare l'approvazione manca su GitHub e Gitea, dove serve
+ * dismissare una review con permessi da maintainer. La UI mostra un pulsante solo dove il servizio
+ * lo offre davvero, invece di tentare e mostrare un errore.
  */
 
-import type { Account } from "./providers.ts";
+import type { Account, ProviderId } from "./providers.ts";
 
 export interface ReviewSummary {
 	/** quante persone hanno approvato */
@@ -18,6 +20,27 @@ export interface ReviewSummary {
 	approvers: string[];
 	/** l'utente dell'account ha già approvato */
 	approved: boolean;
+	/** nomi di chi ha chiesto modifiche, in ordine alfabetico */
+	changesRequested: string[];
+}
+
+/** Le due azioni oltre all'approvazione. */
+export type ReviewAction = "request-changes" | "withdraw-approval";
+
+/** Il servizio espone l'azione per l'utente che ha collegato l'account? */
+export function supportsReviewAction(
+	provider: ProviderId,
+	action: ReviewAction
+): boolean {
+	if (action === "request-changes") return provider !== "gitlab";
+	// GitHub e Gitea richiedono permessi da maintainer per dismissare una review
+	return provider === "gitlab" || provider === "bitbucket";
+}
+
+export interface ReviewActionRequest {
+	url: string;
+	method: "POST" | "DELETE";
+	body: Record<string, unknown> | null;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -134,6 +157,67 @@ export function approvePayload(
 	return null;
 }
 
+/**
+ * Indirizzo, metodo e corpo di «chiedi modifiche» o del ritiro dell'approvazione. `null` quando il
+ * servizio non offre l'azione: il chiamante non deve inventare una richiesta che verrà rifiutata.
+ *
+ * GitHub e Gitea passano dalla review con `event: REQUEST_CHANGES` e vogliono un messaggio; GitLab
+ * non ha lo stato «modifiche richieste». Bitbucket ha endpoint dedicati per entrambe le azioni.
+ */
+export function reviewActionRequest(
+	account: Account,
+	namespace: string,
+	name: string,
+	number: number,
+	action: ReviewAction,
+	message = ""
+): ReviewActionRequest | null {
+	if (!supportsReviewAction(account.provider, action)) return null;
+
+	const id = assertNumber(number);
+	const base = apiBase(account);
+	const path = projectPath(account, namespace, name);
+
+	if (action === "request-changes") {
+		// Bitbucket ha l'endpoint dedicato e non vuole il testo nel corpo
+		if (account.provider === "bitbucket") {
+			return {
+				url: `${base}/repositories/${path}/pullrequests/${id}/request-changes`,
+				method: "POST",
+				body: null,
+			};
+		}
+		const body = message.trim();
+		if (!body) {
+			throw new Error(
+				"Scrivi il motivo delle modifiche richieste: il servizio lo richiede."
+			);
+		}
+		if (body.length > 60_000) {
+			throw new Error("Il messaggio supera i 60.000 caratteri.");
+		}
+		return {
+			// stesso indirizzo dell'approvazione, senza la query di lettura
+			url: `${base}/repos/${path}/pulls/${id}/reviews`,
+			method: "POST",
+			body: { event: "REQUEST_CHANGES", body },
+		};
+	}
+
+	if (account.provider === "gitlab") {
+		return {
+			url: `${base}/projects/${path}/merge_requests/${id}/unapprove`,
+			method: "POST",
+			body: null,
+		};
+	}
+	return {
+		url: `${base}/repositories/${path}/pullrequests/${id}/approve`,
+		method: "DELETE",
+		body: null,
+	};
+}
+
 /** Nome da mostrare per una persona, con il login come ripiego. */
 function personName(value: unknown): string {
 	const person = asRecord(value);
@@ -158,44 +242,75 @@ function unique(names: string[]): string[] {
 
 /**
  * Lo stato delle approvazioni, dalla risposta del servizio. Un'approvazione ritirata o respinta
- * (GitHub e Gitea la riportano come `DISMISSED` o con `dismissed`) non conta.
+ * (GitHub e Gitea la riportano come `DISMISSED` o con `dismissed`) non conta. Per GitHub e Gitea
+ * vale l'ultima review di ogni persona: chi ha approvato e poi chiesto modifiche non è più
+ * un'approvazione.
  */
 export function parseReviewSummary(
 	account: Account,
 	payload: unknown,
 	username: string
 ): ReviewSummary {
-	const names: string[] = [];
+	const approved: string[] = [];
+	const changes: string[] = [];
 
 	if (account.provider === "bitbucket") {
 		const participants = asRecord(payload)?.participants;
 		if (Array.isArray(participants)) {
 			for (const item of participants) {
 				const participant = asRecord(item);
-				if (!participant || participant.approved !== true) continue;
-				names.push(personName(participant.user));
+				if (!participant) continue;
+				const state = text(participant.state).toLowerCase();
+				if (state === "changes_requested") {
+					changes.push(personName(participant.user));
+					continue;
+				}
+				if (participant.approved !== true) continue;
+				approved.push(personName(participant.user));
 			}
 		}
 	} else if (account.provider === "gitlab") {
-		const approved = asRecord(payload)?.approved_by;
-		if (Array.isArray(approved)) {
-			for (const item of approved) {
+		const items = asRecord(payload)?.approved_by;
+		if (Array.isArray(items)) {
+			for (const item of items) {
 				// il campo è una persona, a volte annidata in `user` a seconda della versione
-				names.push(personName(asRecord(item)?.user ?? item));
+				approved.push(personName(asRecord(item)?.user ?? item));
 			}
 		}
 	} else {
+		// l'elenco delle review è cronologico: l'ultima di ogni persona decide lo stato. GitHub
+		// scrive `CHANGES_REQUESTED`, Gitea `REQUEST_CHANGES`: sono lo stesso stato.
+		const latest = new Map<
+			string,
+			{ name: string; state: "APPROVED" | "CHANGES_REQUESTED" }
+		>();
 		if (Array.isArray(payload)) {
 			for (const item of payload) {
 				const review = asRecord(item);
 				if (!review || review.dismissed === true) continue;
-				if (text(review.state).toUpperCase() !== "APPROVED") continue;
-				names.push(personName(review.user));
+				const name = personName(review.user);
+				if (!name) continue;
+				const state = text(review.state).toUpperCase();
+				if (state === "APPROVED") {
+					latest.set(name.toLowerCase(), { name, state });
+				} else if (
+					state === "CHANGES_REQUESTED" ||
+					state === "REQUEST_CHANGES"
+				) {
+					latest.set(name.toLowerCase(), {
+						name,
+						state: "CHANGES_REQUESTED",
+					});
+				}
 			}
+		}
+		for (const { name, state } of latest.values()) {
+			if (state === "APPROVED") approved.push(name);
+			else changes.push(name);
 		}
 	}
 
-	const approvers = unique(names);
+	const approvers = unique(approved);
 	const me = username.trim().toLowerCase();
 	return {
 		count: approvers.length,
@@ -203,5 +318,6 @@ export function parseReviewSummary(
 		approved:
 			me.length > 0 &&
 			approvers.some((name) => name.toLowerCase() === me),
+		changesRequested: unique(changes),
 	};
 }
