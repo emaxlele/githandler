@@ -77,6 +77,8 @@ Stato al 2026-11-09 (v0.10.0). Le voci spuntate sono in `CHANGELOG.md`.
 -   [x] **Pannello in una finestra separata**: `BrowserWindow` con lo stesso renderer in modalità
         `panel`, selezione pubblicata dalla finestra principale su `panel:sync` e ridiffusa su
         `panel:state`; alla chiusura il pannello rientra al suo posto
+-   [x] **Chip «Dettagli ↗»**: mentre il pannello è in una finestra separata, la toolbar ricorda dove
+        sono i dettagli e un clic riporta quella finestra davanti, invece di cercarla fra le altre
 -   [x] **Scroll del diff e dell'albero**: `.panes` con altezza vincolata (`grid-template-rows:
 minmax(0, 1fr)`), non più contenuto tagliato
 -   [x] **Una sola vista delle modifiche**: la scheda _Changes_ del pannello inferiore è sparita (era la

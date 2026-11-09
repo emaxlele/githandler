@@ -132,8 +132,9 @@ settings:
     whole commit in a single scroll, up to 12 files and 4,000 lines), `File Tree` (tree of the commit
     or of the working tree, diff on the right, the only file-by-file view), `Blame` and `Terminal`.
     The handle above the panel resizes it, `▾` collapses it to the tab row and `⧉` opens it in a
-    separate window: when that is closed, the panel returns to its place. Diff and tree scroll, with
-    their height bound to the pane.
+    separate window: when that is closed, the panel returns to its place. While it is separate, a
+    «Details ↗» chip in the toolbar brings that window to the front. Diff and tree scroll, with their
+    height bound to the pane.
 
 ### Keyboard shortcuts
 

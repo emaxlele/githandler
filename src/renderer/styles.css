@@ -2765,6 +2765,20 @@ body.is-empty .workspace {
 	color: var(--tag);
 }
 
+/* Ricorda che i dettagli sono altrove: cliccarlo riporta davanti quella finestra. */
+.chip-detached {
+	appearance: none;
+	cursor: pointer;
+	font-family: var(--mono);
+	background: var(--tag-soft-bg);
+	border-color: var(--tag-border);
+	color: var(--tag);
+}
+
+.chip-detached:hover {
+	background: var(--tag-strong-bg);
+}
+
 .file-list,
 .actions-list {
 	max-height: 44vh;

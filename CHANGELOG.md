@@ -2,6 +2,14 @@
 
 ## [Non rilasciato]
 
+### Indicatore del pannello staccato
+
+-   Mentre i dettagli sono in una finestra separata, la toolbar mostra un chip **«Dettagli ↗»**: un
+    clic riporta davanti quella finestra invece di cercarla fra le altre. Il chip sparisce quando il
+    pannello rientra o la finestra viene chiusa.
+-   Il canale `panel:detached` che già informava il renderer dell'apertura e della chiusura ora guida
+    anche la visibilità dell'indicatore; nessun nuovo stato salvato.
+
 ### Ricerca nel contenuto dei file
 
 -   **Dialog «Cerca nel contenuto»** (palette dei comandi): cerca nei file tracciati con `git grep`,

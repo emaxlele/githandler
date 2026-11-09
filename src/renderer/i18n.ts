@@ -785,7 +785,10 @@ const EN: Record<string, string> = {
 	"Mostra gli spostamenti di HEAD e ne apre un commit.":
 		"Shows the moves of HEAD and opens one of its commits.",
 	"Vai al commit per SHA…": "Go to commit by SHA…",
+	"Dettagli ↗": "Details ↗",
 	"Cerca nel contenuto…": "Search in content…",
+	"I dettagli sono in una finestra separata: clic per portarla davanti":
+		"Details are in a separate window: click to bring it to the front",
 	"Cerca nel contenuto": "Search in content",
 	"Cerca nei file tracciati con git grep. Il testo è letterale salvo «Espressione regolare»; clic su un risultato per aprirlo nell'app del sistema.":
 		"Searches tracked files with git grep. The text is literal unless «Regular expression»; click a result to open it in the system app.",

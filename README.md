@@ -134,8 +134,9 @@ impostazioni:
     dell'intero commit in un unico scorrimento, fino a 12 file e 4.000 righe), `File Tree` (albero dei
     file del commit o del working tree, diff a destra, l'unica vista file per file), `Blame` e
     `Terminale`. La maniglia sopra il pannello lo ridimensiona, `▾` lo riduce alla sola riga delle schede
-    e `⧉` lo apre in una finestra separata: chiusa quella, il pannello torna al suo posto. Diff e albero
-    scorrono, con la loro altezza vincolata al riquadro.
+    e `⧉` lo apre in una finestra separata: chiusa quella, il pannello torna al suo posto. Finché è
+    separata, un chip «Dettagli ↗» nella toolbar la riporta davanti. Diff e albero scorrono, con la
+    loro altezza vincolata al riquadro.
 
 ### Scorciatoie da tastiera
 

@@ -5,6 +5,19 @@
 
 ## 2026-11-09
 
+### Un promemoria quando i dettagli sono in un'altra finestra
+
+-   **Cosa**: quando il pannello dei dettagli viene aperto in una **finestra separata**, nella barra in
+    alto compare un piccolo indicatore **«Dettagli ↗»**. Un clic riporta davanti quella finestra; se la
+    si chiude, l'indicatore sparisce.
+-   **Perché**: richiesta dell'utente — separando i dettagli, la finestra principale non diceva più
+    dove fossero finiti, e con più finestre aperte capitava di doverle cercare.
+-   **Come**: riusa il segnale che la finestra principale riceve già quando il pannello si apre o si
+    chiude, quindi non c'è uno stato in più da salvare e non può restare acceso per errore.
+-   **Verifica**: typecheck, **225 test** verdi e build.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Cercare dentro i file, non solo nei commit
 
 -   **Cosa**: dalla palette (`Ctrl+K`, «Cerca nel contenuto…») si apre una finestra che cerca una

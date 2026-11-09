@@ -293,6 +293,7 @@ const ui = {
 	repoWatch: byId("repo-watch"),
 	repoAccount: byId<HTMLButtonElement>("repo-account"),
 	repoSync: byId("repo-sync"),
+	panelDetachedChip: byId<HTMLButtonElement>("panel-detached-chip"),
 	networkStatus: byId("network-status"),
 	networkPhase: byId("network-phase"),
 	networkFill: byId("network-fill"),
@@ -3534,8 +3535,14 @@ api.onPanelDetached((detached) => {
 	if (panelMode) return;
 	panelDetached = detached;
 	ui.main.classList.toggle("is-detached", detached);
+	ui.panelDetachedChip.classList.toggle("hidden", !detached);
 	// la finestra appena aperta deve ricevere subito cosa stiamo guardando
 	if (detached) publishPanel();
+});
+ui.panelDetachedChip.addEventListener("click", () => {
+	void api.detachPanel().catch((error: Error) => {
+		toast(`Finestra del pannello: ${readableError(error)}`);
+	});
 });
 
 api.onPanelState((payload) => {
