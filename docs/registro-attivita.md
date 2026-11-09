@@ -41,6 +41,27 @@
 -   **Stato**: completato.
 -   **Riferimento**: commit del repository `~/Projects/githandler` (v0.10.0).
 
+### Nomi più chiari e spiegazioni su pulsanti e menu
+
+-   **Cosa**: i tre pulsanti del dialogo account ora dicono cosa fanno — **Accedi con il token del
+    computer**, **Accedi con il browser (serve il Client ID)**, **Crea un token sul sito e incollalo…** —
+    e il testo sopra il form spiega le tre strade. Se si prova l'accesso dal browser senza Client ID,
+    l'errore resta scritto nel dialogo e non solo in un messaggio che sparisce. Quasi tutti i pulsanti
+    della finestra (toolbar, schede, dialoghi, file, Actions, schermata di benvenuto) ora mostrano un
+    suggerimento al passaggio del mouse, e ogni voce dei menu contestuali spiega cosa fa.
+-   **Perché**: era la richiesta dell'utente — «con accedi col browser mi compare sempre l'errore, con
+    crea no, ma cosa cambia tra i due e come mai ci sono entrambi? bisogna mettere nomi più esaustivi…
+    vorrei che in più voci possibili ci siano i popup che spiegano cosa fanno».
+-   **Come**: i nomi dei pulsanti dichiarano la strada (token già presente sul computer, browser con
+    Client ID, token creato a mano). I suggerimenti usano l'attributo `title`, che non introduce nuove
+    finestre né dipendenze; per i menu contestuali è stato aggiunto `MenuEntry.hint`, così la spiegazione
+    resta nella definizione della voce.
+-   **Verifica**: tipi e build puliti, 140 test verdi; prova nell'app del dialogo account (errore del
+    Client ID nello stato), dei menu della scheda, del commit e della nuova scheda, e dei titoli dei
+    pulsanti.
+-   **Stato**: completato.
+-   **Riferimento**: commit del repository `~/Projects/githandler`.
+
 ## 2026-11-08
 
 ### Dal repository al file, e il token preso dal browser

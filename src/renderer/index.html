@@ -136,7 +136,11 @@
 					id="repo-operation"
 					title="Annulla l'operazione sospesa"
 				></button>
-				<span class="sync hidden" id="repo-sync"></span>
+				<span
+					class="sync hidden"
+					id="repo-sync"
+					title="Commit in anticipo (↑) e in ritardo (↓) rispetto al ramo remoto"
+				></span>
 				<button
 					type="button"
 					class="chip chip-account hidden"
@@ -180,7 +184,11 @@
 					</button>
 				</div>
 
-				<button class="side-entry is-active" id="side-changes">
+				<button
+					class="side-entry is-active"
+					id="side-changes"
+					title="File modificati nel working tree e pronti per il commit"
+				>
 					<svg viewBox="0 0 20 20" aria-hidden="true">
 						<path d="M5 3.5h6l4 4v9H5z" />
 						<path d="M11 3.5v4h4" />
@@ -188,7 +196,11 @@
 					<span>Changes</span>
 					<span class="badge" id="changes-count">0</span>
 				</button>
-				<button class="side-entry" id="side-commits">
+				<button
+					class="side-entry"
+					id="side-commits"
+					title="Storia dei commit del ramo attuale"
+				>
 					<svg viewBox="0 0 20 20" aria-hidden="true">
 						<circle cx="10" cy="4.5" r="1.8" />
 						<circle cx="10" cy="15.5" r="1.8" />
@@ -297,19 +309,40 @@
 							class="tab is-active"
 							data-tab="commit"
 							id="tab-commit"
+							title="Dettagli e modifiche del commit selezionato"
 						>
 							Commit
 						</button>
-						<button class="tab" data-tab="changes" id="tab-changes">
+						<button
+							class="tab"
+							data-tab="changes"
+							id="tab-changes"
+							title="File modificati nel working tree"
+						>
 							Changes
 						</button>
-						<button class="tab" data-tab="tree" id="tab-tree">
+						<button
+							class="tab"
+							data-tab="tree"
+							id="tab-tree"
+							title="Albero dei file del commit selezionato"
+						>
 							File Tree
 						</button>
-						<button class="tab" data-tab="blame" id="tab-blame">
+						<button
+							class="tab"
+							data-tab="blame"
+							id="tab-blame"
+							title="Chi ha cambiato ogni riga del file selezionato"
+						>
 							Blame
 						</button>
-						<button class="tab" data-tab="term" id="tab-term">
+						<button
+							class="tab"
+							data-tab="term"
+							id="tab-term"
+							title="Terminale Git nella cartella del repository"
+						>
 							Terminale
 						</button>
 						<span class="tabs-spacer"></span>
@@ -371,6 +404,7 @@
 								<button
 									class="btn btn-small"
 									id="btn-unstage-all"
+									title="Toglie dallo staging tutti i file, senza perdere le modifiche"
 								>
 									Unstage
 								</button>
@@ -381,6 +415,7 @@
 								<button
 									class="btn btn-small"
 									id="btn-stage-all"
+									title="Aggiunge allo staging tutte le modifiche tracciate"
 								>
 									Stage
 								</button>
@@ -413,6 +448,7 @@
 									<button
 										class="btn btn-primary"
 										id="btn-commit"
+										title="Crea il commit con i file in staging e il messaggio scritto"
 									>
 										Commit
 									</button>
@@ -430,6 +466,7 @@
 								<button
 									class="btn btn-small"
 									id="btn-tree-toggle"
+									title="Comprime o espande tutte le cartelle dell'albero"
 								>
 									Comprimi
 								</button>
@@ -501,16 +538,32 @@
 					<h1>GitHandler</h1>
 					<p class="welcome-lead">Nessun repository aperto.</p>
 					<div class="welcome-actions">
-						<button class="btn btn-primary" id="btn-welcome-open">
+						<button
+							class="btn btn-primary"
+							id="btn-welcome-open"
+							title="Sceglie una cartella già presente sul disco e la apre in una scheda"
+						>
 							Apri un repository…
 						</button>
-						<button class="btn" id="btn-welcome-create">
+						<button
+							class="btn"
+							id="btn-welcome-create"
+							title="Inizializza un repository nuovo in una cartella scelta da te"
+						>
 							Crea un repository…
 						</button>
-						<button class="btn" id="btn-welcome-clone">
+						<button
+							class="btn"
+							id="btn-welcome-clone"
+							title="Clona un repository indicando l'URL Git e la cartella di destinazione"
+						>
 							Clona da URL…
 						</button>
-						<button class="btn" id="btn-welcome-account">
+						<button
+							class="btn"
+							id="btn-welcome-account"
+							title="Sceglie un repository dagli account collegati e lo clona"
+						>
 							Clona da un account…
 						</button>
 					</div>
@@ -541,7 +594,12 @@
 							autocomplete="off"
 							spellcheck="false"
 						/>
-						<button type="button" class="btn" id="btn-choose-base">
+						<button
+							type="button"
+							class="btn"
+							id="btn-choose-base"
+							title="Sceglie la cartella di base per dialog e cloni"
+						>
 							Scegli…
 						</button>
 					</div>
@@ -676,10 +734,21 @@
 				</section>
 
 				<div class="settings-actions">
-					<button type="button" class="btn" id="settings-cancel">
+					<button
+						type="button"
+						class="btn"
+						id="settings-cancel"
+						title="Chiude senza salvare le modifiche"
+					>
 						Annulla
 					</button>
-					<button type="submit" class="btn btn-primary">Salva</button>
+					<button
+						type="submit"
+						class="btn btn-primary"
+						title="Salva le impostazioni su disco"
+					>
+						Salva
+					</button>
 				</div>
 			</form>
 		</dialog>
@@ -702,13 +771,19 @@
 						type="button"
 						class="btn btn-primary"
 						id="btn-stash-save"
+						title="Salva le modifiche correnti in uno stash e pulisce il working tree"
 					>
 						Salva stash
 					</button>
 				</div>
 				<ul class="stash-list" id="stash-list"></ul>
 				<div class="dialog-actions">
-					<button type="button" class="btn" id="stash-close">
+					<button
+						type="button"
+						class="btn"
+						id="stash-close"
+						title="Chiude l'elenco degli stash"
+					>
 						Chiudi
 					</button>
 				</div>
@@ -729,10 +804,16 @@
 						type="button"
 						class="btn btn-primary"
 						id="btn-submodule-update"
+						title="Aggiorna e inizializza i submodule del repository"
 					>
 						Aggiorna
 					</button>
-					<button type="button" class="btn" id="submodule-close">
+					<button
+						type="button"
+						class="btn"
+						id="submodule-close"
+						title="Chiude l'elenco dei submodule"
+					>
 						Chiudi
 					</button>
 				</div>
@@ -751,7 +832,12 @@
 					<span>Cartella genitore</span>
 					<div class="field-row">
 						<input id="create-parent" autocomplete="off" spellcheck="false" />
-						<button type="button" class="btn" id="create-browse">
+						<button
+							type="button"
+							class="btn"
+							id="create-browse"
+							title="Sceglie la cartella in cui creare il nuovo repository"
+						>
 							Sfoglia…
 						</button>
 					</div>
@@ -771,10 +857,21 @@
 					</label>
 				</div>
 				<div class="dialog-actions">
-					<button type="button" class="btn" id="create-cancel">
+					<button
+						type="button"
+						class="btn"
+						id="create-cancel"
+						title="Chiude senza creare nulla"
+					>
 						Annulla
 					</button>
-					<button type="submit" class="btn btn-primary">Crea</button>
+					<button
+						type="submit"
+						class="btn btn-primary"
+						title="Crea il repository nella cartella indicata"
+					>
+						Crea
+					</button>
 				</div>
 			</form>
 		</dialog>
@@ -800,17 +897,33 @@
 					<span>Cartella genitore</span>
 					<div class="field-row">
 						<input id="clone-parent" autocomplete="off" spellcheck="false" />
-						<button type="button" class="btn" id="clone-browse">
+						<button
+							type="button"
+							class="btn"
+							id="clone-browse"
+							title="Sceglie la cartella in cui clonare il repository"
+						>
 							Sfoglia…
 						</button>
 					</div>
 				</label>
 				<p class="hint" id="clone-target"></p>
 				<div class="dialog-actions">
-					<button type="button" class="btn" id="clone-cancel">
+					<button
+						type="button"
+						class="btn"
+						id="clone-cancel"
+						title="Chiude senza clonare nulla"
+					>
 						Annulla
 					</button>
-					<button type="submit" class="btn btn-primary">Clona</button>
+					<button
+						type="submit"
+						class="btn btn-primary"
+						title="Clona il repository nella cartella indicata"
+					>
+						Clona
+					</button>
 				</div>
 			</form>
 		</dialog>
@@ -820,20 +933,32 @@
 				<h2>Account collegati</h2>
 				<p class="hint">
 					Il token serve per elencare i repository e per clonare quelli
-					privati. Non viene scritto da GitHandler: resta in memoria
-					finché l'app è aperta e, se hai un credential helper, viene
-					consegnato a Git per riusarlo. «Accedi» usa il token che hai
-					già sulla macchina (GitHub CLI o credential helper di Git);
-					il Client ID serve solo all'accesso dal browser.
+					privati; GitHandler non lo scrive su disco. Tre strade, dalla
+					più semplice: <strong>Accedi con il token del computer</strong>
+					usa un token che hai già (GitHub CLI o credential helper di
+					Git); <strong>Accedi con il browser</strong> apre il browser e
+					richiede un Client ID OAuth registrato; <strong>Crea un token
+					sul sito…</strong> apre la pagina dei token e poi lo incolli
+					qui sotto.
 				</p>
 				<div class="account-layout">
 					<div class="account-side">
 						<ul class="account-list" id="account-list"></ul>
 						<div class="account-side-actions">
-							<button type="button" class="btn btn-small" id="account-new">
+							<button
+								type="button"
+								class="btn btn-small"
+								id="account-new"
+								title="Svuota i campi per collegare un altro account"
+							>
 								Nuovo
 							</button>
-							<button type="button" class="btn btn-small" id="account-remove">
+							<button
+								type="button"
+								class="btn btn-small"
+								id="account-remove"
+								title="Toglie l'account da GitHandler; il token resta nel credential helper di Git, se ne hai uno"
+							>
 								Rimuovi
 							</button>
 						</div>
@@ -870,6 +995,7 @@
 									type="button"
 									class="btn"
 									id="account-oauth-client-help"
+									title="Apre la pagina dove registrare un'applicazione OAuth e ottenere il Client ID (dato pubblico, non un segreto)"
 								>
 									Crea…
 								</button>
@@ -881,7 +1007,8 @@
 								id="account-token"
 								type="password"
 								autocomplete="off"
-								placeholder="incollalo qui"
+								placeholder="incollalo qui dopo averlo creato sul sito"
+								title="Il token creato a mano sul sito del provider. Resta in memoria per questa sessione, non viene scritto su disco."
 							/>
 						</label>
 						<div class="account-browser">
@@ -889,23 +1016,25 @@
 								type="button"
 								class="btn btn-small btn-primary"
 								id="account-claim"
-								title="Usa il token che hai già su questa macchina (gh, credential helper di Git)"
+								title="Cerca un token già presente su questo computer: prima GitHub CLI (gh auth token), poi il credential helper di Git. Se lo trova, collega l'account senza chiedere altro."
 							>
-								Accedi
+								Accedi con il token del computer
 							</button>
 							<button
 								type="button"
 								class="btn btn-small"
 								id="account-oauth-start"
+								title="OAuth device flow: apre il browser e aspetta l'autorizzazione. Richiede un Client ID OAuth registrato: senza, il provider non può restituire il token."
 							>
-								Accedi con il browser
+								Accedi con il browser (serve il Client ID)
 							</button>
 							<button
 								type="button"
 								class="btn btn-small"
 								id="account-token-page"
+								title="Apre la pagina del provider dove creare un token a mano, con le autorizzazioni già indicate. Poi incollalo nel campo Token."
 							>
-								Crea un token nel browser…
+								Crea un token sul sito e incollalo…
 							</button>
 							<span class="account-status" id="account-oauth-status"></span>
 						</div>
@@ -914,7 +1043,12 @@
 							<input id="account-label" autocomplete="off" />
 						</label>
 						<div class="account-actions">
-							<button type="button" class="btn btn-primary" id="account-save">
+							<button
+								type="button"
+								class="btn btn-primary"
+								id="account-save"
+								title="Salva l'account e il token inserito (se c'è). Il token non viene scritto su disco."
+							>
 								Salva account
 							</button>
 							<span class="account-status" id="account-status"></span>
@@ -925,7 +1059,12 @@
 				<div class="account-repos">
 					<div class="account-repos-head">
 						<strong>Repository dell'account</strong>
-						<button type="button" class="btn btn-small" id="btn-load-repos">
+						<button
+							type="button"
+							class="btn btn-small"
+							id="btn-load-repos"
+							title="Legge dall'API del provider i repository dell'account selezionato: serve il token"
+						>
 							Carica elenco
 						</button>
 					</div>
@@ -942,20 +1081,31 @@
 						type="button"
 						class="btn btn-small hidden"
 						id="btn-more-repos"
+						title="Carica la pagina successiva dell'elenco dei repository"
 					>
 						Carica altri
 					</button>
 					<div class="field-row">
 						<span class="muted">Clona in</span>
 						<input id="account-dest" autocomplete="off" spellcheck="false" />
-						<button type="button" class="btn btn-small" id="account-dest-browse">
+						<button
+							type="button"
+							class="btn btn-small"
+							id="account-dest-browse"
+							title="Sceglie la cartella in cui clonare il repository"
+						>
 							Sfoglia…
 						</button>
 					</div>
 				</div>
 
 				<div class="dialog-actions">
-					<button type="button" class="btn" id="account-close">
+					<button
+						type="button"
+						class="btn"
+						id="account-close"
+						title="Chiude il dialogo; un accesso dal browser ancora in attesa viene fermato"
+					>
 						Chiudi
 					</button>
 				</div>
@@ -980,18 +1130,32 @@
 				<ul class="repo-list file-list" id="file-list"></ul>
 				<div class="dialog-actions">
 					<span class="account-status" id="file-status"></span>
-					<button type="button" class="btn" id="file-browser" disabled>
+					<button
+						type="button"
+						class="btn"
+						id="file-browser"
+						title="Apre il file nel browser del provider, nel ramo attuale (Gitea compreso)"
+						disabled
+					>
 						Apri nel browser
 					</button>
 					<button
 						type="button"
 						class="btn btn-primary"
 						id="file-open"
+						title="Apre il file dal disco con l'applicazione associata"
 						disabled
 					>
 						Apri
 					</button>
-					<button type="button" class="btn" id="file-close">Chiudi</button>
+					<button
+						type="button"
+						class="btn"
+						id="file-close"
+						title="Chiude l'elenco senza aprire niente"
+					>
+						Chiudi
+					</button>
 				</div>
 			</form>
 		</dialog>
@@ -1005,14 +1169,26 @@
 				</p>
 				<div class="account-repos-head">
 					<strong>Esecuzioni</strong>
-					<button type="button" class="btn btn-small" id="actions-refresh">
+					<button
+						type="button"
+						class="btn btn-small"
+						id="actions-refresh"
+						title="Rilegge da GitHub le ultime esecuzioni dei workflow"
+					>
 						Aggiorna
 					</button>
 				</div>
 				<ul class="repo-list actions-list" id="actions-list"></ul>
 				<div class="dialog-actions">
 					<span class="account-status" id="actions-status"></span>
-					<button type="button" class="btn" id="actions-close">Chiudi</button>
+					<button
+						type="button"
+						class="btn"
+						id="actions-close"
+						title="Chiude la finestra delle esecuzioni"
+					>
+						Chiudi
+					</button>
 				</div>
 			</form>
 		</dialog>
@@ -1025,10 +1201,19 @@
 					<input id="input-field" autocomplete="off" />
 				</label>
 				<div class="dialog-actions">
-					<button type="button" class="btn" id="input-cancel">
+					<button
+						type="button"
+						class="btn"
+						id="input-cancel"
+						title="Chiude senza confermare"
+					>
 						Annulla
 					</button>
-					<button type="submit" class="btn btn-primary">
+					<button
+						type="submit"
+						class="btn btn-primary"
+						title="Conferma il valore inserito"
+					>
 						Conferma
 					</button>
 				</div>

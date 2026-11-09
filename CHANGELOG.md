@@ -66,6 +66,17 @@
 -   140 test (10 nuovi su identità remota, scelta dell'account, parser delle credenziali, fork e
     Actions).
 
+### Nomi che dicono cosa succede
+
+-   I tre pulsanti del dialogo account ora dichiarano la strada: **Accedi con il token del computer**,
+    **Accedi con il browser (serve il Client ID)**, **Crea un token sul sito e incollalo…**. Il testo
+    sotto il form spiega le tre possibilità in ordine di semplicità.
+-   Se manca il Client ID, **Accedi con il browser** lo dice anche nello stato del dialogo (non solo con
+    un toast che sparisce) e indica le due alternative che funzionano subito.
+-   Tooltip (`title`) sui pulsanti della finestra, dei dialoghi e delle voci dinamiche (file, Actions,
+    schede, benvenuto). Le voci dei menu contestuali hanno un `hint` (`MenuEntry.hint`) che spiega cosa
+    fa ciascuna senza doverla provare.
+
 ## [0.9.0] — 2026-11-08
 
 ### Arrivare al file, e alla cartella, dal repository

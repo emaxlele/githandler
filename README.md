@@ -197,18 +197,21 @@ indirizzo dell'API.
 
 ### Il token: prima dove c'è già, poi dal browser
 
--   **Accedi** è un clic: l'app cerca un token già presente sulla macchina — `gh auth token --hostname
-    <host>` (GitHub CLI), poi il credential helper di Git (`git credential fill`) — lo verifica con
-    `GET /user` e salva l'account. Nessun Client ID da incollare.
--   Se un token non c'è, resta **Accedi con il browser**: il *device flow* OAuth di GitHub e GitLab
+-   **Accedi con il token del computer** è un clic: l'app cerca un token già presente sulla macchina —
+    `gh auth token --hostname <host>` (GitHub CLI), poi il credential helper di Git (`git credential
+    fill`) — lo verifica con `GET /user` e salva l'account. Nessun Client ID da incollare.
+-   Se un token non c'è, resta **Accedi con il browser (serve il Client ID)**: il *device flow* OAuth di
+    GitHub e GitLab
     (anche installazioni proprie). Il device flow **richiede un Client ID registrato** — non esiste un
     flusso anonimo — e l'app lo mostra per quello che è: un dato pubblico, salvato accanto agli altri
     dati dell'account. Il pulsante *Crea…* apre la pagina dove registrarlo; per GitHub il device flow va
     abilitato su quell'applicazione.
 -   In entrambi i casi il token lo riceve il main, che legge il nome dell'utente e salva l'account; alla
     finestra tornano solo l'esito e l'id dell'account.
--   Per Gitea e Bitbucket, che non hanno il device flow, resta **Crea un token nel browser…**: apre la
-    pagina dei token del provider, con gli scope già indicati dove il provider li accetta.
+-   Per Gitea e Bitbucket, che non hanno il device flow, resta **Crea un token sul sito e incollalo…**:
+    apre la pagina dei token del provider, con gli scope già indicati dove il provider li accetta.
+-   Pulsanti e voci dei menu hanno un suggerimento (`title`) che spiega cosa fanno; i menu contestuali
+    lo mostrano su ogni voce prima di sceglierla.
 
 ### Con quale account lavora un repository
 

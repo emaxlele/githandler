@@ -672,13 +672,20 @@ function openRepoAccountMenu(x: number, y: number): void {
 			: null;
 	const entries: Array<MenuEntry | "separator"> = [];
 	if (!cached) {
-		entries.push({ label: "Sto leggendo il remoto…", disabled: true });
+		entries.push({
+			label: "Sto leggendo il remoto…",
+			disabled: true,
+			hint: "GitHandler sta interrogando il remoto per capire quale account usare.",
+		});
 	} else if (cached.candidates.length === 0) {
 		entries.push({
 			label: cached.host
 				? `Nessun account per ${cached.host}`
 				: "Il remoto non è un servizio web conosciuto",
 			disabled: true,
+			hint: cached.host
+				? "Non c'è un account salvato per questo host: aggiungine uno con «Gestisci account…»."
+				: "Il remoto non punta a GitHub, GitLab, Gitea o Bitbucket: per questo repository non serve un account.",
 		});
 	} else {
 		for (const account of cached.candidates) {
@@ -687,17 +694,20 @@ function openRepoAccountMenu(x: number, y: number): void {
 				label: `${accountLabel(account)} · ${account.host}${
 					active ? " ✓" : ""
 				}`,
+				hint: "Usa questo account per i comandi Git di questo repository (fetch, pull, push, fork e Actions).",
 				action: () => void chooseRepoAccount(account.id),
 			});
 		}
 		entries.push("separator", {
 			label: "Automatico (togli la scelta salvata)",
 			disabled: cached.reason !== "saved",
+			hint: "Torna a dedurre l'account dal proprietario del remoto.",
 			action: () => void chooseRepoAccount(null),
 		});
 	}
 	entries.push("separator", {
 		label: "Gestisci account…",
+		hint: "Apre l'elenco degli account: aggiungi, rimuovi e cerca i repository.",
 		action: () => void openAccounts(),
 	});
 	openMenu(x, y, entries);
@@ -1723,6 +1733,8 @@ interface MenuEntry {
 	action?: () => void;
 	danger?: boolean;
 	disabled?: boolean;
+	/** spiegazione mostrata come tooltip: cosa fa la voce, senza aprire niente */
+	hint?: string;
 }
 
 function openMenu(
@@ -1738,6 +1750,7 @@ function openMenu(
 		}
 		const button = el("button", "ctx-item", entry.label);
 		button.type = "button";
+		if (entry.hint) button.title = entry.hint;
 		if (entry.danger) button.classList.add("is-danger");
 		if (entry.disabled) {
 			button.disabled = true;
@@ -1821,19 +1834,37 @@ function fileMenuEntries(path: string): Array<MenuEntry | "separator"> {
 		return [
 			{
 				label: "Salva una copia del file com'era nel commit…",
+				hint: "Estrae dal commit i byte di allora e li salva dove scegli tu.",
 				action: () => void saveFileCopy(path, sha),
 			},
-			{ label: "Copia percorso", action: () => void copyText(path) },
+			{
+				label: "Copia percorso",
+				hint: "Copia negli appunti il percorso del file dentro il repository.",
+				action: () => void copyText(path),
+			},
 		];
 	return [
 		{
 			label: "Apri con l'applicazione associata",
+			hint: "Apre il file dal disco con il programma predefinito del sistema.",
 			action: () => openFileWithSystem(path),
 		},
-		{ label: "Mostra nella cartella", action: () => revealFile(path) },
+		{
+			label: "Mostra nella cartella",
+			hint: "Apre la cartella che contiene il file e lo seleziona.",
+			action: () => revealFile(path),
+		},
 		"separator",
-		{ label: "Salva una copia…", action: () => void saveFileCopy(path, null) },
-		{ label: "Copia percorso", action: () => void copyText(path) },
+		{
+			label: "Salva una copia…",
+			hint: "Copia il file in una cartella scelta da te, fuori dal repository.",
+			action: () => void saveFileCopy(path, null),
+		},
+		{
+			label: "Copia percorso",
+			hint: "Copia negli appunti il percorso del file dentro il repository.",
+			action: () => void copyText(path),
+		},
 	];
 }
 
@@ -1868,7 +1899,11 @@ async function revealRef(sha: string): Promise<void> {
 
 function openRefMenu(ref: RefInfo, x: number, y: number): void {
 	const entries: Array<MenuEntry | "separator"> = [
-		{ label: "Vai al commit", action: () => void revealRef(ref.sha) },
+		{
+			label: "Vai al commit",
+			hint: "Porta la vista della storia al commit puntato da questo riferimento.",
+			action: () => void revealRef(ref.sha),
+		},
 		"separator",
 	];
 
@@ -1879,24 +1914,32 @@ function openRefMenu(ref: RefInfo, x: number, y: number): void {
 					? `${ref.short} è il ramo attuale`
 					: `Checkout di ${ref.short}`,
 				disabled: ref.current,
+				hint: "Sposta HEAD e il working tree su questo ramo locale.",
 				action: () => void checkout(ref.short),
 			},
 			{
 				label: `Merge di ${ref.short} nel ramo attuale`,
 				disabled: ref.current,
+				hint: "Unisce questo ramo nel ramo attuale, con un commit di merge.",
 				action: () => void mergeBranch(ref.short),
 			},
 			{
 				label: `Rebase del ramo attuale su ${ref.short}`,
 				disabled: ref.current,
+				hint: "Riapplica i commit del ramo attuale sopra questo ramo.",
 				action: () => void rebaseOnto(ref.short),
 			},
 			"separator",
-			{ label: "Rinomina…", action: () => void renameBranch(ref.short) },
+			{
+				label: "Rinomina…",
+				hint: "Cambia il nome del ramo locale.",
+				action: () => void renameBranch(ref.short),
+			},
 			{
 				label: `Elimina ${ref.short}`,
 				danger: true,
 				disabled: ref.current,
+				hint: "Elimina solo il riferimento: i commit restano nella storia.",
 				action: () => void deleteBranch(ref.short),
 			}
 		);
@@ -1904,14 +1947,23 @@ function openRefMenu(ref: RefInfo, x: number, y: number): void {
 		const local = localBranchName(ref.short);
 		entries.push({
 			label: `Crea ${local} e passa a quel ramo`,
+			hint: "Crea un ramo locale che segue il remoto e ci passa sopra.",
 			action: () => void startTracking(ref.short, local),
 		});
 	}
 
 	entries.push(
 		"separator",
-		{ label: "Copia nome", action: () => void copyText(ref.short) },
-		{ label: "Copia SHA", action: () => void copyText(ref.sha) }
+		{
+			label: "Copia nome",
+			hint: "Copia negli appunti il nome del ramo o del tag.",
+			action: () => void copyText(ref.short),
+		},
+		{
+			label: "Copia SHA",
+			hint: "Copia negli appunti l'identificativo completo del commit.",
+			action: () => void copyText(ref.sha),
+		}
 	);
 
 	openMenu(x, y, entries);
@@ -2485,41 +2537,53 @@ ui.repoTabs.addEventListener("contextmenu", (event) => {
 		})();
 	};
 	openMenu(event.clientX, event.clientY, [
-		{ label: "Apri la cartella", action: () => openRepoFolder(root) },
+		{
+			label: "Apri la cartella",
+			hint: "Apre la cartella del repository nel gestore file del sistema.",
+			action: () => openRepoFolder(root),
+		},
 		{
 			label: "Copia percorso",
+			hint: "Copia negli appunti il percorso completo della cartella.",
 			action: () => void copyText(root),
 		},
 		"separator",
 		{
 			label: "Apri il repository nel browser",
+			hint: "Apre la pagina web del repository, se il remoto è un servizio conosciuto.",
 			action: () => void guard("Browser", () => api.openInBrowser(root)),
 		},
 		"separator",
 		{
 			label: "Apri un file del repository…",
+			hint: "Mostra l'elenco dei file tracciati e apre quello scelto dal disco.",
 			action: onRepo(openFilePicker),
 		},
 		{
 			label: "Sincronizza con l'originale (merge)…",
+			hint: "Porta nella tua copia i commit del repository originale, unendoli con un merge.",
 			action: onRepo(() => syncForkWith("merge")),
 		},
 		{
 			label: "Sincronizza con l'originale (rebase)…",
+			hint: "Porta i commit dell'originale e riapplica i tuoi sopra, senza commit di merge.",
 			action: onRepo(() => syncForkWith("rebase")),
 		},
 		{
 			label: "Esporta HEAD in un archivio zip…",
+			hint: "Crea uno zip con i file del commit corrente, senza cartella .git.",
 			action: onRepo(exportRepositoryZip),
 		},
 		{
 			label: "GitHub Actions…",
+			hint: "Elenca le esecuzioni dei workflow di GitHub per il ramo corrente.",
 			action: onRepo(openActions),
 		},
 		"separator",
 		{
 			label: "Chiudi la scheda",
 			danger: true,
+			hint: "Chiude la scheda; il repository resta sul disco.",
 			action: () => void closeSession(root),
 		},
 	]);
@@ -2534,6 +2598,7 @@ ui.log.addEventListener("contextmenu", (event) => {
 	const entries: Array<MenuEntry | "separator"> = [
 		{
 			label: "Vai al commit",
+			hint: "Mostra nel pannello i dettagli e le modifiche di questo commit.",
 			action: () => {
 				setTab("commit");
 				void selectCommit(sha);
@@ -2541,44 +2606,57 @@ ui.log.addEventListener("contextmenu", (event) => {
 		},
 		{
 			label: "Checkout di questo commit (HEAD staccato)",
+			hint: "Porta il working tree su questo commit senza spostare nessun ramo: HEAD resta staccato.",
 			action: () => void checkoutCommit(sha),
 		},
 		"separator",
 		{
 			label: "Crea ramo da qui…",
+			hint: "Crea un nuovo ramo che parte da questo commit.",
 			action: () => void createBranchAt(sha),
 		},
 		{
 			label: "Merge di questo commit nel ramo attuale",
+			hint: "Unisce questo commit nel ramo attuale, con un commit di merge.",
 			action: () => void mergeCommit(sha),
 		},
 		{
 			label: "Rebase del ramo attuale su questo commit",
+			hint: "Riapplica i commit del ramo attuale sopra questo commit.",
 			action: () => void rebaseCommit(sha),
 		},
 		"separator",
 		{
 			label: "Reset soft a questo commit",
+			hint: "Sposta il ramo qui lasciando le modifiche in staging.",
 			action: () => void resetTo(sha, "soft"),
 		},
 		{
 			label: "Reset mixed a questo commit",
+			hint: "Sposta il ramo qui lasciando le modifiche fuori dallo staging.",
 			action: () => void resetTo(sha, "mixed"),
 		},
 		{
 			label: "Reset hard a questo commit",
 			danger: true,
+			hint: "Sposta il ramo qui e scarta le modifiche non committate: irreversibile.",
 			action: () => void resetTo(sha, "hard"),
 		},
 		"separator",
 		{
 			label: "Cherry-pick sul ramo attuale",
+			hint: "Copia questo commit sopra il ramo attuale come nuovo commit.",
 			action: () => void cherryPickCommit(sha),
 		},
-		{ label: "Copia SHA", action: () => void copyText(sha) },
+		{
+			label: "Copia SHA",
+			hint: "Copia negli appunti l'identificativo completo del commit.",
+			action: () => void copyText(sha),
+		},
 		"separator",
 		{
 			label: "Apri il commit nel browser",
+			hint: "Apre la pagina web del commit sul provider del remoto.",
 			action: () => {
 				const root = state.root;
 				if (!root) return;
@@ -2589,6 +2667,7 @@ ui.log.addEventListener("contextmenu", (event) => {
 	if (commit) {
 		entries.push({
 			label: "Copia messaggio",
+			hint: "Copia negli appunti il titolo del commit.",
 			action: () => void copyText(commit.subject),
 		});
 	}
@@ -2949,7 +3028,11 @@ async function startBrowserOauth(): Promise<void> {
 	if (!input) return;
 	const clientId = input.oauthClientId ?? "";
 	if (!clientId) {
-		toast("Incolla il Client ID dell'applicazione OAuth: «Crea…» apre la pagina.");
+		const message =
+			"Per l'accesso dal browser serve un Client ID OAuth registrato: senza, il provider non può rilasciare il token. Usa «Accedi con il token del computer», oppure «Crea un token sul sito e incollalo…».";
+		ui.accountOauthStatus.classList.add("is-error");
+		ui.accountOauthStatus.textContent = message;
+		toast(message);
 		ui.accountOauthClient.focus();
 		return;
 	}
@@ -3377,6 +3460,7 @@ function renderFileList(): void {
 	for (const path of shown) {
 		const item = el("li");
 		item.dataset.path = path;
+		item.title = "Doppio clic per aprirlo dal disco; tasto destro per le altre azioni.";
 		if (path === fileSelectedPath) item.classList.add("is-selected");
 		item.appendChild(el("span", "repo-name", path));
 		item.addEventListener("click", () => selectFile(path));
@@ -3491,6 +3575,7 @@ function renderWorkflowRuns(): void {
 				"Annulla"
 			) as HTMLButtonElement;
 			cancel.type = "button";
+			cancel.title = "Annulla l'esecuzione in corso su GitHub.";
 			cancel.addEventListener("click", () =>
 				void workflowAction(run.id, "cancel")
 			);
@@ -3502,6 +3587,7 @@ function renderWorkflowRuns(): void {
 				"Ri-esegui"
 			) as HTMLButtonElement;
 			rerun.type = "button";
+			rerun.title = "Avvia di nuovo questo workflow con gli stessi parametri.";
 			rerun.addEventListener("click", () =>
 				void workflowAction(run.id, "rerun")
 			);
@@ -3510,6 +3596,7 @@ function renderWorkflowRuns(): void {
 		if (run.url) {
 			const open = el("button", "btn btn-small", "Apri") as HTMLButtonElement;
 			open.type = "button";
+			open.title = "Apre l'esecuzione su GitHub nel browser.";
 			open.addEventListener("click", () =>
 				void guard("Browser", () => api.openExternal(run.url))
 			);
@@ -3743,10 +3830,26 @@ ui.btnNewTab.addEventListener("click", (event) => {
 	event.stopPropagation();
 	const rect = ui.btnNewTab.getBoundingClientRect();
 	openMenu(rect.left, rect.bottom + 4, [
-		{ label: "Apri un repository…", action: () => void openRepository() },
-		{ label: "Crea un repository…", action: () => void openCreate() },
-		{ label: "Clona da URL…", action: () => void openClone() },
-		{ label: "Clona da un account…", action: () => void openAccounts() },
+		{
+			label: "Apri un repository…",
+			hint: "Sceglie una cartella già presente sul disco e la apre in una scheda.",
+			action: () => void openRepository(),
+		},
+		{
+			label: "Crea un repository…",
+			hint: "Inizializza un repository nuovo in una cartella scelta da te.",
+			action: () => void openCreate(),
+		},
+		{
+			label: "Clona da URL…",
+			hint: "Clona un repository indicando l'URL Git e la cartella di destinazione.",
+			action: () => void openClone(),
+		},
+		{
+			label: "Clona da un account…",
+			hint: "Sceglie un repository dagli account collegati e lo clona.",
+			action: () => void openAccounts(),
+		},
 	]);
 });
 
