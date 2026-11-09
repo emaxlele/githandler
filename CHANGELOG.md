@@ -2,6 +2,19 @@
 
 ## [Non rilasciato]
 
+### Avvio di un workflow e tentativi delle esecuzioni
+
+-   **«Avvia un workflow…»** nella finestra delle Actions: elenca i workflow attivi del repository e
+    fa partire quello scelto sul ramo o tag indicato, con gli input in un oggetto JSON facoltativo.
+    GitHub accetta la richiesta solo se il workflow dichiara `workflow_dispatch`; il messaggio del
+    servizio arriva all'utente senza essere riscritto.
+-   **Input prudenti** in `dispatchPayload`: massimo dieci, nomi validi e solo valori stringa — un
+    numero non viene convertito in silenzio; il riferimento segue le regole dei rami.
+-   **Tentativo visibile**: l'elenco mostra `tentativo N` quando un'esecuzione è stata ri-eseguita.
+-   **Un comando in più nella palette**: «GitHub Actions…», prima raggiungibile solo dal menu della
+    scheda.
+-   Test nuovi in `tests/actions.test.mts`.
+
 ### Discussione delle pull request
 
 -   **Nuovo pulsante «Discussione»** su ogni richiesta: legge i commenti della conversazione dal più

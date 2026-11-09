@@ -402,6 +402,15 @@ const ui = {
 	actionsStatus: byId("actions-status"),
 	actionsRefresh: byId<HTMLButtonElement>("actions-refresh"),
 	actionsClose: byId<HTMLButtonElement>("actions-close"),
+	actionsDispatch: byId<HTMLButtonElement>("actions-dispatch"),
+	dispatchDialog: byId<HTMLDialogElement>("dispatch-dialog"),
+	dispatchForm: byId<HTMLFormElement>("dispatch-form"),
+	dispatchWorkflow: byId<HTMLSelectElement>("dispatch-workflow"),
+	dispatchRef: byId<HTMLInputElement>("dispatch-ref"),
+	dispatchInputs: byId<HTMLTextAreaElement>("dispatch-inputs"),
+	dispatchStatus: byId("dispatch-status"),
+	dispatchStart: byId<HTMLButtonElement>("dispatch-start"),
+	dispatchClose: byId<HTMLButtonElement>("dispatch-close"),
 	pullsDialog: byId<HTMLDialogElement>("pulls-dialog"),
 	pullsForm: byId<HTMLFormElement>("pulls-form"),
 	pullsTitle: byId("pulls-title"),
@@ -4707,6 +4716,75 @@ async function openActions(): Promise<void> {
 	await loadWorkflowRuns();
 }
 
+/** Apre l'avvio di un workflow: il ramo proposto è quello attivo, gli input restano vuoti. */
+async function openDispatch(): Promise<void> {
+	if (!ui.dispatchDialog.open) ui.dispatchDialog.showModal();
+	ui.dispatchRef.value = state.snapshot?.info.branch ?? "";
+	ui.dispatchInputs.value = "";
+	ui.dispatchStatus.textContent = "";
+	ui.dispatchStatus.classList.remove("is-error");
+	await loadWorkflows();
+}
+
+async function loadWorkflows(): Promise<void> {
+	clear(ui.dispatchWorkflow);
+	ui.dispatchStart.disabled = true;
+	ui.dispatchStatus.textContent = t("Leggo i workflow…");
+	ui.dispatchStatus.classList.remove("is-error");
+	try {
+		const workflows = await api.workflows();
+		if (workflows.length === 0) {
+			ui.dispatchStatus.textContent = t("Nessun workflow attivo.");
+			return;
+		}
+		for (const workflow of workflows) {
+			const option = el(
+				"option",
+				"",
+				workflow.path ? `${workflow.name} — ${workflow.path}` : workflow.name
+			) as HTMLOptionElement;
+			option.value = workflow.id;
+			ui.dispatchWorkflow.appendChild(option);
+		}
+		ui.dispatchStart.disabled = false;
+		ui.dispatchStatus.textContent = "";
+	} catch (error) {
+		ui.dispatchStatus.classList.add("is-error");
+		ui.dispatchStatus.textContent = readableError(error);
+	}
+}
+
+async function startDispatch(): Promise<void> {
+	const id = ui.dispatchWorkflow.value;
+	const ref = ui.dispatchRef.value.trim();
+	if (!id) {
+		ui.dispatchStatus.classList.add("is-error");
+		ui.dispatchStatus.textContent = t("Scegli un workflow.");
+		return;
+	}
+	if (!ref) {
+		ui.dispatchStatus.classList.add("is-error");
+		ui.dispatchStatus.textContent = t(
+			"Scrivi il ramo o il tag su cui avviare il workflow."
+		);
+		return;
+	}
+	ui.dispatchStart.disabled = true;
+	ui.dispatchStatus.classList.remove("is-error");
+	ui.dispatchStatus.textContent = t("Avvio il workflow…");
+	try {
+		await api.dispatchWorkflow(id, ref, ui.dispatchInputs.value);
+		ui.dispatchDialog.close();
+		toast(t("Workflow avviato."), "ok");
+		await loadWorkflowRuns();
+	} catch (error) {
+		ui.dispatchStatus.classList.add("is-error");
+		ui.dispatchStatus.textContent = readableError(error);
+	} finally {
+		ui.dispatchStart.disabled = false;
+	}
+}
+
 function runStatusClass(run: WorkflowRun): string {
 	if (run.conclusion === "success") return "is-ok";
 	if (
@@ -4751,6 +4829,7 @@ function renderWorkflowRuns(): void {
 			describeRun(run),
 			run.branch || "?",
 			run.event,
+			run.attempt > 1 ? t(`tentativo ${run.attempt}`) : "",
 			Number.isFinite(when) ? shortDate(when) : "",
 		]
 			.filter(Boolean)
@@ -5999,6 +6078,12 @@ ui.fileDialog.addEventListener("close", () => {
 ui.actionsForm.addEventListener("submit", (event) => event.preventDefault());
 ui.actionsRefresh.addEventListener("click", () => void loadWorkflowRuns());
 ui.actionsClose.addEventListener("click", () => ui.actionsDialog.close());
+ui.actionsDispatch.addEventListener("click", () => void openDispatch());
+ui.dispatchForm.addEventListener("submit", (event) => {
+	event.preventDefault();
+	void startDispatch();
+});
+ui.dispatchClose.addEventListener("click", () => ui.dispatchDialog.close());
 
 ui.pullsForm.addEventListener("submit", (event) => {
 	event.preventDefault();
@@ -6666,6 +6751,14 @@ const COMMANDS: PaletteCommand[] = [
 		keywords: "submodule sottomoduli",
 		enabled: repoReady,
 		run: () => void openSubmodules(),
+	},
+	{
+		id: "actions",
+		group: "Rami e sincronizzazione",
+		label: "GitHub Actions…",
+		keywords: "workflow esecuzioni ci actions",
+		enabled: repoReady,
+		run: () => void openActions(),
 	},
 	{
 		id: "pulls",

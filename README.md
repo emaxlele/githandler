@@ -42,7 +42,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **«Accedi» con il token già presente** (`gh`, credential helper)                            | ✅             |
 | **Account scelto per repository** (chip nell'header)                                        | ✅             |
 | **Fork: ramo scelto e anteprima dei commit, poi sync con l'originale**                      | ✅             |
-| **GitHub Actions**: esecuzioni, riprova i falliti, ri-esecuzione, annulla                   | ✅             |
+| **GitHub Actions**: esecuzioni, riprova i falliti, ri-esecuzione, annulla, avvio            | ✅             |
 | **File del repository** (elenco filtrabile, browser)                                        | ✅             |
 | **Esporta HEAD in uno zip**                                                                 | ✅             |
 | Storia con grafo a corsie, paginata (2.000/pagina)                                          | ✅             |
@@ -362,9 +362,11 @@ Dal menu del tasto destro sulla scheda del repository:
     verde, rosso o in corso, con il dettaglio e il collegamento a ciascuno. _Discussione_ mostra i
     commenti della conversazione, dal più vecchio, e ne pubblica di nuovi; il testo resta testo, la
     formattazione del servizio si vede nella pagina web.
--   **GitHub Actions…**: ultime esecuzioni con workflow, stato, ramo ed evento; _Riprova i falliti_
-    (solo i job rossi, dopo un fallimento), _Ri-esegui_ (l'intero workflow), _Annulla_ (una in corso),
-    _Apri_ nel browser. Solo GitHub.
+-   **GitHub Actions…**: ultime esecuzioni con workflow, stato, ramo, evento e tentativo; _Riprova i
+    falliti_ (solo i job rossi, dopo un fallimento), _Ri-esegui_ (l'intero workflow), _Annulla_ (una
+    in corso), _Apri_ nel browser. _Avvia un workflow…_ fa partire un workflow sul ramo o tag scelto,
+    con gli input dichiarati in JSON; GitHub lo accetta solo se il workflow prevede
+    `workflow_dispatch`. Solo GitHub.
 -   **Apri un file del repository…**: elenco filtrabile dei file tracciati in HEAD, apertura dal sistema
     o nel browser (Gitea compreso).
 -   **Esporta HEAD in un archivio zip…**: `git archive`, quindi `export-ignore` e i filtri del

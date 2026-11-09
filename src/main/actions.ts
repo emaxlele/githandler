@@ -1,8 +1,13 @@
 import {
+	dispatchPayload,
+	dispatchWorkflowUrl,
 	parseWorkflowRuns,
+	parseWorkflows,
 	workflowRunActionUrl,
 	workflowRunsUrl,
+	workflowsUrl,
 	type WorkflowAction,
+	type WorkflowInfo,
 	type WorkflowRun,
 } from "../core/actions.ts";
 import {
@@ -113,6 +118,87 @@ export async function runWorkflowAction(
 			signal: AbortSignal.timeout(20_000),
 		}
 	);
+	if (response.status === 401 || response.status === 403)
+		throw new Error("Token non valido o scaduto: aggiornalo nell'account.");
+	if (!response.ok) {
+		const detail = (await response.text().catch(() => "")).slice(0, 200);
+		throw new Error(
+			`GitHub: ${response.status} ${response.statusText}${
+				detail ? ` — ${detail.replace(/\s+/g, " ").trim()}` : ""
+			}`
+		);
+	}
+}
+
+/** I workflow del repository: solo quelli attivi possono partire. */
+export async function listWorkflows(root: string): Promise<WorkflowInfo[]> {
+	const context = await contextFor(root);
+	const account = context.account;
+	let response: Response;
+	try {
+		response = await fetch(
+			workflowsUrl(account, context.namespace, context.name),
+			{
+				headers: authHeaders(account, context.token),
+				signal: AbortSignal.timeout(20_000),
+			}
+		);
+	} catch (error) {
+		throw new Error(
+			`GitHub non raggiungibile: ${
+				error instanceof Error ? error.message : String(error)
+			}`
+		);
+	}
+	if (response.status === 401 || response.status === 403)
+		throw new Error("Token non valido o scaduto: aggiornalo nell'account.");
+	if (!response.ok) {
+		const detail = (await response.text().catch(() => "")).slice(0, 200);
+		throw new Error(
+			`GitHub: ${response.status} ${response.statusText}${
+				detail ? ` — ${detail.replace(/\s+/g, " ").trim()}` : ""
+			}`
+		);
+	}
+	return parseWorkflows(await response.json().catch(() => null)).filter(
+		(workflow) => workflow.state === "active"
+	);
+}
+
+/**
+ * Avvia un workflow con `workflow_dispatch`. GitHub risponde 204 senza corpo; un workflow senza
+ * quel trigger risponde 422 e il messaggio del servizio arriva all'utente così com'è.
+ */
+export async function dispatchWorkflow(
+	root: string,
+	id: string,
+	ref: string,
+	inputs: string
+): Promise<void> {
+	const context = await contextFor(root);
+	const account = context.account;
+	const body = dispatchPayload(ref, inputs);
+	let response: Response;
+	try {
+		response = await fetch(
+			dispatchWorkflowUrl(account, context.namespace, context.name, id),
+			{
+				method: "POST",
+				headers: {
+					...authHeaders(account, context.token),
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(body),
+				signal: AbortSignal.timeout(20_000),
+			}
+		);
+	} catch (error) {
+		throw new Error(
+			`GitHub non raggiungibile: ${
+				error instanceof Error ? error.message : String(error)
+			}`
+		);
+	}
 	if (response.status === 401 || response.status === 403)
 		throw new Error("Token non valido o scaduto: aggiornalo nell'account.");
 	if (!response.ok) {

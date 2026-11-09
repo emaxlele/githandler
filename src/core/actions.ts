@@ -26,6 +26,8 @@ export interface WorkflowRun {
 	/** `success`, `failure`, `cancelled`, `null` se non è finita */
 	conclusion: string | null;
 	createdAt: string;
+	/** quale tentativo è questa esecuzione: 1 il primo, 2 dopo «Ri-esegui» */
+	attempt: number;
 	/** pagina web dell'esecuzione */
 	url: string;
 }
@@ -66,6 +68,10 @@ export function parseWorkflowRuns(payload: unknown): WorkflowRun[] {
 			status: text(entry.status),
 			conclusion: conclusion || null,
 			createdAt: text(entry.created_at),
+			attempt:
+				typeof entry.run_attempt === "number" && entry.run_attempt > 0
+					? Math.floor(entry.run_attempt)
+					: 1,
 			url: text(entry.html_url),
 		});
 	}
@@ -118,4 +124,126 @@ export function canRerunFailed(run: WorkflowRun): boolean {
 export function describeRun(run: WorkflowRun): string {
 	if (run.status !== "completed") return run.status || "in corso";
 	return run.conclusion ?? "concluso";
+}
+
+/** Workflow del repository, come li elenca GitHub. */
+export interface WorkflowInfo {
+	/** id numerico, come stringa */
+	id: string;
+	name: string;
+	/** percorso nel repository (`.github/workflows/ci.yml`) */
+	path: string;
+	state: string;
+}
+
+/** `/repos/{owner}/{repo}/actions/workflows`: solo GitHub. */
+export function workflowsUrl(
+	account: Account,
+	namespace: string,
+	name: string,
+	limit = 100
+): string {
+	const base = account.apiBase.replace(/\/+$/, "");
+	return `${base}/repos/${namespace}/${name}/actions/workflows?per_page=${Math.max(
+		1,
+		Math.min(100, Math.round(limit))
+	)}`;
+}
+
+/** I workflow attivi, dal più recente nell'ordine in cui li dà GitHub. */
+export function parseWorkflows(payload: unknown): WorkflowInfo[] {
+	const record = asRecord(payload);
+	const list = Array.isArray(record?.workflows)
+		? (record!.workflows as unknown[])
+		: [];
+	const workflows: WorkflowInfo[] = [];
+	for (const item of list) {
+		const entry = asRecord(item);
+		if (!entry) continue;
+		const id = entry.id;
+		if (typeof id !== "number" && typeof id !== "string") continue;
+		const idText = String(id);
+		if (!/^\d+$/.test(idText)) continue;
+		const name = text(entry.name).trim();
+		if (!name) continue;
+		workflows.push({
+			id: idText,
+			name,
+			path: text(entry.path),
+			state: text(entry.state),
+		});
+	}
+	return workflows;
+}
+
+/**
+ * Nome di ramo o tag accettato dall'API: niente spazi, caratteri di controllo, trattino iniziale o
+ * risalita di percorso. La regola è la stessa dei rami delle pull request.
+ */
+export function assertWorkflowRef(ref: string): string {
+	const trimmed = ref.trim();
+	if (
+		!trimmed ||
+		trimmed.length > 250 ||
+		trimmed.startsWith("-") ||
+		trimmed.includes("..") ||
+		/[\x00-\x20\x7f~^:?*[\\]/.test(trimmed)
+	) {
+		throw new Error(`Riferimento non valido: ${ref}`);
+	}
+	return trimmed;
+}
+
+/** GitHub accetta al massimo dieci input per `workflow_dispatch`. */
+const MAX_DISPATCH_INPUTS = 10;
+
+/**
+ * Corpo di `workflow_dispatch`: il riferimento e, se ci sono, gli input come oggetto di stringhe.
+ * Gli input arrivano da un testo JSON: un valore numerico o un annidamento viene rifiutato invece di
+ * essere convertito in silenzio, perché il workflow si aspetta il tipo che ha dichiarato.
+ */
+export function dispatchPayload(
+	ref: string,
+	inputsText: string
+): { ref: string; inputs?: Record<string, string> } {
+	const target = assertWorkflowRef(ref);
+	const raw = inputsText.trim();
+	if (!raw) return { ref: target };
+
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		throw new Error("Gli input non sono JSON valido.");
+	}
+	const record = asRecord(parsed);
+	if (!record || Array.isArray(parsed))
+		throw new Error("Gli input devono essere un oggetto JSON: { \"nome\": \"valore\" }.");
+	const entries = Object.entries(record);
+	if (entries.length === 0) return { ref: target };
+	if (entries.length > MAX_DISPATCH_INPUTS)
+		throw new Error(
+			`Un workflow accetta al massimo ${MAX_DISPATCH_INPUTS} input.`
+		);
+	const inputs: Record<string, string> = {};
+	for (const [key, value] of entries) {
+		if (!/^[A-Za-z_][A-Za-z0-9_-]*$/.test(key))
+			throw new Error(`Nome di input non valido: ${key}`);
+		if (typeof value !== "string")
+			throw new Error(`L'input «${key}» deve essere una stringa.`);
+		inputs[key] = value;
+	}
+	return { ref: target, inputs };
+}
+
+/** `POST .../actions/workflows/{id}/dispatches`: avvia il workflow sul riferimento scelto. */
+export function dispatchWorkflowUrl(
+	account: Account,
+	namespace: string,
+	name: string,
+	id: string
+): string {
+	if (!/^\d+$/.test(id)) throw new Error(`Workflow non valido: ${id}`);
+	const base = account.apiBase.replace(/\/+$/, "");
+	return `${base}/repos/${namespace}/${name}/actions/workflows/${id}/dispatches`;
 }

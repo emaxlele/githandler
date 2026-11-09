@@ -52,7 +52,12 @@ import {
 	saveAccount,
 	setRepoAccount,
 } from "./accounts.ts";
-import { listWorkflowRuns, runWorkflowAction } from "./actions.ts";
+import {
+	dispatchWorkflow,
+	listWorkflowRuns,
+	listWorkflows,
+	runWorkflowAction,
+} from "./actions.ts";
 import type { WorkflowAction } from "../core/actions.ts";
 import {
 	addPullComment,
@@ -579,6 +584,12 @@ function registerIpc(): void {
 			syncFork(root, mode, branch)
 	);
 	handle("actions:runs", (root: string) => listWorkflowRuns(root));
+	handle("actions:workflows", (root: string) => listWorkflows(root));
+	handle(
+		"actions:dispatch",
+		(root: string, id: string, ref: string, inputs: string) =>
+			dispatchWorkflow(root, id, ref, inputs)
+	);
 	handle("pulls:list", (root: string) => listPulls(root));
 	handle("pulls:create", (root: string, input: NewPullRequest) =>
 		createPull(root, input)
@@ -1040,6 +1051,28 @@ async function runShots(): Promise<void> {
 		[
 			`(() => {
 				document.getElementById("settings-dialog")?.close();
+				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+				const input = document.getElementById("palette-input");
+				input.value = "github actions";
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+				return new Promise((resolve) => setTimeout(resolve, 400));
+			})()`,
+			target.replace(/\.png$/, "-actions.png"),
+		],
+		[
+			`(() => {
+				document.getElementById("actions-dispatch")?.click();
+				const ref = document.getElementById("dispatch-ref");
+				if (ref) ref.value = "main";
+				return new Promise((resolve) => setTimeout(resolve, 300));
+			})()`,
+			target.replace(/\.png$/, "-dispatch.png"),
+		],
+		[
+			`(() => {
+				document.getElementById("dispatch-dialog")?.close();
+				document.getElementById("actions-dialog")?.close();
 				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
 				const input = document.getElementById("palette-input");
 				input.value = "pull request";

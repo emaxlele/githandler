@@ -761,6 +761,27 @@ const EN: Record<string, string> = {
 	"Riprova solo i job falliti, senza ripetere quelli già passati.":
 		"Retries only the failed jobs, without repeating the ones that already passed.",
 	"Job falliti ri-avviati.": "Failed jobs restarted.",
+	"Avvia un workflow": "Start a workflow",
+	"Avvia un workflow…": "Start a workflow…",
+	"Avvia un workflow sul ramo scelto, con gli input che dichiara":
+		"Starts a workflow on the chosen branch, with the inputs it declares",
+	"Avvia un workflow sul riferimento scelto. GitHub parte solo se il workflow dichiara l'evento workflow_dispatch; gli input sono un oggetto JSON di stringhe, facoltativo.":
+		"Starts a workflow on the chosen ref. GitHub only runs it when the workflow declares the workflow_dispatch event; the inputs are an optional JSON object of strings.",
+	Workflow: "Workflow",
+	"Ramo o tag": "Branch or tag",
+	"Input (JSON, facoltativi)": "Inputs (JSON, optional)",
+	"Leggo i workflow…": "Reading the workflows…",
+	"Nessun workflow attivo.": "No active workflow.",
+	"Scegli un workflow.": "Choose a workflow.",
+	"Scrivi il ramo o il tag su cui avviare il workflow.":
+		"Type the branch or tag to start the workflow on.",
+	"Avvio il workflow…": "Starting the workflow…",
+	"Workflow avviato.": "Workflow started.",
+	Avvia: "Start",
+	"Chiude senza avviare niente": "Closes without starting anything",
+	"Avvia il workflow sul ramo indicato":
+		"Starts the workflow on the chosen branch",
+	"tentativo {0}": "attempt {0}",
 	"Salute del repository": "Repository health",
 	"Salute del repository…": "Repository health…",
 	"Cose che non impediscono di lavorare ma è meglio sapere: rami divergenti, stash dimenticati, submodule non aggiornati, HEAD staccato; su richiesta, anche se i remoti rispondono.":

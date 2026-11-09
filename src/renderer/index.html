@@ -1351,14 +1351,24 @@
 				</p>
 				<div class="account-repos-head">
 					<strong>Esecuzioni</strong>
-					<button
-						type="button"
-						class="btn btn-small"
-						id="actions-refresh"
-						title="Rilegge da GitHub le ultime esecuzioni dei workflow"
-					>
-						Aggiorna
-					</button>
+					<div class="actions-actions">
+						<button
+							type="button"
+							class="btn btn-small"
+							id="actions-dispatch"
+							title="Avvia un workflow sul ramo scelto, con gli input che dichiara"
+						>
+							Avvia un workflow…
+						</button>
+						<button
+							type="button"
+							class="btn btn-small"
+							id="actions-refresh"
+							title="Rilegge da GitHub le ultime esecuzioni dei workflow"
+						>
+							Aggiorna
+						</button>
+					</div>
 				</div>
 				<ul class="repo-list actions-list" id="actions-list"></ul>
 				<div class="dialog-actions">
@@ -1370,6 +1380,57 @@
 						title="Chiude la finestra delle esecuzioni"
 					>
 						Chiudi
+					</button>
+				</div>
+			</form>
+		</dialog>
+
+		<dialog class="dialog dialog-wide" id="dispatch-dialog">
+			<form id="dispatch-form">
+				<h2>Avvia un workflow</h2>
+				<p class="hint">
+					Avvia un workflow sul riferimento scelto. GitHub parte solo
+					se il workflow dichiara l'evento workflow_dispatch; gli
+					input sono un oggetto JSON di stringhe, facoltativo.
+				</p>
+				<label class="field">
+					<span>Workflow</span>
+					<select id="dispatch-workflow"></select>
+				</label>
+				<label class="field">
+					<span>Ramo o tag</span>
+					<input
+						id="dispatch-ref"
+						autocomplete="off"
+						spellcheck="false"
+					/>
+				</label>
+				<label class="field">
+					<span>Input (JSON, facoltativi)</span>
+					<textarea
+						id="dispatch-inputs"
+						rows="3"
+						spellcheck="false"
+						placeholder='{"nome": "valore"}'
+					></textarea>
+				</label>
+				<div class="dialog-actions">
+					<span class="account-status" id="dispatch-status"></span>
+					<button
+						type="button"
+						class="btn"
+						id="dispatch-close"
+						title="Chiude senza avviare niente"
+					>
+						Chiudi
+					</button>
+					<button
+						type="submit"
+						class="btn btn-primary"
+						id="dispatch-start"
+						title="Avvia il workflow sul ramo indicato"
+					>
+						Avvia
 					</button>
 				</div>
 			</form>

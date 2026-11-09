@@ -30,6 +30,8 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 -   ✅ Review comments: read the conversation and answer, without leaving the app.
 -   ⏳ Reviews (approve / request changes) from the app.
 -   ✅ Checks: status per pull request, with a link to the run.
+-   ✅ GitHub Actions: list the runs, retry the failed jobs, re-run or cancel, and start a workflow
+    with its inputs on the chosen branch or tag.
 -   ✅ CI notifications from the tray, without keeping the window in front.
 
 ## 4. Daily quality

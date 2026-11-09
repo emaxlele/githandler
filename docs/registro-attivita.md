@@ -5,6 +5,22 @@
 
 ## 2026-11-09
 
+### Avviare un workflow di GitHub dall'app
+
+-   **Cosa**: nella finestra delle GitHub Actions c'è ora **«Avvia un workflow…»**: si sceglie il
+    workflow, il ramo o tag e, se servono, gli input; l'elenco mostra anche il numero del tentativo
+    quando un'esecuzione è stata ri-eseguita. In più la finestra si apre dalla palette dei comandi.
+-   **Perché**: richiesta dell'utente — avviare un workflow richiedeva la pagina web di GitHub, e i
+    tentativi si distinguevano solo per la data.
+-   **Come**: l'app chiede a GitHub l'elenco dei workflow attivi e avvia quello scelto con
+    `workflow_dispatch`; gli input sono un oggetto JSON di stringhe, controllato prima di partire
+    (massimo dieci, nomi validi, niente numeri convertiti di nascosto). Un workflow senza quell'evento
+    viene rifiutato da GitHub e il messaggio si legge così com'è.
+-   **Verifica**: typecheck, 2 test nuovi su indirizzi, input e tentativi, e build; la finestra è
+    stata controllata in inglese su un repository di prova.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Leggere e rispondere ai commenti di una pull request
 
 -   **Cosa**: ogni pull request ha ora il pulsante **«Discussione»**: mostra i commenti della

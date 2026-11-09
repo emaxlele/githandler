@@ -9,7 +9,11 @@ import type {
 } from "../core/rebase.ts";
 import type { TreeEntry } from "../core/tree.ts";
 import type { WorktreeInfo } from "../core/worktrees.ts";
-import type { WorkflowAction, WorkflowRun } from "../core/actions.ts";
+import type {
+	WorkflowAction,
+	WorkflowInfo,
+	WorkflowRun,
+} from "../core/actions.ts";
 import type {
 	ForkInfo,
 	ForkPending,
@@ -124,6 +128,10 @@ export interface GitApi {
 	workflowRuns(): Promise<WorkflowRun[]>;
 	/** Ri-esegue tutti o solo i job falliti, oppure annulla un'esecuzione. */
 	workflowRunAction(id: string, action: WorkflowAction): Promise<void>;
+	/** Workflow attivi del repository, pronti per `workflow_dispatch`. */
+	workflows(): Promise<WorkflowInfo[]>;
+	/** Avvia un workflow sul riferimento scelto, con gli input in JSON (vuoto se non servono). */
+	dispatchWorkflow(id: string, ref: string, inputs: string): Promise<void>;
 	/** Pull request aperte del repository, con la parola e la pagina web del servizio. */
 	pullRequests(): Promise<PullList>;
 	/** Apre una pull request dai due rami indicati. */
@@ -392,6 +400,8 @@ export type IpcChannel =
 	| "repo:syncFork"
 	| "actions:runs"
 	| "actions:run"
+	| "actions:workflows"
+	| "actions:dispatch"
 	| "pulls:list"
 	| "pulls:create"
 	| "pulls:checks"

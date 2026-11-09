@@ -4,9 +4,13 @@ import { test } from "node:test";
 import {
 	canRerunFailed,
 	describeRun,
+	dispatchPayload,
+	dispatchWorkflowUrl,
 	parseWorkflowRuns,
+	parseWorkflows,
 	workflowRunActionUrl,
 	workflowRunsUrl,
+	workflowsUrl,
 } from "../src/core/actions.ts";
 import type { Account } from "../src/core/providers.ts";
 
@@ -95,6 +99,7 @@ test("la lista delle esecuzioni si legge anche quando i campi mancano", () => {
 		status: "completed",
 		conclusion: "success",
 		createdAt: "2026-11-09T08:00:00Z",
+		attempt: 1,
 		url: "https://github.com/o/r/actions/runs/9001",
 	});
 	// senza `name` si usa il titolo; lo stato senza conclusione resta `null`
@@ -116,6 +121,7 @@ test("lo stato mostrato è quello che si vuole leggere", () => {
 			status: "completed",
 			conclusion: "failure",
 			createdAt: "",
+			attempt: 1,
 			url: "",
 		}),
 		"failure"
@@ -129,6 +135,7 @@ test("lo stato mostrato è quello che si vuole leggere", () => {
 			status: "queued",
 			conclusion: null,
 			createdAt: "",
+			attempt: 1,
 			url: "",
 		}),
 		"queued"
@@ -142,6 +149,7 @@ test("«riprova i falliti» solo dove c'è un fallimento da riprovare", () => {
 		branch: "main",
 		event: "push",
 		createdAt: "",
+		attempt: 1,
 		url: "",
 	};
 	const run = (status: string, conclusion: string | null) => ({
@@ -159,4 +167,74 @@ test("«riprova i falliti» solo dove c'è un fallimento da riprovare", () => {
 	// un'esecuzione ancora in corso non ha job falliti da riprovare
 	assert.equal(canRerunFailed(run("in_progress", null)), false);
 	assert.equal(canRerunFailed(run("queued", "failure")), false);
+});
+
+test("i workflow si elencano e si avviano sul riferimento scelto", () => {
+	assert.equal(
+		workflowsUrl(account, "emaxlele", "githandler"),
+		"https://api.github.com/repos/emaxlele/githandler/actions/workflows?per_page=100"
+	);
+	assert.deepEqual(
+		parseWorkflows({
+			workflows: [
+				{ id: 12, name: "CI", path: ".github/workflows/ci.yml", state: "active" },
+				{ id: "x", name: "rotto", path: "", state: "active" },
+				{ id: 13, name: "  ", path: "", state: "active" },
+			],
+		}),
+		[{ id: "12", name: "CI", path: ".github/workflows/ci.yml", state: "active" }]
+	);
+	assert.deepEqual(parseWorkflows(null), []);
+
+	assert.equal(
+		dispatchWorkflowUrl(account, "emaxlele", "githandler", "12"),
+		"https://api.github.com/repos/emaxlele/githandler/actions/workflows/12/dispatches"
+	);
+	assert.throws(
+		() => dispatchWorkflowUrl(account, "o", "r", "../x"),
+		/Workflow non valido/
+	);
+
+	// senza input il corpo porta solo il riferimento
+	assert.deepEqual(dispatchPayload(" main ", ""), { ref: "main" });
+	assert.deepEqual(dispatchPayload("v1.0", '{"reason": "prova"}'), {
+		ref: "v1.0",
+		inputs: { reason: "prova" },
+	});
+	assert.deepEqual(dispatchPayload("main", "{}"), { ref: "main" });
+	// un valore che non è una stringa non viene convertito in silenzio
+	assert.throws(() => dispatchPayload("main", '{"n": 1}'), /stringa/);
+	assert.throws(() => dispatchPayload("main", '["a"]'), /oggetto JSON/);
+	assert.throws(() => dispatchPayload("main", "{"), /JSON valido/);
+	assert.throws(() => dispatchPayload("main", '{"nome non valido": "x"}'), /Nome di input/);
+	assert.throws(
+		() => dispatchPayload("main", JSON.stringify(Object.fromEntries(Array.from({ length: 11 }, (_, i) => [`k${i}`, "x"])))),
+		/al massimo 10/
+	);
+	// il riferimento segue le regole dei rami: niente trattino iniziale né risalita
+	assert.throws(() => dispatchPayload("-x", ""), /Riferimento non valido/);
+	assert.throws(() => dispatchPayload("a..b", ""), /Riferimento non valido/);
+	assert.throws(() => dispatchPayload("", ""), /Riferimento non valido/);
+});
+
+test("il numero del tentativo arriva dall'esecuzione", () => {
+	const [first] = parseWorkflowRuns({
+		workflow_runs: [
+			{
+				id: 1,
+				name: "CI",
+				status: "completed",
+				conclusion: "success",
+				run_attempt: 3,
+			},
+			{ id: 2, name: "CI", status: "completed", conclusion: "success" },
+		],
+	});
+	assert.equal(first!.attempt, 3);
+	assert.equal(
+		parseWorkflowRuns({
+			workflow_runs: [{ id: 3, name: "CI", run_attempt: 0 }],
+		})[0]!.attempt,
+		1
+	);
 });

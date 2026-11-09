@@ -200,8 +200,9 @@ minmax(0, 1fr)`), non più contenuto tagliato
 -   [ ] Device flow: un Client ID predefinito per GitHub nell'app, così l'accesso dal browser funziona
         senza che l'utente registri una sua applicazione OAuth. Nell'attesa «Accedi» usa il token che
         c'è già sulla macchina
--   [ ] Actions: workflow con input e con più tentativi per esecuzione; l'annullamento è offerto solo
-        alle esecuzioni non concluse
+-   [x] **Actions**: _Avvia un workflow…_ parte sul ramo o tag scelto con gli input dichiarati in un
+        oggetto JSON (al massimo dieci, solo stringhe); l'elenco mostra il numero del tentativo e
+        l'annullamento resta offerto solo alle esecuzioni non concluse
 -   [x] **Pannello staccato**: quando la finestra principale cambia repository, la finestra dei
         dettagli riapre l'ultimo commit guardato lì (o quello che la principale sta guardando), non
         il primo della storia; la scelta è ricordata per repository in

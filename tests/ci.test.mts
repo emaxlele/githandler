@@ -18,6 +18,7 @@ function run(id: string, conclusion: string | null): WorkflowRun {
 		status: conclusion ? "completed" : "in_progress",
 		conclusion,
 		createdAt: "2026-11-09T10:00:00Z",
+		attempt: 1,
 		url: `https://github.com/a/b/actions/runs/${id}`,
 	};
 }

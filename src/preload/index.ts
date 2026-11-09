@@ -105,6 +105,9 @@ const api: GitApi = {
 	syncFork: (mode, branch) => invokeRepo("repo:syncFork", mode, branch),
 	workflowRuns: () => invokeRepo("actions:runs"),
 	workflowRunAction: (id, action) => invokeRepo("actions:run", id, action),
+	workflows: () => invokeRepo("actions:workflows"),
+	dispatchWorkflow: (id, ref, inputs) =>
+		invokeRepo("actions:dispatch", id, ref, inputs),
 	pullRequests: () => invokeRepo("pulls:list"),
 	createPullRequest: (input) => invokeRepo("pulls:create", input),
 	pullChecks: (sha) => invokeRepo("pulls:checks", sha),
