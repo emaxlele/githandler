@@ -721,9 +721,12 @@ const EN: Record<string, string> = {
 	"Righe non ancora committate": "Lines not committed yet",
 	"Elemento mancante: #{0}": "Missing element: #{0}",
 	"Richieste aperte sul servizio del repository. Se ne crea una da due rami già inviati con Push; «Apri» mostra la pagina web della richiesta.":
-		"Requests open on the repository service. Create one from two branches already pushed; \"Open\" shows the request page.",
+		'Requests open on the repository service. Create one from two branches already pushed; "Open" shows the request page.',
 	Aperte: "Open",
-	"Nuova": "New",
+	"author: · file: · regex: · change: · diff: · lines:1,40:file":
+		"author: · file: · regex: · change: · diff: · lines:1,40:file",
+	"1 risultato": "1 result",
+	Nuova: "New",
 	"Ramo di partenza": "Source branch",
 	"Ramo di arrivo": "Target branch",
 	Descrizione: "Description",
@@ -732,13 +735,15 @@ const EN: Record<string, string> = {
 		"Opens the repository pull request list in the browser",
 	"Rilegge dal servizio le pull request aperte":
 		"Re-reads the open pull requests from the service",
-	"Apre la pull request sul servizio": "Opens the pull request on the service",
+	"Apre la pull request sul servizio":
+		"Opens the pull request on the service",
 	"Chiude la finestra delle pull request": "Closes the pull requests window",
 	"Leggo le pull request…": "Reading the pull requests…",
 	"Nessuna pull request aperta.": "No open pull request.",
 	"{0} aperte.": "{0} open.",
 	bozza: "draft",
-	"Apre la pull request nel browser.": "Opens the pull request in the browser.",
+	"Apre la pull request nel browser.":
+		"Opens the pull request in the browser.",
 	"Servono titolo e due rami: quello di partenza e quello di arrivo.":
 		"A title and two branches are required: source and target.",
 	"Pull request #{0} creata.": "Pull request #{0} created.",

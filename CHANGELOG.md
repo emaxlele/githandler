@@ -2,6 +2,25 @@
 
 ## [Non rilasciato]
 
+### Ricerca nella storia, con un linguaggio più forte
+
+-   **Quattro operatori nuovi** nello stesso campo di ricerca: `regex:` cerca un'espressione regolare
+    estesa nel messaggio, `change:` i commit in cui cambia il numero di occorrenze di un testo (`-S`),
+    `diff:` i commit il cui diff contiene una riga che corrisponde (`-G`), `lines:10,40:file` la storia
+    di quell'intervallo di righe (`-L`). Il testo libero resta **letterale** e senza maiuscole: una
+    regex si chiede apposta; testo e `regex:` insieme sono un errore, non una OR silenziosa.
+-   **La sintassi si vede**: sotto il campo, quando è vuoto e ha il fuoco, compare la riga degli
+    operatori.
+-   **`GitBackend.search` prende `HistoryQuery`**, già parsata al confine IPC: prima la stringa
+    veniva scomposta una seconda volta nel backend, e un valore con virgolette non tornava.
+-   **Corretto**: `grep:` finiva nel campo sbagliato del parser; ora è un alias di `file:`, come
+    dichiarato.
+-   **`-L`**: Git non lo accetta insieme a `--all` e ci mette il diff, quindi quella ricerca parte dal
+    ramo corrente e chiede `--no-patch` per non rompere il formato dei record. L'intervallo è limitato
+    a 1000 righe.
+-   Test nuovi in `tests/search.test.mts`: parsing ed errori dei prefissi, forma degli argomenti, più
+    quattro ricerche vere (regex, pickaxe, diff, righe) su un repository temporaneo.
+
 ### Pull request e merge request dentro l'app
 
 -   **Elenco delle richieste aperte** per GitHub, GitLab, Gitea/Forgejo e Bitbucket: numero, titolo,

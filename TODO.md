@@ -116,7 +116,9 @@ minmax(0, 1fr)`), non più contenuto tagliato
             prima di aggiungerla
     -   [x] Interfaccia in italiano **e** inglese (`i18n`), lingua scelta nelle impostazioni
     -   [x] Command palette (`Ctrl+K`) e scorciatoie documentate
-    -   [ ] Ricerca più forte: regex, `-S` (pickaxe), contenuto dei file, `log -L`
+    -   [x] **Ricerca più forte**: `regex:` sul messaggio, `change:` (`-S`), `diff:` (`-G`),
+            `lines:` (`log -L`); il testo libero resta letterale
+    -   [ ] Ricerca nel contenuto dei file (`git grep`), strumento a parte
     -   [ ] Pannello reflog / cronologia undo e «vai al commit per SHA»
 -   [x] **Pull request / merge request**: elenco delle aperte (GitHub, GitLab, Gitea/Forgejo,
         Bitbucket), creazione da due rami già inviati, apertura nel browser, bozza; dal menu della

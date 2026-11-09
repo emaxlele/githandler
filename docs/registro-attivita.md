@@ -5,6 +5,26 @@
 
 ## 2026-11-09
 
+### La ricerca nella storia trova di più
+
+-   **Cosa**: al campo di ricerca della storia si sono aggiunte quattro domande che prima si potevano
+    fare solo dal terminale: cercare un **espressione regolare** nel messaggio (`regex:`), sapere in
+    quali commit **cambia il numero di occorrenze** di una parola (`change:`), quali commit hanno un
+    diff con una **riga che corrisponde** a un'espressione (`diff:`), e la **storia di un intervallo
+    di righe** di un file (`lines:10,40:percorso`). La sintassi compare da sola sotto il campo quando
+    lo si apre. Il testo semplice resta letterale: le parentesi non diventano una regex per sbaglio.
+-   **Perché**: richiesta dell'utente — la ricerca sapeva cercare solo una parola esatta, l'autore e il
+    file; «quando è cambiato questo comportamento» era una domanda senza risposta dentro l'app.
+-   **Come**: gli operatori stanno nella stessa riga di ricerca (`src/core/search.ts`); l'API per l'AI
+    li riceve come argomenti separati. La ricerca per righe parte dal ramo corrente, perché Git non la
+    accetta su tutti i rami insieme, ed è limitata a 1000 righe per volta. Corretto anche un
+    `grep:` che finiva nel campo sbagliato.
+-   **Verifica**: typecheck, **195 test** verdi (3 nuovi, fra cui quattro ricerche vere su un
+    repository temporaneo) e build.
+-   **Stato**: completato. Resta fuori la ricerca **dentro il contenuto** dei file: è un altro
+    strumento (`git grep`) e un'altra schermata.
+-   **Riferimento**: commit di questa sessione.
+
 ### Le pull request si vedono e si aprono dall'app
 
 -   **Cosa**: nel menu del tasto destro sulla scheda del repository c'è ora **«Pull request…»**. Mostra

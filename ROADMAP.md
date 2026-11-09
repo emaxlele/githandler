@@ -34,7 +34,9 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 
 -   ✅ User interface in Italian **and** English (`i18n`), language switchable in settings.
 -   ✅ Command palette (`Ctrl+K`) with a single command registry, and `?` for the shortcut list.
--   ⏳ Stronger search: regular expressions, `-S` pickaxe, content search, `log -L`.
+-   ✅ Stronger search: `regex:` on the message, `change:` (`-S`), `diff:` (`-G`) and `lines:`
+    (`log -L`), while free text stays literal.
+-   ⏳ Content search across the working tree (`git grep`), as a separate tool.
 -   ⏳ Reflog panel and "go to commit by SHA"; the undo history visible instead of implicit.
 -   ⏳ Network progress from `git` stderr during clone, fetch and push.
 -   ⏳ Partial stash, drag a file out of the window, lazy tree in the file view, syntax highlighting.

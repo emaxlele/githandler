@@ -28,6 +28,7 @@ import {
 	hostFromUrl,
 	remoteWeb,
 } from "../core/providers.ts";
+import { parseHistoryQuery } from "../core/search.ts";
 import { normalizeSettings } from "../core/settings.ts";
 import type { NewPullRequest } from "../core/pulls.ts";
 import {
@@ -367,7 +368,7 @@ function registerIpc(): void {
 		backendFor(root).continueOperation()
 	);
 	handle("git:search", (root: string, query: string) =>
-		backendFor(root).search(query)
+		backendFor(root).search(parseHistoryQuery(query))
 	);
 	handle("git:moreCommits", (root: string, skip: number) =>
 		backendFor(root).historyPage(skip)
@@ -801,6 +802,13 @@ async function runShots(): Promise<void> {
 		[
 			`document.getElementById("tab-blame")?.click()`,
 			target.replace(/\.png$/, "-blame.png"),
+		],
+		[
+			`(() => {
+				const input = document.getElementById("search-input");
+				input.focus();
+			})()`,
+			target.replace(/\.png$/, "-search-hint.png"),
 		],
 		[
 			`(() => {

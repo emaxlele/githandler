@@ -64,7 +64,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Più repository aperti insieme** (schede)                       | ✅             |
 | **Undo generale** (commit, checkout, scarto, merge)              | ✅             |
 | **File non tracciati recuperabili** (oggetti Git)                | ✅             |
-| **Ricerca nella storia** (`author:`, `file:`)                    | ✅             |
+| **Ricerca nella storia**: testo, `author:`, `file:`, `regex:`, `change:`, `diff:`, `lines:` | ✅             |
 | **Aggiornamento automatico** (`--watch`)                         | ✅             |
 | **Blame nella UI** (pannello virtualizzato)                      | ✅             |
 | **Pannello ridimensionabile, a icona, in finestra**              | ✅             |
@@ -91,6 +91,12 @@ La finestra segue la disposizione dei client Git desktop affermati, con un tema 
 -   **Barra laterale**: nome del repository, _Changes_ con il conteggio, _All Commits_, filtro di
     ricerca e i ref divisi in Branches / Remotes / Tags. Il conteggio si nasconde a zero, è verde quando
     tutto è in stage e ambra quando resta qualcosa fuori.
+-   **Ricerca con un linguaggio minimo**: il testo libero è letterale e non guarda le maiuscole;
+    `author:` e `file:` filtrano autore e percorso; `regex:` cerca un'espressione regolare nel
+    messaggio, `change:` i commit in cui cambia il numero di occorrenze di un testo (`-S`), `diff:` i
+    commit il cui diff contiene una riga che corrisponde (`-G`), `lines:10,40:file` la storia di
+    quell'intervallo di righe (`-L`, sul ramo corrente). La sintassi compare sotto il campo quando lo
+    si apre.
 -   **Una vista sola per le modifiche**: la voce _Changes_ della barra laterale le porta a tutta area,
     senza storia né pannello inferiore: le liste Staged e Unstaged, il diff e il riquadro del commit.
     _All Commits_ riporta la storia.

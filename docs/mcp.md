@@ -144,7 +144,7 @@ Tutti dichiarano uno schema JSON chiuso (`additionalProperties: false`).
 | Tool            | Argomenti                                 | Cosa restituisce                                                                                             |
 | --------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | `repo_status`   | —                                         | ramo, HEAD staccato, ahead/behind, elenco modifiche con codici index/worktree, ultima operazione annullabile |
-| `history`       | `text`, `author`, `file`, `limit` (1-500) | commit più recenti, con SHA, autore, data ISO, oggetto e genitori                                            |
+| `history`       | `text`, `author`, `file`, `regex`, `change`, `diff`, `lines`, `limit` (1-500) | commit più recenti, con SHA, autore, data ISO, oggetto e genitori                     |
 | `show_commit`   | `sha`, `path`                             | metadati e file del commit; con `path` anche il diff unified di quel file                                    |
 | `worktree_diff` | `path`, `staged`                          | diff unified di un file nel working tree o nell'indice, con conteggi                                         |
 | `blame`         | `path`, `start`, `end`                    | una voce per riga: commit, autore, data, oggetto e testo                                                     |
@@ -191,6 +191,8 @@ Le letture non si registrano: l'audit parla delle conseguenze, non di ogni sguar
 Esempi di richieste che funzionano bene:
 
 -   `history` con `file: src/main/backend.ts` → chi ha toccato il file e quando;
+-   `history` con l'argomento `change` → in quali commit è cambiato il numero di occorrenze di quel
+    testo (pickaxe); con `lines` (`"10,40:src/file.ts"`) → la storia di quell'intervallo di righe;
 -   `show_commit` con `sha` e `path` → il diff esatto di una modifica, senza aprire l'app;
 -   `blame` su una funzione → da quale commit viene quella riga e con quale messaggio;
 -   `repo_status` prima di proporre un commit → cosa è in stage e cosa no.

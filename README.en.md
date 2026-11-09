@@ -64,7 +64,7 @@ Italiano: [README.md](README.md)
 | **Several repositories open at once** (tabs)                                  | ✅             |
 | **Global undo** (commit, checkout, discard, merge)                            | ✅             |
 | **Recoverable untracked files** (Git objects)                                 | ✅             |
-| **History search** (`author:`, `file:`)                                       | ✅             |
+| **History search**: text, `author:`, `file:`, `regex:`, `change:`, `diff:`, `lines:` | ✅             |
 | **Automatic refresh** (`--watch`)                                             | ✅             |
 | **Blame in the UI** (virtualized panel)                                       | ✅             |
 | **Resizable, collapsible, detachable panel**                                  | ✅             |
@@ -91,6 +91,11 @@ The window follows the layout of established desktop Git clients, with its own d
 -   **Sidebar**: repository name, _Changes_ with a count, _All Commits_, a search filter and refs split
     into Branches / Remotes / Tags. The count hides at zero, is green when everything is staged and
     amber when something is left out.
+-   **Search with a small language**: free text is literal and case-insensitive; `author:` and
+    `file:` filter author and path; `regex:` searches the message with an extended regular
+    expression, `change:` the commits where the number of occurrences of a text changed (`-S`),
+    `diff:` the commits whose diff contains a matching line (`-G`), `lines:10,40:file` the history of
+    that line range (`-L`, on the current branch). The syntax appears under the field when it opens.
 -   **A single view for changes**: the _Changes_ entry in the sidebar brings them to the whole area,
     without history or lower panel: Staged and Unstaged lists, the diff and the commit box.
     _All Commits_ goes back to history.

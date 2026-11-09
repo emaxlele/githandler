@@ -1135,11 +1135,13 @@ async function loadLog(): Promise<void> {
 	const commits = await guard("Ricerca", () => api.search(query));
 	if (token !== logRequest || !commits) return;
 	logView.setEmptyMessage(
-		commits.length === 0 ? `Nessun commit per «${query}».` : ""
+		commits.length === 0 ? t(`Nessun commit per «${query}».`) : ""
 	);
 	logView.setData(commits, layoutGraph(commits as Commit[]));
 	ui.searchInfo.textContent =
-		commits.length === 1 ? "1 risultato" : `${commits.length} risultati`;
+		commits.length === 1
+			? t("1 risultato")
+			: t(`${commits.length} risultati`);
 }
 
 /** Pagina successiva della storia: il grafo si rilayouta sull'insieme caricato. */
@@ -4678,6 +4680,17 @@ ui.searchInput.addEventListener("input", () => {
 	if (!ui.searchInput.value.trim() && state.searchQuery) void runSearch("");
 });
 
+// La sintassi non si indovina: il suggerimento compare quando il campo è vuoto e ha il fuoco.
+ui.searchInput.addEventListener("focus", () => {
+	if (!ui.searchInput.value.trim())
+		ui.searchInfo.textContent = t(
+			"author: · file: · regex: · change: · diff: · lines:1,40:file"
+		);
+});
+ui.searchInput.addEventListener("blur", () => {
+	if (!state.searchQuery) ui.searchInfo.textContent = "";
+});
+
 ui.btnSearchClear.addEventListener("click", () => {
 	ui.searchInput.focus();
 	void runSearch("");
@@ -5069,9 +5082,7 @@ const COMMANDS: PaletteCommand[] = [
 		keywords: "layout diff affiancato unified split",
 		enabled: repoReady,
 		run: () =>
-			setDiffLayout(
-				state.diffLayout === "unified" ? "split" : "unified"
-			),
+			setDiffLayout(state.diffLayout === "unified" ? "split" : "unified"),
 	},
 	{
 		id: "collapse",
@@ -5163,8 +5174,7 @@ function renderPalette(query: string): void {
 function movePaletteSelection(step: number): void {
 	if (paletteMatches.length === 0) return;
 	paletteActive =
-		(paletteActive + step + paletteMatches.length) %
-		paletteMatches.length;
+		(paletteActive + step + paletteMatches.length) % paletteMatches.length;
 	const items = [
 		...ui.paletteList.querySelectorAll<HTMLElement>("li[data-command]"),
 	];
@@ -5225,9 +5235,14 @@ document.addEventListener("keydown", (event) => {
 	if (ctrl && ["1", "2", "3", "4"].includes(event.key)) {
 		event.preventDefault();
 		setTab(
-			({ "1": "commit", "2": "tree", "3": "blame", "4": "term" } as const)[
-				event.key as "1" | "2" | "3" | "4"
-			]
+			(
+				{
+					"1": "commit",
+					"2": "tree",
+					"3": "blame",
+					"4": "term",
+				} as const
+			)[event.key as "1" | "2" | "3" | "4"]
 		);
 		return;
 	}

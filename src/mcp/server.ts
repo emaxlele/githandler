@@ -1,6 +1,10 @@
 import { UNCOMMITTED_SHA } from "../core/blame.ts";
 import { formatDiff } from "../core/diff.ts";
-import { formatHistoryQuery, type HistoryQuery } from "../core/search.ts";
+import {
+	parseLineRange,
+	type HistoryQuery,
+	type LineRange,
+} from "../core/search.ts";
 import {
 	allowedTools,
 	isApiTool,
@@ -80,6 +84,26 @@ const TOOLS: ToolDefinition[] = [
 				file: {
 					type: "string",
 					description: "path that the commit must have touched",
+				},
+				regex: {
+					type: "string",
+					description:
+						"extended regular expression for the commit message (instead of literal text)",
+				},
+				change: {
+					type: "string",
+					description:
+						"commits where the number of occurrences of this text changed (-S pickaxe)",
+				},
+				diff: {
+					type: "string",
+					description:
+						"commits whose diff contains a line matching this regex (-G)",
+				},
+				lines: {
+					type: "string",
+					description:
+						"line range history as `start,end:path` (-L), on the current branch",
 				},
 				limit: {
 					type: "integer",
@@ -257,6 +281,12 @@ function asString(value: unknown): string | null {
 	return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+/** `lines` arriva come `start,end:path`, la stessa forma della ricerca nella UI. */
+function asLineRange(value: unknown): LineRange | null {
+	const raw = asString(value);
+	return raw ? parseLineRange(raw) : null;
+}
+
 function asInteger(value: unknown): number | null {
 	return typeof value === "number" && Number.isInteger(value) ? value : null;
 }
@@ -366,13 +396,18 @@ async function callTool(
 	}
 
 	if (name === "history") {
+		const lines = asLineRange(args.lines);
 		const query: HistoryQuery = {
 			text: asString(args.text),
 			author: asString(args.author),
 			file: asString(args.file),
+			regex: asString(args.regex),
+			pickaxe: asString(args.change),
+			diff: asString(args.diff),
+			lines,
 		};
 		const limit = clamp(asInteger(args.limit) ?? 50, 1, 500);
-		const commits = await backend.search(formatHistoryQuery(query), limit);
+		const commits = await backend.search(query, limit);
 		return text({
 			query,
 			count: commits.length,

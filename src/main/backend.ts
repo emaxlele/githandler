@@ -32,7 +32,7 @@ import {
 import { hostFromUrl } from "../core/providers.ts";
 import { parseStatus, statusArgs } from "../core/status.ts";
 import { patchTargetsOnly, type PatchMode } from "../core/patch.ts";
-import { historyArgs, parseHistoryQuery } from "../core/search.ts";
+import { historyArgs, type HistoryQuery } from "../core/search.ts";
 import {
 	cherryPickArgs,
 	checkoutTrackingArgs,
@@ -155,7 +155,7 @@ export interface GitBackend {
 	deleteBranch(name: string, force: boolean): Promise<Snapshot>;
 	checkoutTracking(remoteRef: string, local: string): Promise<Snapshot>;
 	/** Ricerca nella storia: testo libero, `author:`, `file:`. */
-	search(query: string, limit?: number): Promise<Commit[]>;
+	search(query: HistoryQuery, limit?: number): Promise<Commit[]>;
 	/** Pagina successiva della storia, a partire da `skip`. */
 	historyPage(skip: number, limit?: number): Promise<CommitPage>;
 	/** Metadati di un commit qualsiasi, anche fuori dalla pagina di storia caricata. */
@@ -910,13 +910,11 @@ export class CliGitBackend implements GitBackend {
 		return this.refresh();
 	}
 
-	async search(query: string, limit = 500): Promise<Commit[]> {
+	async search(query: HistoryQuery, limit = 500): Promise<Commit[]> {
 		const info = this.#requireInfo();
-		const result = await runGit(
-			info.root,
-			historyArgs(parseHistoryQuery(query), limit),
-			{ allowFailure: true }
-		);
+		const result = await runGit(info.root, historyArgs(query, limit), {
+			allowFailure: true,
+		});
 		return parseLog(result.stdout);
 	}
 
