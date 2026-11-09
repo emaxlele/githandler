@@ -1,6 +1,6 @@
 # Prestazioni del backend: misure e soglie
 
-> Misurato il 2026-11-08 su Ubuntu 26.04, 16 core, Node 24.22, git 2.53.
+> Misurato il 2026-11-08 e rimisurato il 2026-11-09 su Ubuntu 26.04, 16 core, Node 24.22, git 2.53.
 > Riproducibile con `npm run bench` (e `npm run bench -- --commits 50000 --files 100000`).
 
 ## Perché questo documento
@@ -10,16 +10,18 @@ Rust + `git2`, C++ + libgit2)? Senza numeri la risposta è un'opinione. Questi s
 
 ## Cosa costa davvero
 
-| Operazione                  | Tempo      | Note                           |
-| --------------------------- | ---------- | ------------------------------ |
-| `git log` 5.000 commit      | **35 ms**  | output 0.8 MB, cache calda     |
-| `parseLog` 5.000 commit     | 7,3 ms     | codice TypeScript              |
-| `layoutGraph` 5.000 commit  | 4,2 ms     | codice TypeScript              |
-| `git log` 50.000 commit     | **370 ms** | output 8,4 MB                  |
-| `parseLog` 50.000 commit    | 69 ms      | codice TypeScript              |
-| `layoutGraph` 50.000 commit | 16 ms      | codice TypeScript              |
-| `git status` 100.000 file   | **82 ms**  | cache calda, repository pulito |
-| `parseStatus` (stesso repo) | 0,3 ms     | l'output è minuscolo           |
+| Operazione                                       | Tempo      | Note                                               |
+| ------------------------------------------------ | ---------- | -------------------------------------------------- |
+| `git log` 5.000 commit                           | **35 ms**  | output 0.8 MB, cache calda                         |
+| `parseLog` 5.000 commit                          | 7,3 ms     | codice TypeScript                                  |
+| `layoutGraph` 5.000 commit                       | 4,2 ms     | codice TypeScript                                  |
+| `git log` 50.000 commit                          | **370 ms** | output 8,4 MB                                      |
+| `parseLog` 50.000 commit                         | 69 ms      | codice TypeScript                                  |
+| `layoutGraph` 50.000 commit                      | 16 ms      | codice TypeScript                                  |
+| `git status` 100.000 file                        | **82 ms**  | cache calda, repository pulito                     |
+| `parseStatus` (stesso repo)                      | 0,3 ms     | l'output è minuscolo                               |
+| `refresh` completo (50.000 commit, 100.000 file) | **78 ms**  | misura del 2026-11-09, pagina di storia riusata    |
+| `git log --date-order` 2.000 commit su 50.000    | **239 ms** | il costo che il refresh non paga più a ogni evento |
 
 Conclusioni che si leggono direttamente:
 
@@ -35,6 +37,14 @@ Conclusioni che si leggono direttamente:
 Quindi, oggi, **il collo di bottiglia non è TypeScript**. Quando l'app sembrerà lenta, lo sarà per
 altri motivi, misurabili separatamente: serializzazione IPC di 50.000 commit verso il renderer,
 disegno del DOM, e refresh non incrementale.
+
+Il primo di questi tre, il refresh, è stato misurato e corretto il 2026-11-09. `--date-order`
+costringe Git a percorrere tutta la storia per ordinarla: 239 ms per chiedere 2.000 commit in un
+repository da 50.000. Il refresh rileggeva quella pagina a ogni evento di `fs.watch`, quindi ogni
+salvataggio costava **245 ms** anche quando HEAD e i ref non erano cambiati. Ora la pagina resta in
+memoria con l'impronta di HEAD (`branch.oid` di `git status`) e dei ref, e viene riletta solo se
+l'impronta cambia: **78 ms**, sotto la soglia dei 200 ms. Nello stesso passaggio è sparita la
+`symbolic-ref` separata, perché ramo e SHA arrivano già da `git status --branch`.
 
 ## Cosa un core nativo non risolverebbe
 
@@ -78,7 +88,7 @@ Si cambia architettura solo se una misura supera una soglia, e nell'ordine di co
 | ---------------------------- | ---------------------------------------- | --------------------------------------------------------- |
 | primo paint > 150 ms         | apertura di un repository di riferimento | paginazione della storia                                  |
 | `git log` + parsing > 300 ms | 5.000 commit, cache calda                | paginazione e caricamento progressivo                     |
-| refresh > 200 ms             | dopo un `git add`                        | `fs.watch` con debounce, refresh incrementale             |
+| refresh > 200 ms             | dopo un `git add`                        | `fs.watch` con debounce, refresh incrementale: oggi 78 ms |
 | `status` > 500 ms            | 100.000 file                             | `core.fsmonitor`; poi valutare libgit2 con test di parità |
 
 Solo dopo queste quattro, se il collo di bottiglia è ancora l'elaborazione e non l'I/O:

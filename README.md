@@ -1,5 +1,7 @@
 # GitHandler
 
+English: [README.en.md](README.en.md)
+
 Client Git desktop **Linux-first**, in TypeScript su Electron. Apre, **crea** o **clona** un
 repository (da un URL o da un account GitHub / GitLab / Gitea / Bitbucket), mostra la storia con il
 grafo, i diff, e copre il flusso quotidiano: stage (anche parziale), unstage, scarto, commit, checkout
@@ -12,11 +14,16 @@ si ri-eseguono e si annullano dall'app. Lo stesso repository è leggibile da un 
 server MCP, spento di default e abilitabile comando per comando.
 
 Il nome: **`git`** davanti, perché è così che si cerca un client Git, e **handler** — chi maneggia il
-repository. Il progetto si è chiamato `gitcraft` (già usato da un altro client Git visuale) e, per
-poche ore dell'8 novembre 2026, `lanecraft` e `gitlattice`.
+repository. Il progetto si è chiamato `gitcraft` e, per poche ore dell'8 novembre 2026, `lanecraft` e
+`gitlattice`.
 
-Non è un fork di altri client: è una reimplementazione indipendente, clean-room. Nessun codice, stringa,
-icona o asset preso da prodotti esistenti.
+Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso da altri prodotti.
+
+## Anteprima
+
+![Storia con il grafo, i ref e il pannello del commit](docs/screenshots/storia.png)
+
+![Modifiche: staging, diff e riquadro del commit](docs/screenshots/modifiche.png)
 
 ## Stato (v0.10)
 
@@ -55,7 +62,8 @@ icona o asset preso da prodotti esistenti.
 | **Pannello ridimensionabile, a icona, in finestra**              | ✅             |
 | **Server MCP con permessi configurabili**                        | ✅             |
 | Syntax highlighting (CodeMirror 6)                               | ⏳ milestone 2 |
-| `.deb` con profilo AppArmor                                      | ⏳ milestone 4 |
+| **`.deb`** (Electron incluso, `npm run deb`)                     | ✅             |
+| Profilo AppArmor nel pacchetto                                   | ⏳ milestone 4 |
 
 ## Interfaccia
 
@@ -151,10 +159,22 @@ npm run mcp -- --repo .   # server MCP su stdio, sola lettura (vedi docs/mcp.md)
 Flag di avvio: `--repo <path>`, `--watch` (sorveglianza del repository, o `GITHANDLER_WATCH=1`),
 `--no-watch` per spegnerla quando è attiva per ambiente.
 
-## Installazione locale (Ubuntu)
+## Installazione (Ubuntu)
 
-Il pacchetto `.deb` con profilo AppArmor è in milestone 4; nel frattempo l'app si installa nel
-profilo utente, senza sudo:
+Due strade.
+
+**Pacchetto `.deb`**, con il runtime Electron incluso, senza dipendenze npm a runtime:
+
+```bash
+npm run deb
+sudo apt install ./release/githandler_0.10.0_amd64.deb
+```
+
+Installa l'app in `/opt/githandler`, il launcher in `/usr/bin/githandler`, la voce nel menu e
+l'icona. Su Ubuntu 24.04+ il launcher aggiunge `--no-sandbox` quando manca il profilo AppArmor; il
+profilo dedicato è il lavoro di packaging ancora aperto (milestone 4).
+
+**Installazione nel profilo utente**, senza sudo e senza pacchetto:
 
 ```bash
 ./build/install-local.sh
@@ -284,3 +304,6 @@ sicurezza, non un limite da riempire.
 ## Licenza
 
 MIT — vedi `LICENSE`.
+
+GitHandler è un progetto indipendente: non è affiliato, approvato o sponsorizzato da GitHub, GitLab,
+Gitea, Bitbucket o da altri prodotti. Quei nomi servono solo a descrivere l'interoperabilità.

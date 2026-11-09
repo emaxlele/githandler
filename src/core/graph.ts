@@ -12,7 +12,7 @@ function trimRight(lanes: (string | null)[]): (string | null)[] {
 }
 
 /**
- * Assegna a ogni commit una corsia, come fanno i visualizzatori di storia.
+ * Assegna a ogni commit una corsia del grafo.
  *
  * `lanes[i]` contiene lo SHA che quella colonna sta ancora aspettando: scorrendo la storia dal
  * più recente, ogni commit "consuma" la corsia che lo aspettava e ne eredita una per il primo

@@ -16,14 +16,12 @@ Non è una demo: ogni schermata legge dati reali da `git`, senza mock e senza da
 Domanda posta: "quale di questi client può essere una base?". Risposta: **nessuno, per codice**.
 Le ragioni sono legali e tecniche insieme:
 
-| Progetto          | Licenza                                            | Linguaggio            | Riutilizzabile?                                                                                                            |
-| ----------------- | -------------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **un client open source**       | MIT                                                | C++ / Qt 6            | ✅ **legalmente sì**, ma tecnicamente no (Qt ≠ Electron). Diventa il **riferimento di comportamento** e l'oracolo dei test |
-| **un client Fair Source**     | Fair Source ("non puoi costruirci un concorrente") | Rust / Tauri          | ❌ **vietato per contratto**: siamo un concorrente                                                                         |
-| **un client closed source**       | closed source                                      | Rust / Tauri          | ❌ codice chiuso, solo riferimento UX                                                                                      |
-| **un client commerciale**      | proprietaria                                       | Java / SWT            | ❌                                                                                                                         |
-| **un altro client commerciale** | proprietaria                                       | C++ / toolkit proprio | ❌                                                                                                                         |
-| **un client closed source** | proprietaria                                       | .NET / WPF            | ❌ clean-room obbligatoria, già in essere                                                                                  |
+| Categoria               | Esito                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| Open source C++/Qt      | riutilizzabile per licenza, ma incompatibile con Electron: vale solo come riferimento di comportamento |
+| Fair Source             | licenza che vieta di costruirci un concorrente                                                         |
+| Codice chiuso           | niente da riusare, solo osservazione dell'uso                                                          |
+| Commerciale su .NET/WPF | clean-room obbligatoria, già in essere                                                                 |
 
 Quindi: **architettura nostra**, con componenti pubblici e documentati al posto del fork di codice.
 
@@ -35,7 +33,7 @@ Quindi: **architettura nostra**, con componenti pubblici e documentati al posto 
 | Grafo, diff, parsing     | **codice nostro** (`src/core`)                                       | funzioni pure, testabili, portabili su WASM se un giorno servirà                            |
 | Editor/diff evoluto      | **CodeMirror 6** (MIT) — milestone 3                                 | sintassi, selezione, tema; evita di scrivere un editor                                      |
 | Letture calde in-process | **`koffi` + libgit2** (GPLv2 + linking exception) — solo dopo misura | già provato su `clevo-control` per `ioctl`                                                  |
-| Comportamento UI         | osservazione dell'uso reale           | nessuna copia di asset o stringhe                                                           |
+| Comportamento UI         | osservazione dell'uso reale dei client concorrenti                   | nessuna copia di asset o stringhe                                                           |
 
 ## 3. Architettura
 
@@ -153,9 +151,9 @@ Ambiente imposto a ogni chiamata: `LC_ALL=C`, `GIT_TERMINAL_PROMPT=0`, `GIT_OPTI
 | `--porcelain=v2` ha casi limite (rename + unicode)     | test su fixture, `core.quotepath=false`, split NUL                                   |
 | Commit con messaggio vuoto o `-F -` che apre un editor | `-F -` legge da stdin, mai TTY; test esplicito                                       |
 | 5000 commit non bastano o sono troppi                  | limite configurabile, poi paginazione                                                |
-| GPU assente su alcune macchine                         | rendering software di default, `GITHANDLER_GPU=1` per riattivare                       |
+| GPU assente su alcune macchine                         | rendering software di default, `GITHANDLER_GPU=1` per riattivare                     |
 | Il renderer diventa lento                              | virtualizzazione fin da subito, zero framework                                       |
-| Deriva verso il "clone di Fork"                        | nessun asset, nessun nome, nessuna stringa copiata; specifiche in `docs/reverse/`    |
+| Deriva verso il "clone di un altro client"             | nessun asset, nessun nome, nessuna stringa copiata; specifiche in `docs/reverse/`    |
 
 ## 7. Verifica
 
@@ -174,7 +172,7 @@ Leggi docs/plans/2026-11-08-githandler-v0.1.md: è la fonte di verità sullo sta
 Architettura: src/core = funzioni pure testabili; src/main = GitBackend su `git` CLI via execFile;
 src/renderer = DOM puro con liste virtualizzate, zero framework.
 Prossimo passo: milestone indicata dalle caselle non spuntate.
-Vincoli: nessuna copia di codice o asset da altri client; un client open source (MIT) solo come
-riferimento di comportamento; niente Rust/WASM/koffi prima di una misura che superi le soglie.
+Vincoli: nessuna copia di codice o asset da altri client; il comportamento osservato è solo un
+riferimento, senza stringhe né asset copiati; niente Rust/WASM/koffi prima di una misura che superi le soglie.
 Verifica sempre con: npm run typecheck && npm test && npm run build.
 ```

@@ -1,7 +1,7 @@
 # Rinomina in GitHandler e interfaccia sul modello dei client desktop
 
-> Obiettivo: il progetto si chiama **GitHandler** e la finestra principale ha la struttura dei client desktop affermati —
-> toolbar con azioni etichettate, scheda repository, barra laterale con Changes/All Commits e i ref,
+> Obiettivo: il progetto si chiama **GitHandler** e la finestra principale segue la struttura dei
+> client desktop affermati: toolbar con azioni etichettate, scheda repository, barra laterale con Changes/All Commits e i ref,
 > storia a colonne (grafo, messaggio, autore, SHA, data), pannello inferiore con
 > Commit / Changes / File Tree. Ultimo aggiornamento: 2026-11-08
 
@@ -13,8 +13,8 @@ foto di riferimento indicano la struttura attesa: le azioni hanno icona **e** et
 scheda, la barra laterale distingue _Changes_ da _All Commits_, la storia mostra autore con avatar,
 SHA breve e data, e il dettaglio del commit separa AUTHOR e COMMITTER con SHA e PARENTS.
 
-Vincoli: tema scuro del progetto (palette `--bg`/`--panel`/`--accent`), nessun asset preso da altri client,
-solo la disposizione. Le funzioni che non esistono (pull, push, stash, submodule, tab multipli) non
+Vincoli: tema scuro del progetto (palette `--bg`/`--panel`/`--accent`), nessun asset preso da altri
+client, solo la disposizione. Le funzioni che non esistono (pull, push, stash, submodule, tab multipli) non
 diventano pulsanti finti: le voci corrispondenti si omettono.
 
 ## Passi
@@ -55,7 +55,7 @@ npm run typecheck && npm test && npm run build
 
 ## Prompt per riprendere
 
-> Nel repo `~/Projects/githandler` leggi `docs/plans/2026-11-08-ui-fork-e-githandler.md` e
+> Nel repo `~/Projects/githandler` leggi `docs/plans/2026-11-08-ui-githandler.md` e
 > `docs/registro-attivita.md`. Rinomina in GitHandler e interfaccia sul modello dei client Git
 > desktop sono fatte (99 test verdi). Prossimi passi aperti: sintassi evidenziata (CodeMirror 6,
 > dipendenza da approvare), schede multiple di repository, packaging `.deb`. Per provare l'app:

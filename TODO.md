@@ -107,12 +107,15 @@ minmax(0, 1fr)`), non più contenuto tagliato
     -   [ ] Evidenziazione della sintassi (CodeMirror 6, licenza MIT): dipendenza nuova, va decisa
             prima di aggiungerla
 -   [ ] Milestone 3 — scala e affidabilità
-    -   [ ] Misura di `status` e del primo paint su repo da 100k file e 50k commit
+    -   [x] Misura di `status`, refresh e primo paint su repo da 100k file e 50k commit
+    -   [x] **Refresh incrementale**: la pagina di storia si riusa se HEAD e i ref non cambiano
+            (245 ms → 78 ms sul repository di prova)
     -   [ ] Solo sopra soglia: `koffi` + libgit2 per le letture calde
 -   [ ] Milestone 4 — prodotto
-    -   [ ] Packaging `.deb` con profilo AppArmor (Ubuntu 24.04+ blocca il sandbox di Chromium):
-            richiede verifica su macchina pulita. Nel frattempo `./build/install-local.sh` installa
-            launcher, voce nel menu e icona nel profilo utente
+    -   [x] **Pacchetto `.deb`** con Electron incluso (`npm run deb`): launcher, voce nel menu e
+            icona; `--no-sandbox` automatico quando manca il profilo AppArmor
+    -   [ ] Profilo AppArmor nel pacchetto (Ubuntu 24.04+ blocca il sandbox di Chromium): richiede
+            verifica su macchina pulita
     -   [ ] AppImage e pacchetto `.rpm`
     -   [ ] Rebase interattivo e worktree
     -   [ ] Preferenze e temi

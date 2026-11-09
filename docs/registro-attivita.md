@@ -5,6 +5,34 @@
 
 ## 2026-11-09
 
+### Nomi altrui fuori, progetto presentabile, refresh tre volte più veloce
+
+-   **Cosa**: tolto ogni riferimento ad altri client Git da README, registro, CHANGELOG, TODO, piani
+    e commenti del codice; il piano dell'interfaccia è stato rinominato perché il vecchio nome
+    conteneva il nome di un prodotto. Aggiunto il **README in inglese** con la traduzione completa e
+    due **screenshot** presi da un repository di prova. Costruito il **pacchetto `.deb`** con Electron
+    incluso (`npm run deb`), che installa app, launcher, voce nel menu e icona. Sulle prestazioni:
+    misurato il refresh e corretto il punto più caro, cioè la rilettura della pagina di storia a ogni
+    salvataggio.
+-   **Perché**: richiesta dell'utente — poter raccontare e pubblicare il progetto senza dipendere da
+    nomi e marchi di altri client, con una porta d'ingresso per chi non legge l'italiano e un
+    pacchetto installabile; e chiudere i colli di bottiglia prima di riaprire il repository.
+-   **Come**: testi riscritti per descrivere il prodotto per quello che fa; `README.en.md` con rimando
+    reciproco e l'avvertenza di non affiliazione; `build/package-deb.sh` compone il pacchetto e
+    dichiara le librerie di Electron con i nomi `t64` e quelli precedenti come alternativa (Ubuntu
+    22.04–26.04); `build/shots.sh` isola il profilo Electron degli screenshot. Il refresh conserva la
+    pagina di storia con l'impronta di HEAD (`branch.oid` di `git status --branch`) e dei ref e la
+    rilegge solo quando cambiano; la `symbolic-ref` separata non serve più. Sul repository di prova
+    (50.000 commit, 100.000 file) il refresh passa da **245 ms a 78 ms**. Aggiunto un test che
+    verifica il riuso e l'invalidazione dopo un commit.
+-   **Verifica**: `npm run typecheck`, **143 test** e build verdi; benchmark rifatto due volte con i
+    numeri sopra; il pacchetto è stato estratto e avviato in modalità headless sul repository di
+    prova, con screenshot prodotti (quindi `dist/` e `resources/app` sono corretti); topics GitHub
+    impostati; README e piani riletti per cercare i nomi rimasti (nessuno).
+-   **Stato**: completato. Il pacchetto `.deb` è nella release GitHub; il profilo AppArmor dedicato
+    resta nella milestone 4.
+-   **Riferimento**: commit di questa sessione.
+
 ### Il repository GitHub torna privato
 
 -   **Cosa**: il repository `emaxlele/githandler` su GitHub è passato da pubblico a privato. Codice,
@@ -425,8 +453,8 @@
     ramo o di uno scarto l'app salva lo stato precedente; il comando riporta indietro: il commit
     sparisce ma le modifiche tornano in attesa di essere committate, il cambio di ramo torna al ramo
     di prima, i file scartati tornano con il contenuto che avevano.
--   **Perché**: era il punto in cui un client grafico può fare danni veri con un clic. il client concorrente non ha
-    questa funzione, un client a pagamento la riserva al piano a pagamento.
+-   **Perché**: era il punto in cui un client grafico può fare danni veri con un clic. I client
+    concorrenti non hanno questa funzione, o la riservano al piano a pagamento.
 -   **Cosa resta da sapere**: i file che Git non traccia, se scartati, venivano cancellati
     definitivamente: la finestra di conferma lo dice. (Dalla v0.4 non è più così: prima della
     cancellazione l'app ne conserva una copia e `Annulla` li ripristina — vedi la voce più in alto.) Lo stato salvato vive dentro il repository
@@ -515,7 +543,7 @@
     file prima e dopo affiancati, riga contro riga. Le porzioni che cambiano vengono evidenziate
     dentro la riga; la scelta del formato resta memorizzata.
 -   **Perché**: è la vista che rende leggibile una modifica vera, dove la riga cambia di poco. È il
-    punto su cui il progetto si misura con i client affermati.
+    metro di qualità del progetto.
 -   **Come**: un modulo puro accoppia le righe rimosse con quelle aggiunte e calcola la parte
     cambiata; il disegno usa una griglia che tiene allineate le due colonne anche con righe lunghe.
 -   **Verifica**: 42 test automatici superati; provato dall'interfaccia su un repository di prova con
@@ -542,10 +570,10 @@
 -   **Cosa**: creato il progetto `githandler` e scritta la prima versione che funziona davvero: si apre
     un repository, si vede la storia con il grafo dei rami, si leggono i diff, si mettono i file in
     stage, si crea un commit, si cambia ramo.
--   **Perché**: serve un client Git desktop per Linux con la pulizia dei migliori client commerciali, che su Linux non esiste.
-    Prima di scrivere una riga è stata verificata la concorrenza: un client open source (gratuito, MIT) e un client commerciale
-    (gratuito per uso personale da ottobre 2026) coprono già le funzioni. Quello che manca non è la
-    funzione, è la rifinitura: da qui il progetto.
+-   **Perché**: serve un client Git desktop per Linux curato come i migliori client commerciali, che
+    su Linux non esiste. Prima di scrivere una riga è stata verificata la concorrenza: i client
+    gratuiti coprono già le funzioni principali. Quello che manca non è la funzione, è la rifinitura:
+    da qui il progetto.
 -   **Decisione tecnica**: Electron + TypeScript, con il backend affidato al binario `git` di sistema.
     Scartate le alternative "tutto Rust" e "core in Go": aggiungono linguaggi e confini di processo
     senza risolvere il problema vero, che è la resa del testo.

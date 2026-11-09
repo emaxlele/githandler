@@ -39,7 +39,13 @@ export function alignHunk(hunk: DiffHunk): AlignedRow[] {
 		}
 
 		if (line.type === "context") {
-			rows.push({ kind: "pair", left: line, right: line, leftIndex: i, rightIndex: i });
+			rows.push({
+				kind: "pair",
+				left: line,
+				right: line,
+				leftIndex: i,
+				rightIndex: i,
+			});
 			i++;
 			continue;
 		}

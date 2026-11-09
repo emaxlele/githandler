@@ -1,5 +1,29 @@
 # Changelog
 
+## [Non rilasciato]
+
+### Release e scoperta del progetto
+
+-   **`README.en.md`**: traduzione inglese completa, con rimando reciproco. Il README italiano guadagna
+    due screenshot (storia e modifiche) presi con `npm run shots`.
+-   **Pacchetto `.deb`** (`npm run deb`): Electron incluso, app in `/opt/githandler`, launcher,
+    voce nel menu e icona; il launcher aggiunge `--no-sandbox` solo quando manca il profilo AppArmor.
+    Il pacchetto si installa con `sudo apt install ./release/githandler_0.10.0_amd64.deb`.
+-   **Screenshot con profilo isolato** (`build/shots.sh`): `npm run shots` usa un profilo Electron
+    usa-e-getta, quindi non può più sovrascrivere le schede del profilo reale.
+-   Nessun riferimento ad altri client Git in README, documenti, piani e commenti del codice: il
+    progetto si descrive per quello che fa, senza appoggiarsi a nomi o marchi altrui.
+
+### Prestazioni
+
+-   **Refresh incrementale**: la pagina di storia letta con `git log --date-order` resta in memoria
+    con l'impronta di HEAD e dei ref e viene riletta solo quando cambiano. Sul repository di prova
+    (50.000 commit, 100.000 file) il refresh passa da **245 ms a 78 ms**, sotto la soglia di 200 ms.
+    Nello stesso passaggio sparisce la `symbolic-ref` separata: ramo e SHA arrivano da
+    `git status --branch`.
+-   Il benchmark misura anche la pagina di storia, i ref, lo status dentro il refresh e il refresh
+    completo, e disattiva il `git gc` automatico del repository temporaneo.
+
 ## [0.10.0] — 2026-11-09
 
 ### Un clic per accedere, quando il token c'è già
