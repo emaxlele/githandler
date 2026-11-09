@@ -5163,6 +5163,8 @@ async function loadComments(): Promise<void> {
 	clear(ui.commentsList);
 	try {
 		const comments = await api.pullComments(pull.number);
+		// la finestra può essere passata a un'altra richiesta mentre la risposta era in viaggio
+		if (commentsPull?.number !== pull.number) return;
 		renderComments(comments);
 		ui.commentsStatus.textContent = comments.length
 			? t(`${comments.length} commenti.`)
