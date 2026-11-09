@@ -16,6 +16,7 @@ import type {
 	CommitFile,
 	CommitPage,
 	CommitStat,
+	CommitTemplate,
 	ConflictDetail,
 	ConflictFile,
 	DiffFile,
@@ -177,6 +178,8 @@ export interface GitApi {
 	blame(path: string, start?: number, end?: number): Promise<BlameFile>;
 	/** Annulla l'ultima operazione registrata (commit, checkout, scarto). */
 	undo(): Promise<Snapshot>;
+	/** Modello del messaggio di commit (`commit.template`), vuoto se non configurato. */
+	commitTemplate(): Promise<CommitTemplate>;
 	/** Rami divergenti, stash vecchi, submodule non puliti e HEAD staccato. */
 	health(): Promise<HealthReport>;
 	/** Impostazioni correnti (permessi API, copia dei file non tracciati). */
@@ -316,6 +319,7 @@ export type IpcChannel =
 	| "git:moreCommits"
 	| "git:blame"
 	| "git:undo"
+	| "git:commitTemplate"
 	| "git:health"
 	| "app:watching"
 	| "app:settings"

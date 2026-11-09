@@ -1,11 +1,13 @@
 import {
 	access,
 	mkdir,
+	open,
 	readFile,
 	rename,
 	rm,
 	writeFile,
 } from "node:fs/promises";
+import { homedir } from "node:os";
 import { basename, dirname, join } from "node:path";
 
 import { blameArgs, parseBlame, type BlameFile } from "../core/blame.ts";
@@ -36,6 +38,11 @@ import {
 	refsArgs,
 } from "../core/log.ts";
 import { assessHealth, type HealthReport } from "../core/health.ts";
+import {
+	COMMIT_TEMPLATE_LIMIT,
+	limitCommitTemplate,
+	resolveCommitTemplatePath,
+} from "../core/commit.ts";
 import { hostFromUrl } from "../core/providers.ts";
 import type { NetworkProgress } from "../core/network.ts";
 import { parseStatus, statusArgs } from "../core/status.ts";
@@ -81,6 +88,7 @@ import type {
 	CommitFile,
 	CommitPage,
 	CommitStat,
+	CommitTemplate,
 	ConflictDetail,
 	ConflictFile,
 	DiffFile,
@@ -181,6 +189,8 @@ export interface GitBackend {
 	blame(path: string, start?: number, end?: number): Promise<BlameFile>;
 	/** Annulla l'ultima operazione registrata (commit, checkout, scarto). */
 	undo(): Promise<Snapshot>;
+	/** Modello del messaggio di commit (`commit.template`). */
+	commitTemplate(): Promise<CommitTemplate>;
 	/** Segnali da guardare: rami divergenti, stash vecchi, submodule non puliti, HEAD staccato. */
 	health(): Promise<HealthReport>;
 	/** Spazio occupato dalle copie di sicurezza ancora annullabili. */
@@ -559,6 +569,48 @@ export class CliGitBackend implements GitBackend {
 		}
 
 		return this.refresh();
+	}
+
+	/** Contenuto di `commit.template`, se configurato e leggibile: vuoto altrimenti. */
+	async commitTemplate(): Promise<CommitTemplate> {
+		const info = this.#requireInfo();
+		const configured = await runGit(
+			info.root,
+			["config", "--get", "commit.template"],
+			{ allowFailure: true }
+		);
+		if (configured.code !== 0) return limitCommitTemplate("");
+		const path = resolveCommitTemplatePath(
+			info.root,
+			configured.stdout,
+			homedir()
+		);
+		if (!path) return limitCommitTemplate("");
+		let handle: Awaited<ReturnType<typeof open>> | null = null;
+		try {
+			handle = await open(path, "r");
+			const buffer = Buffer.alloc(COMMIT_TEMPLATE_LIMIT + 1);
+			const { bytesRead } = await handle.read(
+				buffer,
+				0,
+				buffer.length,
+				0
+			);
+			return limitCommitTemplate(
+				buffer.subarray(0, bytesRead).toString("utf8")
+			);
+		} catch (error) {
+			// un modello mancante non deve impedire di scrivere il messaggio a mano
+			if ((error as NodeJS.ErrnoException).code === "ENOENT")
+				return limitCommitTemplate("");
+			throw new Error(
+				`Modello di commit non leggibile: ${
+					error instanceof Error ? error.message : String(error)
+				}`
+			);
+		} finally {
+			await handle?.close();
+		}
 	}
 
 	async commit(message: string, all: boolean): Promise<Snapshot> {

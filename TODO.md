@@ -116,6 +116,9 @@ minmax(0, 1fr)`), non più contenuto tagliato
         parte selezionata `git stash push --include-untracked -- <path>…` salva solo quelli e lascia
         gli altri nel working tree. I path sono verificati nel main (niente `..`, path assoluti o
         nomi che sembrano opzioni).
+-   [x] **Modello del messaggio di commit** (`commit.template`) e **output dei hook** sotto il campo:
+        il percorso segue le regole di Git, il modello si taglia a 64 KiB, un errore resta finché non
+        si riprova
 -   [x] **Salute del repository**: rami divergenti, rami senza upstream, stash più vecchi di 30
         giorni, submodule non puliti e HEAD staccato, in una finestra di sola lettura; la regola sta
         in `src/core/health.ts` e riceve ref, stash e submodule, senza rete

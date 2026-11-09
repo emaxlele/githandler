@@ -120,6 +120,8 @@ settings:
 -   **Content search** (`git grep`): a separate dialog searches tracked files, with literal text or
     a regular expression and a case-sensitivity switch; every result shows file, line and text, and
     opens in the system app. The list stops at 1,000 matches and says so.
+-   **Commit**: the message field starts from the template configured in Git (`commit.template`) and
+    a rejection by a hook or by the GPG signature stays visible under the field, with the full output.
 -   **Repository health…** (command palette): a read-only check for diverged branches (commits both
     to send and to receive), local branches without upstream, stashes older than 30 days, submodules
     that are not clean and a detached HEAD. It changes nothing: it says what to look at.

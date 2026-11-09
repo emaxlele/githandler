@@ -452,6 +452,7 @@ const ui = {
 	commitHead: byId("commit-head"),
 	commitDiff: byId("commit-diff"),
 	commitMessage: byId<HTMLTextAreaElement>("commit-message"),
+	commitError: byId<HTMLPreElement>("commit-error"),
 	commitAll: byId<HTMLInputElement>("commit-all"),
 	btnCommit: byId<HTMLButtonElement>("btn-commit"),
 	btnStageAll: byId<HTMLButtonElement>("btn-stage-all"),
@@ -2135,19 +2136,45 @@ async function doUndo(): Promise<void> {
 	toast("Operazione annullata.", "ok");
 }
 
+/** Il modello configurato in Git riempie il campo solo quando è vuoto. */
+async function fillCommitTemplate(): Promise<void> {
+	const root = state.root;
+	if (panelMode || !root || ui.commitMessage.value.trim()) return;
+	try {
+		const template = await api.commitTemplate();
+		if (!isActive(root) || !template.text) return;
+		if (ui.commitMessage.value.trim()) return;
+		ui.commitMessage.value = template.text;
+	} catch (error) {
+		console.warn("modello di commit non disponibile:", error);
+	}
+}
+
+/** L'output di Git (hook compresi) resta sotto il messaggio: non è un avviso da perdere. */
+function showCommitError(message: string): void {
+	ui.commitError.textContent = message;
+	ui.commitError.classList.remove("hidden");
+}
+
 async function doCommit(): Promise<void> {
 	const message = ui.commitMessage.value.trim();
 	if (!message) {
 		toast("Scrivi un messaggio di commit.");
 		return;
 	}
-	const snapshot = await guard("Commit", () =>
-		api.commit(message, ui.commitAll.checked)
-	);
-	if (!snapshot) return;
+	ui.commitError.textContent = "";
+	ui.commitError.classList.add("hidden");
+	let snapshot: Snapshot | null;
+	try {
+		snapshot = await api.commit(message, ui.commitAll.checked);
+	} catch (error) {
+		showCommitError(readableError(error));
+		return;
+	}
 	ui.commitMessage.value = "";
 	applySnapshot(snapshot);
 	toast("Commit creato.", "ok");
+	void fillCommitTemplate();
 }
 
 async function checkout(branch: string): Promise<void> {
@@ -3129,6 +3156,7 @@ function adoptSnapshot(snapshot: Snapshot): void {
 	applySnapshot(snapshot);
 	updateEmptyState();
 	saveSessions();
+	void fillCommitTemplate();
 }
 
 /**
@@ -3157,6 +3185,7 @@ async function useSession(root: string): Promise<void> {
 	state = session;
 	renderSession();
 	saveSessions();
+	void fillCommitTemplate();
 }
 
 async function closeSession(root: string): Promise<void> {

@@ -5,6 +5,21 @@
 
 ## 2026-11-09
 
+### Il messaggio di commit parte dal modello, e gli errori restano
+
+-   **Cosa**: se il repository ha un modello di messaggio configurato in Git (`commit.template`), il
+    campo del commit lo mostra già compilato. Inoltre, quando un controllo automatico rifiuta il
+    commit, il suo messaggio completo resta visibile sotto il campo invece di sparire dopo pochi
+    secondi.
+-   **Perché**: richiesta dell'utente — chi usa un modello per il formato del messaggio lo ritrovava
+    solo aprendo un editor, e un errore di un hook era difficile da leggere in un avviso breve.
+-   **Come**: l'app legge il percorso del modello dalla configurazione del repository, con le stesse
+    regole di Git, e lo propone solo se il campo è vuoto; il testo di un eventuale errore viene
+    mostrato in un riquadro dedicato, che si svuota al tentativo successivo.
+-   **Verifica**: typecheck, 3 test nuovi (regole del percorso, taglio e un repository reale) e build.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Uno sguardo d'insieme prima che i problemi diventino grandi
 
 -   **Cosa**: dalla palette dei comandi si apre **«Salute del repository»**, una finestra di sola

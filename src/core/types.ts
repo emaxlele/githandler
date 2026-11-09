@@ -211,6 +211,13 @@ export interface StashEntry {
 	timestamp: number;
 }
 
+/** Modello del messaggio di commit letto da `commit.template`. */
+export interface CommitTemplate {
+	text: string;
+	/** il file era più lungo del tetto: il resto non è stato letto. */
+	truncated: boolean;
+}
+
 /** Stato di un submodule come lo stampa `git submodule status`. */
 export type SubmoduleState =
 	| "clean"

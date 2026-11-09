@@ -151,6 +151,7 @@ const api: GitApi = {
 	moreCommits: (skip) => invokeRepo("git:moreCommits", skip),
 	blame: (path, start, end) => invokeRepo("git:blame", path, start, end),
 	undo: () => invokeRepo("git:undo"),
+	commitTemplate: () => invokeRepo("git:commitTemplate"),
 	health: () => invokeRepo("git:health"),
 	settings: () => ipcRenderer.invoke("app:settings"),
 	saveSettings: (settings) =>

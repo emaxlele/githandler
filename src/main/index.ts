@@ -461,6 +461,9 @@ function registerIpc(): void {
 			backendFor(root).blame(path, start, end)
 	);
 	handle("git:undo", (root: string) => backendFor(root).undo());
+	handle("git:commitTemplate", (root: string) =>
+		backendFor(root).commitTemplate()
+	);
 	handle("git:health", (root: string) => backendFor(root).health());
 	handle("app:watching", async () => watchEnabled && stopWatching !== null);
 	handle("app:settings", () => loadSettings());

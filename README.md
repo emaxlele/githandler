@@ -122,6 +122,8 @@ impostazioni:
 -   **Ricerca nel contenuto** (`git grep`): un dialog a parte cerca nei file tracciati, con testo
     letterale o espressione regolare e l'opzione delle maiuscole; ogni risultato mostra file, riga e
     testo, e si apre nell'app del sistema. L'elenco si ferma a 1.000 corrispondenze e lo dice.
+-   **Commit**: il campo del messaggio parte dal modello configurato in Git (`commit.template`) e un
+    rifiuto di un hook o della firma GPG resta visibile sotto il campo, con l'output completo.
 -   **Salute del repository…** (palette dei comandi): un controllo in sola lettura su rami divergenti
     (commit sia da inviare sia da ricevere), rami locali senza upstream, stash più vecchi di 30
     giorni, submodule non puliti e HEAD staccato. Non cambia niente: dice cosa guardare.

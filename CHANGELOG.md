@@ -2,6 +2,19 @@
 
 ## [Non rilasciato]
 
+### Modello del messaggio e output dei hook
+
+-   **`commit.template` rispettato**: se Git è configurato con un modello, il campo del messaggio si
+    riempie con quel testo quando è vuoto. Il percorso si legge dalla configurazione del repository e
+    segue le stesse regole di Git (`~`, percorsi relativi alla radice, percorsi assoluti); un file
+    mancante non blocca la scrittura a mano. Tetto di 64 KiB, con normalizzazione degli a capo.
+-   **Output di Git sotto il messaggio**: un commit rifiutato da un hook (`pre-commit`, `commit-msg`)
+    o da una firma GPG mostra l'output completo in un riquadro che resta finché non si riprova,
+    invece di un avviso che sparisce dopo cinque secondi.
+-   **Core nuovo** `src/core/commit.ts`: `resolveCommitTemplatePath`, `limitCommitTemplate` e
+    `COMMIT_TEMPLATE_LIMIT`.
+-   Test nuovi in `tests/commit-template.test.mts` (percorsi, taglio e un repository reale).
+
 ### Salute del repository
 
 -   **Finestra «Salute del repository»** dalla palette dei comandi: un controllo di sola lettura su

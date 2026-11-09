@@ -1524,6 +1524,22 @@ body {
 	justify-content: space-between;
 }
 
+/* L'output di un hook o di Git resta finché non si riprova: un toast di cinque secondi non basta. */
+.commit-error {
+	margin: 0;
+	max-height: 140px;
+	overflow: auto;
+	padding: 7px 9px;
+	border: 1px solid var(--danger-border);
+	border-radius: 6px;
+	background: var(--danger-bg);
+	color: var(--danger-fg);
+	font-family: var(--mono);
+	font-size: 11px;
+	line-height: 1.45;
+	white-space: pre-wrap;
+}
+
 .check {
 	display: flex;
 	align-items: center;
