@@ -22,8 +22,6 @@ export interface CiNotifierOptions {
 	getRoot: () => string | null;
 	/** riporta la finestra davanti (o la ricrea) */
 	showWindow: () => void;
-	/** true durante gli screenshot: niente icona e niente notifiche */
-	disabled?: boolean;
 }
 
 export interface CiNotifier {
@@ -153,44 +151,38 @@ export async function startCiNotifier(
 		}
 	};
 
-	if (!options.disabled) {
-		try {
-			const icon = nativeImage.createFromPath(
-				join(__dirname, "..", "tray.png")
-			);
-			tray = new Tray(icon);
-			tray.setToolTip(strings.tooltip);
-			tray.setContextMenu(
-				Menu.buildFromTemplate([
-					{ label: strings.show, click: () => options.showWindow() },
-					{ label: strings.check, click: () => void checkNow() },
-					{ type: "separator" },
-					{
-						label: strings.notifications,
-						type: "checkbox",
-						checked: enabled,
-						click: (item) => {
-							enabled = item.checked;
-						},
+	try {
+		const icon = nativeImage.createFromPath(join(__dirname, "..", "tray.png"));
+		tray = new Tray(icon);
+		tray.setToolTip(strings.tooltip);
+		tray.setContextMenu(
+			Menu.buildFromTemplate([
+				{ label: strings.show, click: () => options.showWindow() },
+				{ label: strings.check, click: () => void checkNow() },
+				{ type: "separator" },
+				{
+					label: strings.notifications,
+					type: "checkbox",
+					checked: enabled,
+					click: (item) => {
+						enabled = item.checked;
 					},
-					{ type: "separator" },
-					{ label: strings.quit, click: () => app.quit() },
-				])
-			);
-			tray.on("click", () => options.showWindow());
-		} catch (error) {
-			// senza barra di sistema l'app funziona lo stesso: si perde solo l'icona
-			process.stderr.write(
-				`icona di sistema non disponibile: ${
-					(error as Error).message
-				}\n`
-			);
-		}
-		timer = setInterval(() => void checkNow(), POLL_MS);
-		timer.unref();
-		// il primo giro è una fotografia: farlo subito evita di avvisare del passato più tardi
-		void checkNow();
+				},
+				{ type: "separator" },
+				{ label: strings.quit, click: () => app.quit() },
+			])
+		);
+		tray.on("click", () => options.showWindow());
+	} catch (error) {
+		// senza barra di sistema l'app funziona lo stesso: si perde solo l'icona
+		process.stderr.write(
+			`icona di sistema non disponibile: ${(error as Error).message}\n`
+		);
 	}
+	timer = setInterval(() => void checkNow(), POLL_MS);
+	timer.unref();
+	// il primo giro è una fotografia: farlo subito evita di avvisare del passato più tardi
+	void checkNow();
 
 	return {
 		stop: () => {
