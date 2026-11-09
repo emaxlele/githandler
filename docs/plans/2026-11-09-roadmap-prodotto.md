@@ -56,11 +56,12 @@ Architettura in `docs/architettura.md`; misure in `docs/backend-performance.md`.
 
 ## Fase 3 — Command palette e scorciatoie
 
--   [ ] Palette (`Ctrl+K`) con ricerca fuzzy sui comandi, azioni raggruppate (repository, storia,
-        rami, stash, vista), tasti mostrati a destra.
--   [ ] Registro dei comandi unico: la palette e le scorciatoie chiamano le stesse funzioni della UI.
--   [ ] Scorciatoie documentate nel README, con `?` che apre l'elenco.
--   [ ] Nessuna scorciatoia che distrugga dati senza conferma.
+-   [x] Palette (`Ctrl+K`) con ricerca a sottosequenza (`src/core/palette.ts`), voci raggruppate
+        (progetto, storia, rami, vista), tasti mostrati a destra
+-   [x] Registro dei comandi unico: la palette e le scorciatoie chiamano le stesse funzioni della UI
+-   [x] Scorciatoie documentate nel README (italiano e inglese), con `?` che apre l'elenco
+-   [x] Nessuna scorciatoia che distrugga dati senza conferma
+-   [x] Corretto l'acceleratore `Ctrl+R` del menu, che rubava la scorciatoia di aggiornamento
 
 ## Fase 4 — MCP in scrittura, con audit
 

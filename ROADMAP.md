@@ -31,8 +31,8 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 
 ## 4. Daily quality
 
--   🚧 User interface in Italian **and** English (`i18n`), language switchable in settings.
--   ⏳ Command palette (`Ctrl+K`) and documented keybindings.
+-   ✅ User interface in Italian **and** English (`i18n`), language switchable in settings.
+-   ✅ Command palette (`Ctrl+K`) with a single command registry, and `?` for the shortcut list.
 -   ⏳ Stronger search: regular expressions, `-S` pickaxe, content search, `log -L`.
 -   ⏳ Reflog panel and "go to commit by SHA"; the undo history visible instead of implicit.
 -   ⏳ Network progress from `git` stderr during clone, fetch and push.

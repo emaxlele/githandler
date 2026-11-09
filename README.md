@@ -57,6 +57,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Merge, rebase, cherry-pick**, annulla operazione               | ✅             |
 | **Conflitti risolti nell'app** (per file e per hunk, «continua»)  | ✅             |
 | **Interfaccia in italiano e in inglese**                          | ✅             |
+| **Palette dei comandi** (`Ctrl+K`) e scorciatoie documentate      | ✅             |
 | **Submodule** (elenco e aggiornamento)                           | ✅             |
 | **Terminale integrato** (nel repository attivo)                  | ✅             |
 | **Più repository aperti insieme** (schede)                       | ✅             |
@@ -104,6 +105,27 @@ La finestra segue la disposizione dei client Git desktop affermati, con un tema 
     `Terminale`. La maniglia sopra il pannello lo ridimensiona, `▾` lo riduce alla sola riga delle schede
     e `⧉` lo apre in una finestra separata: chiusa quella, il pannello torna al suo posto. Diff e albero
     scorrono, con la loro altezza vincolata al riquadro.
+
+### Scorciatoie da tastiera
+
+Ogni comando ha un nome e uno stesso punto di esecuzione: la palette (`Ctrl+K`) li cerca mentre si
+scrive, le scorciatoie chiamano le stesse funzioni. `?` apre l'elenco dentro l'app.
+
+| Tasto             | Cosa fa                                                    |
+| ----------------- | ---------------------------------------------------------- |
+| `Ctrl+K`          | Palette dei comandi, con ricerca a sottosequenza            |
+| `Ctrl+O`          | Apre un repository dal disco                               |
+| `Ctrl+F`          | Cerca nella storia                                         |
+| `Ctrl+R`, `F5`    | Rilegge il repository                                      |
+| `Ctrl+Z`          | Annulla l'ultima operazione                                |
+| `Ctrl+1` … `Ctrl+4` | Pannello: commit, file, blame, terminale                  |
+| `Ctrl+Invio`      | Crea il commit con il messaggio scritto                    |
+| `?`               | Elenco delle scorciatoie                                   |
+| `Esc`             | Chiude la finestra aperta o il menu                        |
+
+Nella palette le voci sono raggruppate (progetto, storia, rami e sincronizzazione, vista), si
+scorrono con `↑`/`↓` e si eseguono con `Invio`. Un comando che non ha senso in quel momento — per
+esempio «Annulla» senza niente da annullare — non compare.
 
 ### Dal repository al file
 

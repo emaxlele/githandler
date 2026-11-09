@@ -57,6 +57,7 @@ Italiano: [README.md](README.md)
 | **Merge, rebase, cherry-pick**, abort operation                               | ✅             |
 | **Conflicts resolved in the app** (per file and per hunk, "continue")         | ✅             |
 | **Interface in Italian and English**                                          | ✅             |
+| **Command palette** (`Ctrl+K`) and documented shortcuts                       | ✅             |
 | **Submodules** (list and update)                                              | ✅             |
 | **Integrated terminal** (in the active repository)                            | ✅             |
 | **Several repositories open at once** (tabs)                                  | ✅             |
@@ -104,6 +105,27 @@ The window follows the layout of established desktop Git clients, with its own d
     The handle above the panel resizes it, `▾` collapses it to the tab row and `⧉` opens it in a
     separate window: when that is closed, the panel returns to its place. Diff and tree scroll, with
     their height bound to the pane.
+
+### Keyboard shortcuts
+
+Every command has a name and a single place where it runs: the palette (`Ctrl+K`) searches them as
+you type, the shortcuts call the same functions. `?` opens the list inside the app.
+
+| Key                | What it does                                              |
+| ------------------ | --------------------------------------------------------- |
+| `Ctrl+K`           | Command palette, with subsequence search                  |
+| `Ctrl+O`           | Opens a repository from disk                              |
+| `Ctrl+F`           | Searches the history                                      |
+| `Ctrl+R`, `F5`     | Re-reads the repository                                   |
+| `Ctrl+Z`           | Undoes the last operation                                 |
+| `Ctrl+1` … `Ctrl+4` | Panel: commit, files, blame, terminal                    |
+| `Ctrl+Enter`       | Creates the commit with the written message               |
+| `?`                | List of shortcuts                                         |
+| `Esc`              | Closes the open window or menu                            |
+
+In the palette the entries are grouped (project, history, branches and sync, view), scroll with
+`↑`/`↓` and run with `Enter`. A command that makes no sense right now — "Undo" with nothing to undo,
+for example — is not listed.
 
 ### From the repository to the file
 

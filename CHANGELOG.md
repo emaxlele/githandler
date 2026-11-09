@@ -2,6 +2,19 @@
 
 ## [Non rilasciato]
 
+### Palette dei comandi e scorciatoie
+
+-   **Palette (`Ctrl+K`)**: un solo registro di comandi; la ricerca è a sottosequenza e non guarda gli
+    accenti, le voci sono raggruppate (progetto, storia, rami e sincronizzazione, vista) e mostrano il
+    tasto a destra. Un comando che non ha senso adesso (per esempio «Annulla» senza niente da annullare)
+    non compare.
+-   **Le scorciatoie chiamano le stesse funzioni della palette**: `Ctrl+O` apre, `Ctrl+F` cerca nella
+    storia, `Ctrl+R`/`F5` rileggono, `Ctrl+Z` annulla, `Ctrl+1`…`Ctrl+4` scelgono la scheda del
+    pannello. `?` apre l'elenco dentro l'app; il README lo riporta in italiano e in inglese.
+-   **Core nuovo** `src/core/palette.ts` (punteggio e ordinamento dei risultati) con i suoi test.
+-   **Corretto**: il menu dell'app intercettava `Ctrl+R` per ricaricare la finestra, quindi la
+    scorciatoia di aggiornamento non arrivava mai all'app. Ora la ricarica è `Ctrl+Shift+R`.
+
 ### Conflitti risolti dentro l'app
 
 -   **Vista dei conflitti**: quando un merge, rebase o cherry-pick si ferma, si apre un pannello con i

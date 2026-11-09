@@ -1273,6 +1273,70 @@
 			</form>
 		</dialog>
 
+		<dialog class="palette" id="palette-dialog">
+			<input
+				id="palette-input"
+				type="search"
+				autocomplete="off"
+				spellcheck="false"
+				placeholder="Cerca un comando…"
+				aria-label="Cerca un comando"
+			/>
+			<ul class="palette-list" id="palette-list" role="listbox"></ul>
+			<div class="palette-foot">
+				<span>↑ ↓ per scorrere · Invio per eseguire · Esc per chiudere</span>
+			</div>
+		</dialog>
+
+		<dialog class="dialog dialog-wide" id="keys-dialog">
+			<form method="dialog">
+				<h2>Scorciatoie da tastiera</h2>
+				<table class="keys-table">
+					<tbody>
+						<tr>
+							<td><kbd>Ctrl</kbd><kbd>K</kbd></td>
+							<td>Apre la palette dei comandi</td>
+						</tr>
+						<tr>
+							<td><kbd>Ctrl</kbd><kbd>O</kbd></td>
+							<td>Apre un repository dal disco</td>
+						</tr>
+						<tr>
+							<td><kbd>Ctrl</kbd><kbd>F</kbd></td>
+							<td>Cerca nella storia</td>
+						</tr>
+						<tr>
+							<td><kbd>Ctrl</kbd><kbd>R</kbd> <kbd>F5</kbd></td>
+							<td>Rilegge il repository</td>
+						</tr>
+						<tr>
+							<td><kbd>Ctrl</kbd><kbd>Z</kbd></td>
+							<td>Annulla l'ultima operazione</td>
+						</tr>
+						<tr>
+							<td><kbd>Ctrl</kbd><kbd>1</kbd> … <kbd>4</kbd></td>
+							<td>Pannello: commit, file, blame, terminale</td>
+						</tr>
+						<tr>
+							<td><kbd>Ctrl</kbd><kbd>Invio</kbd></td>
+							<td>Crea il commit con il messaggio scritto</td>
+						</tr>
+						<tr>
+							<td><kbd>?</kbd></td>
+							<td>Mostra questo elenco</td>
+						</tr>
+						<tr>
+							<td><kbd>Esc</kbd></td>
+							<td>Chiude la finestra aperta o il menu</td>
+						</tr>
+					</tbody>
+				</table>
+				<div class="dialog-actions">
+					<button type="submit" class="btn">Chiudi</button>
+				</div>
+			</form>
+		</dialog>
+
 		<div class="ctx-menu hidden" id="ctx-menu" role="menu"></div>
 
 		<dialog class="dialog dialog-wide conflict-dialog" id="conflict-dialog">

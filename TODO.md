@@ -112,7 +112,7 @@ minmax(0, 1fr)`), non più contenuto tagliato
     -   [ ] Evidenziazione della sintassi (CodeMirror 6, licenza MIT): dipendenza nuova, va decisa
             prima di aggiungerla
     -   [x] Interfaccia in italiano **e** inglese (`i18n`), lingua scelta nelle impostazioni
-    -   [ ] Command palette (`Ctrl+K`) e scorciatoie documentate
+    -   [x] Command palette (`Ctrl+K`) e scorciatoie documentate
     -   [ ] Ricerca più forte: regex, `-S` (pickaxe), contenuto dei file, `log -L`
     -   [ ] Pannello reflog / cronologia undo e «vai al commit per SHA»
 -   [ ] Milestone 3 — scala e affidabilità

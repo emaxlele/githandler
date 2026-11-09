@@ -353,8 +353,10 @@ function registerIpc(): void {
 		(root: string, path: string, side: "ours" | "theirs") =>
 			backendFor(root).resolveConflictFile(path, side)
 	);
-	handle("git:writeResolvedFile", (root: string, path: string, text: string) =>
-		backendFor(root).writeResolvedFile(path, text)
+	handle(
+		"git:writeResolvedFile",
+		(root: string, path: string, text: string) =>
+			backendFor(root).writeResolvedFile(path, text)
 	);
 	handle("git:markResolved", (root: string, paths: string[]) =>
 		backendFor(root).markResolved(paths)
@@ -607,7 +609,8 @@ function buildMenu(): void {
 			{
 				label: "GitHandler",
 				submenu: [
-					{ role: "reload" },
+					// Ctrl+R is the app's refresh: reloading the window from here would win over it
+					{ role: "reload", accelerator: "CmdOrCtrl+Shift+R" },
 					{ role: "toggleDevTools" },
 					{ type: "separator" },
 					{ role: "quit" },
@@ -712,9 +715,12 @@ function createWindow(): void {
 
 	if (shotsMode) {
 		if (process.env.GITHANDLER_SHOTS_DEBUG === "1") {
-			window.webContents.on("console-message", (_event, level, message) => {
-				process.stdout.write(`renderer[${level}]: ${message}\n`);
-			});
+			window.webContents.on(
+				"console-message",
+				(_event, level, message) => {
+					process.stdout.write(`renderer[${level}]: ${message}\n`);
+				}
+			);
 		}
 		window.webContents.once("did-finish-load", () => void runShots());
 	}
@@ -771,7 +777,7 @@ async function runShots(): Promise<void> {
 		[`document.getElementById("account-dialog")?.close()`, null],
 	];
 
-	const steps: Array<[string, string]> = [
+	const steps: Array<[string, string | null]> = [
 		[
 			`document.querySelectorAll(".row")[2]?.click()`,
 			target.replace(/\.png$/, "-commit.png"),
@@ -836,6 +842,41 @@ async function runShots(): Promise<void> {
 		[
 			`document.getElementById("btn-settings")?.click()`,
 			target.replace(/\.png$/, "-settings.png"),
+		],
+		[
+			`(() => {
+				document.getElementById("settings-dialog")?.close();
+				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+			})()`,
+			target.replace(/\.png$/, "-palette.png"),
+		],
+		[
+			`(() => {
+				const input = document.getElementById("palette-input");
+				input.value = "ram";
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+			})()`,
+			target.replace(/\.png$/, "-palette-search.png"),
+		],
+		[
+			`(() => {
+				const input = document.getElementById("palette-input");
+				input.value = "terminale";
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+			})()`,
+			target.replace(/\.png$/, "-palette-run.png"),
+		],
+		[
+			`(() => {
+				document.getElementById("palette-dialog")?.close();
+				document.dispatchEvent(new KeyboardEvent("keydown", { key: "?", bubbles: true }));
+			})()`,
+			target.replace(/\.png$/, "-keys.png"),
+		],
+		[
+			`document.getElementById("keys-dialog")?.close()`,
+			null,
 		],
 	];
 

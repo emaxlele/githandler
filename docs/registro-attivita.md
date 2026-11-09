@@ -5,6 +5,27 @@
 
 ## 2026-11-09
 
+### Comandi dalla tastiera
+
+-   **Cosa**: con `Ctrl+K` si apre una **palette dei comandi**: si scrive qualche lettera e si esegue
+    l'azione con Invio, senza cercare il pulsante. Ci sono i comandi del repository (apri, crea, clona,
+    aggiorna), della storia (modifiche, commit, cerca, annulla), dei rami (fetch, pull, push, stash) e
+    della vista (schede del pannello, formato del diff, finestra separata). Il tasto `?` mostra
+    l'elenco delle scorciatoie, che ora è anche nel README.
+-   **Perché**: richiesta dell'utente — chi usa il programma tutti i giorni lavora più veloce da
+    tastiera. Documentare le scorciatoie serve anche a chi arriva per la prima volta.
+-   **Come**: ogni comando ha un nome e un solo punto in cui viene eseguito: la palette e le
+    scorciatoie chiamano la stessa funzione, quindi non possono comportarsi in modo diverso. La ricerca
+    trova anche le parole in inglese e ignora accenti e maiuscole. Una voce che in quel momento non ha
+    senso (per esempio «Annulla» senza niente da annullare) non viene mostrata.
+-   **Verifica**: typecheck, **168 test** verdi (6 nuovi sulla ricerca dei comandi) e build; screenshot
+    controllati in italiano e in inglese, compreso un comando eseguito dalla palette (passa alla scheda
+    Terminale).
+-   **Corretto anche**: il menu dell'app intercettava `Ctrl+R` per ricaricare la finestra e la
+    scorciatoia di aggiornamento non funzionava; ora la ricarica è `Ctrl+Shift+R`.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Conflitti risolti senza uscire dall'app
 
 -   **Cosa**: quando un'operazione Git si ferma perché due modifiche toccano la stessa riga (merge,

@@ -53,6 +53,7 @@ import {
 	resolveConflicts,
 	type ConflictChoice,
 } from "../core/conflicts.ts";
+import { rankPalette } from "../core/palette.ts";
 import { BlameView } from "./blame-view.ts";
 import {
 	pickKey,
@@ -371,6 +372,10 @@ const ui = {
 	trashUsage: byId("trash-usage"),
 	settingsCancel: byId<HTMLButtonElement>("settings-cancel"),
 	ctxMenu: byId("ctx-menu"),
+	paletteDialog: byId<HTMLDialogElement>("palette-dialog"),
+	paletteInput: byId<HTMLInputElement>("palette-input"),
+	paletteList: byId("palette-list"),
+	keysDialog: byId<HTMLDialogElement>("keys-dialog"),
 	stashDialog: byId<HTMLDialogElement>("stash-dialog"),
 	stashMessage: byId<HTMLInputElement>("stash-message"),
 	stashList: byId("stash-list"),
@@ -4661,11 +4666,400 @@ ui.newBranchForm.addEventListener("submit", (event) => {
 	})();
 });
 
+// ── palette dei comandi ─────────────────────────────────────────────────────
+
+/**
+ * Un solo registro per la palette e per le scorciatoie: la stessa funzione che esegue un comando
+ * quando si preme un tasto lo esegue anche quando lo si sceglie dall'elenco. Aggiungere una voce
+ * qui la rende subito cercabile e documentabile.
+ */
+interface PaletteCommand {
+	id: string;
+	group: string;
+	/** testo italiano di partenza: la palette lo traduce al momento di mostrarlo */
+	label: string;
+	/** tasto mostrato a destra; deve corrispondere a una scorciatoia vera */
+	key?: string;
+	/** altre parole che devono trovare il comando, anche nell'altra lingua */
+	keywords?: string;
+	/** i comandi che parlano del repository spariscono quando non ce n'è uno aperto */
+	enabled?: () => boolean;
+	run: () => void;
+}
+
+const repoReady = (): boolean => state.snapshot !== null && !panelMode;
+
+const COMMANDS: PaletteCommand[] = [
+	{
+		id: "open",
+		group: "Progetto",
+		label: "Apri un repository…",
+		key: "Ctrl+O",
+		keywords: "open cartella folder",
+		run: () => void openRepository(),
+	},
+	{
+		id: "create",
+		group: "Progetto",
+		label: "Crea un repository…",
+		keywords: "init nuovo new",
+		run: () => void openCreate(),
+	},
+	{
+		id: "clone",
+		group: "Progetto",
+		label: "Clona da URL…",
+		keywords: "clone url remoto",
+		run: () => void openClone(),
+	},
+	{
+		id: "accounts",
+		group: "Progetto",
+		label: "Account collegati…",
+		keywords: "account token accesso",
+		run: () => void openAccounts(),
+	},
+	{
+		id: "settings",
+		group: "Progetto",
+		label: "Impostazioni…",
+		keywords: "settings preferenze lingua api permessi",
+		run: () => void openSettings(),
+	},
+	{
+		id: "refresh",
+		group: "Progetto",
+		label: "Aggiorna",
+		key: "Ctrl+R",
+		keywords: "refresh reload rileggi",
+		enabled: repoReady,
+		run: () => void refresh(),
+	},
+	{
+		id: "folder",
+		group: "Progetto",
+		label: "Apri la cartella del repository",
+		keywords: "folder cartella",
+		enabled: repoReady,
+		run: () => openRepoFolder(),
+	},
+	{
+		id: "close",
+		group: "Progetto",
+		label: "Chiudi la scheda",
+		keywords: "close tab scheda",
+		enabled: repoReady,
+		run: () => void closeSession(state.root),
+	},
+	{
+		id: "side-changes",
+		group: "Storia",
+		label: "Mostra le modifiche",
+		keywords: "changes modifiche working tree",
+		enabled: repoReady,
+		run: () => setSide("changes"),
+	},
+	{
+		id: "side-commits",
+		group: "Storia",
+		label: "Mostra tutti i commit",
+		keywords: "commits storia history",
+		enabled: repoReady,
+		run: () => setSide("commits"),
+	},
+	{
+		id: "search",
+		group: "Storia",
+		label: "Cerca nella storia",
+		key: "Ctrl+F",
+		keywords: "search cerca filtro",
+		enabled: repoReady,
+		run: () => ui.searchInput.focus(),
+	},
+	{
+		id: "clear-search",
+		group: "Storia",
+		label: "Togli il filtro dalla storia",
+		keywords: "clear pulisci filtro",
+		enabled: () => repoReady() && state.searchQuery !== null,
+		run: () => void runSearch(""),
+	},
+	{
+		id: "undo",
+		group: "Storia",
+		label: "Annulla l'ultima operazione",
+		key: "Ctrl+Z",
+		keywords: "undo annulla",
+		enabled: () => repoReady() && state.snapshot?.undo != null,
+		run: () => void doUndo(),
+	},
+	{
+		id: "conflicts",
+		group: "Storia",
+		label: "Risolvi i conflitti",
+		keywords: "conflict conflitti merge rebase",
+		enabled: () => repoReady() && state.snapshot?.info.operation != null,
+		run: () => void openConflicts(),
+	},
+	{
+		id: "branch",
+		group: "Rami e sincronizzazione",
+		label: "Nuovo ramo",
+		keywords: "branch ramo new",
+		enabled: repoReady,
+		run: () => {
+			ui.newBranchForm.classList.remove("hidden");
+			ui.newBranchName.focus();
+		},
+	},
+	{
+		id: "fetch",
+		group: "Rami e sincronizzazione",
+		label: "Fetch",
+		keywords: "fetch remoto",
+		enabled: repoReady,
+		run: () => void fetchAll(),
+	},
+	{
+		id: "pull",
+		group: "Rami e sincronizzazione",
+		label: "Pull",
+		keywords: "pull aggiorna",
+		enabled: repoReady,
+		run: () => void pullChanges(),
+	},
+	{
+		id: "push",
+		group: "Rami e sincronizzazione",
+		label: "Push",
+		keywords: "push invia",
+		enabled: repoReady,
+		run: () => void pushChanges(),
+	},
+	{
+		id: "stash",
+		group: "Rami e sincronizzazione",
+		label: "Stash…",
+		keywords: "stash salva",
+		enabled: repoReady,
+		run: () => void openStash(),
+	},
+	{
+		id: "submodules",
+		group: "Rami e sincronizzazione",
+		label: "Submodule…",
+		keywords: "submodule sottomoduli",
+		enabled: repoReady,
+		run: () => void openSubmodules(),
+	},
+	{
+		id: "tab-commit",
+		group: "Vista",
+		label: "Pannello: dettaglio del commit",
+		key: "Ctrl+1",
+		keywords: "commit panel",
+		enabled: repoReady,
+		run: () => setTab("commit"),
+	},
+	{
+		id: "tab-tree",
+		group: "Vista",
+		label: "Pannello: file del commit",
+		key: "Ctrl+2",
+		keywords: "tree albero file",
+		enabled: repoReady,
+		run: () => setTab("tree"),
+	},
+	{
+		id: "tab-blame",
+		group: "Vista",
+		label: "Pannello: blame",
+		key: "Ctrl+3",
+		keywords: "blame righe",
+		enabled: repoReady,
+		run: () => setTab("blame"),
+	},
+	{
+		id: "tab-term",
+		group: "Vista",
+		label: "Pannello: terminale",
+		key: "Ctrl+4",
+		keywords: "term terminale shell",
+		enabled: repoReady,
+		run: () => setTab("term"),
+	},
+	{
+		id: "layout",
+		group: "Vista",
+		label:
+			state.diffLayout === "unified"
+				? "Diff affiancato"
+				: "Diff a una colonna",
+		keywords: "layout diff affiancato unified split",
+		enabled: repoReady,
+		run: () =>
+			setDiffLayout(
+				state.diffLayout === "unified" ? "split" : "unified"
+			),
+	},
+	{
+		id: "collapse",
+		group: "Vista",
+		label: "Riduci o espandi il pannello",
+		keywords: "panel pannello collapse",
+		enabled: repoReady,
+		run: () => {
+			bottomCollapsed = !bottomCollapsed;
+			applyBottomLayout();
+			saveBottomLayout();
+		},
+	},
+	{
+		id: "detach",
+		group: "Vista",
+		label: "Apri il pannello in una finestra",
+		keywords: "detach finestra panel",
+		enabled: repoReady,
+		run: () =>
+			void api.detachPanel().catch((error: Error) => {
+				toast(`Finestra del pannello: ${readableError(error)}`);
+			}),
+	},
+	{
+		id: "shortcuts",
+		group: "Vista",
+		label: "Scorciatoie da tastiera",
+		key: "?",
+		keywords: "keys scorciatoie tasti",
+		run: () => ui.keysDialog.showModal(),
+	},
+];
+
+let paletteMatches: PaletteCommand[] = [];
+let paletteActive = 0;
+
+function openPalette(): void {
+	ui.paletteInput.value = "";
+	renderPalette("");
+	if (!ui.paletteDialog.open) ui.paletteDialog.showModal();
+	ui.paletteInput.focus();
+}
+
+function renderPalette(query: string): void {
+	const pool = COMMANDS.filter(
+		(command) => !command.enabled || command.enabled()
+	);
+	paletteMatches = rankPalette(
+		pool.map((command) => ({
+			command,
+			// si cerca anche nell'italiano di partenza: chi lavora in inglese può
+			// scrivere una parola del comando e trovarlo lo stesso
+			text: `${t(command.label)} ${command.label} ${
+				command.keywords ?? ""
+			}`,
+		})),
+		query
+	).map((item) => item.command);
+	paletteActive = 0;
+
+	clear(ui.paletteList);
+	if (paletteMatches.length === 0) {
+		ui.paletteList.appendChild(
+			el("li", "palette-empty", t("Nessun comando corrisponde."))
+		);
+		return;
+	}
+	// Un'intestazione solo quando il gruppo cambia: ripetuto su ogni riga, il gruppo
+	// diventa più rumoroso del comando.
+	let lastGroup: string | null = null;
+	paletteMatches.forEach((command, index) => {
+		if (command.group !== lastGroup) {
+			lastGroup = command.group;
+			ui.paletteList.appendChild(
+				el("li", "palette-section", t(command.group))
+			);
+		}
+		const item = el("li");
+		item.dataset.command = command.id;
+		item.appendChild(el("span", "palette-label", t(command.label)));
+		if (command.key) item.appendChild(el("kbd", undefined, command.key));
+		if (index === 0) item.classList.add("is-active");
+		item.addEventListener("click", () => void runPaletteCommand(command));
+		ui.paletteList.appendChild(item);
+	});
+}
+
+function movePaletteSelection(step: number): void {
+	if (paletteMatches.length === 0) return;
+	paletteActive =
+		(paletteActive + step + paletteMatches.length) %
+		paletteMatches.length;
+	const items = [
+		...ui.paletteList.querySelectorAll<HTMLElement>("li[data-command]"),
+	];
+	items.forEach((item, index) =>
+		item.classList.toggle("is-active", index === paletteActive)
+	);
+	items[paletteActive]?.scrollIntoView({ block: "nearest" });
+}
+
+/** Il dialogo si chiude prima di eseguire: un comando può aprirne un altro. */
+async function runPaletteCommand(command: PaletteCommand): Promise<void> {
+	if (ui.paletteDialog.open) ui.paletteDialog.close();
+	command.run();
+}
+
+ui.paletteInput.addEventListener("input", () =>
+	renderPalette(ui.paletteInput.value)
+);
+ui.paletteInput.addEventListener("keydown", (event) => {
+	if (event.key === "ArrowDown") {
+		event.preventDefault();
+		movePaletteSelection(1);
+	} else if (event.key === "ArrowUp") {
+		event.preventDefault();
+		movePaletteSelection(-1);
+	} else if (event.key === "Enter") {
+		event.preventDefault();
+		const command = paletteMatches[paletteActive];
+		if (command) void runPaletteCommand(command);
+	}
+});
+
 document.addEventListener("keydown", (event) => {
 	const typing =
 		event.target instanceof HTMLInputElement ||
 		event.target instanceof HTMLTextAreaElement;
 
+	const ctrl = event.ctrlKey || event.metaKey;
+	if (ctrl && event.key.toLowerCase() === "k") {
+		event.preventDefault();
+		// la finestra dei dettagli non ha comandi propri: la palette vive solo nella principale
+		if (panelMode) return;
+		if (ui.paletteDialog.open) ui.paletteDialog.close();
+		else openPalette();
+		return;
+	}
+	if (ctrl && event.key.toLowerCase() === "o") {
+		event.preventDefault();
+		void openRepository();
+		return;
+	}
+	if (ctrl && event.key.toLowerCase() === "f") {
+		event.preventDefault();
+		ui.searchInput.focus();
+		ui.searchInput.select();
+		return;
+	}
+	if (ctrl && ["1", "2", "3", "4"].includes(event.key)) {
+		event.preventDefault();
+		setTab(
+			({ "1": "commit", "2": "tree", "3": "blame", "4": "term" } as const)[
+				event.key as "1" | "2" | "3" | "4"
+			]
+		);
+		return;
+	}
 	if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "r") {
 		event.preventDefault();
 		void refresh();
@@ -4678,6 +5072,11 @@ document.addEventListener("keydown", (event) => {
 	}
 	if (event.key === "Escape") closeMenu();
 	if (typing) return;
+	if (event.key === "?" && !panelMode) {
+		event.preventDefault();
+		ui.keysDialog.showModal();
+		return;
+	}
 	if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
 		event.preventDefault();
 		void doUndo();
