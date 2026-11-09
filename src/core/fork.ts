@@ -118,6 +118,37 @@ export interface ForkInfo {
 	accountId: string | null;
 }
 
+/** Cosa cambierebbe un sync, prima di eseguirlo: il ramo scelto e i commit in arrivo. */
+export interface ForkPending {
+	/** ramo dell'originale scelto */
+	branch: string;
+	/** ref remoto locale (`upstream/main`) */
+	upstreamRef: string;
+	upstreamUrl: string;
+	/** il remoto `upstream` è stato creato adesso */
+	created: boolean;
+	/** ramo locale su cui si applicherà il merge o il rebase */
+	localBranch: string;
+	/** commit che arriverebbero dall'originale */
+	behind: number;
+	/** commit locali non ancora nell'originale */
+	ahead: number;
+}
+
+/** Righe di `git ls-remote --heads`: `sha\trefs/heads/nome`, senza duplicati e in ordine. */
+export function parseRemoteBranches(output: string): string[] {
+	const names = new Set<string>();
+	for (const line of output.split("\n")) {
+		const tab = line.indexOf("\t");
+		if (tab === -1) continue;
+		const ref = line.slice(tab + 1).trim();
+		if (!ref.startsWith("refs/heads/")) continue;
+		const name = ref.slice("refs/heads/".length).trim();
+		if (name) names.add(name);
+	}
+	return [...names].sort((a, b) => a.localeCompare(b));
+}
+
 /** Esito di una sincronizzazione con l'originale. */
 export interface ForkSyncResult {
 	/** ramo locale su cui si è lavorato */

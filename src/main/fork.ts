@@ -1,10 +1,12 @@
 import {
 	parseForkParent,
+	parseRemoteBranches,
 	repoApiUrl,
 	type ForkInfo,
+	type ForkPending,
 	type ForkSyncResult,
 } from "../core/fork.ts";
-import { mergeArgs, rebaseArgs } from "../core/ops.ts";
+import { assertRefName, mergeArgs, rebaseArgs } from "../core/ops.ts";
 import {
 	authHeaders,
 	remoteIdentity,
@@ -93,42 +95,76 @@ export async function forkInfo(root: string): Promise<ForkInfo> {
 	};
 }
 
-export async function syncFork(
+/** Il remoto `upstream` esiste già o viene aggiunto ora; un mirror configurato non si riscrive. */
+async function ensureUpstream(
 	root: string,
-	mode: "merge" | "rebase"
-): Promise<ForkSyncResult> {
+	info: ForkInfo
+): Promise<{ url: string; created: boolean }> {
+	if (!info.parent)
+		throw new Error(
+			"Questo repository non risulta un fork: non c'è un originale con cui sincronizzarsi."
+		);
+	if (info.upstreamUrl) return { url: info.upstreamUrl, created: false };
+	await runGit(root, ["remote", "add", "upstream", info.parent.cloneUrl]);
+	return { url: info.parent.cloneUrl, created: true };
+}
+
+/** Rami disponibili sull'originale: `ls-remote` non scarica gli oggetti e non tocca la storia. */
+export async function forkBranches(root: string): Promise<string[]> {
+	const info = await forkInfo(root);
+	const { identity } = await context(root);
+	await ensureUpstream(root, info);
+	const result = await runGit(root, ["ls-remote", "--heads", "upstream"], {
+		timeoutMs: 60_000,
+		env: (await credentialEnvFor(identity.host, root)) ?? undefined,
+	});
+	return parseRemoteBranches(result.stdout);
+}
+
+interface PreparedFork {
+	branch: string;
+	localBranch: string;
+	upstreamRef: string;
+	upstreamUrl: string;
+	created: boolean;
+	behind: number;
+	ahead: number;
+}
+
+/**
+ * Fa la parte comune di anteprima e sync: remoto, fetch, verifica del ramo scelto e conteggi.
+ * Il fetch è uno solo per chiamata; l'anteprima non modifica la storia.
+ */
+async function prepareFork(
+	root: string,
+	requested?: string
+): Promise<PreparedFork> {
 	const info = await forkInfo(root);
 	if (!info.parent)
 		throw new Error(
 			"Questo repository non risulta un fork: non c'è un originale con cui sincronizzarsi."
 		);
 
-	const branch = (
+	const localBranch = (
 		await runGit(root, ["symbolic-ref", "--short", "-q", "HEAD"], {
 			allowFailure: true,
 		})
 	).stdout.trim();
-	if (!branch)
+	if (!localBranch)
 		throw new Error(
 			"HEAD è staccato: torna su un ramo prima di sincronizzare con l'originale."
 		);
 
+	const branch = requested?.trim() || info.parent.defaultBranch;
+	assertRefName(branch);
 	const { identity } = await context(root);
-
-	let upstreamUrl = info.upstreamUrl;
-	let created = false;
-	if (!upstreamUrl) {
-		await runGit(root, ["remote", "add", "upstream", info.parent.cloneUrl]);
-		upstreamUrl = info.parent.cloneUrl;
-		created = true;
-	}
-	// il remoto già configurato può puntare altrove (un mirror): si usa quello, non si riscrive
+	const upstream = await ensureUpstream(root, info);
 	await runGit(root, ["fetch", "upstream", "--prune"], {
 		timeoutMs: 180_000,
 		env: (await credentialEnvFor(identity.host, root)) ?? undefined,
 	});
 
-	const upstreamRef = `upstream/${info.parent.defaultBranch}`;
+	const upstreamRef = `upstream/${branch}`;
 	const exists = await runGit(
 		root,
 		["rev-parse", "--verify", "--quiet", `refs/remotes/${upstreamRef}`],
@@ -136,16 +172,8 @@ export async function syncFork(
 	);
 	if (exists.code !== 0)
 		throw new Error(
-			`Il remoto upstream non ha il ramo «${info.parent.defaultBranch}».`
+			`Il remoto upstream non ha il ramo «${branch}».`
 		);
-
-	await runGit(
-		root,
-		mode === "merge" ? mergeArgs(upstreamRef) : rebaseArgs(upstreamRef),
-		{
-			timeoutMs: 180_000,
-		}
-	);
 
 	const counts = await runGit(
 		root,
@@ -159,10 +187,53 @@ export async function syncFork(
 
 	return {
 		branch,
+		localBranch,
 		upstreamRef,
-		upstreamUrl,
+		upstreamUrl: upstream.url,
+		created: upstream.created,
 		behind: behind ?? 0,
 		ahead: ahead ?? 0,
-		created,
+	};
+}
+
+/** Anteprima senza modifiche: ramo scelto, commit in arrivo e commit locali. */
+export async function forkPreview(
+	root: string,
+	branch?: string
+): Promise<ForkPending> {
+	const prepared = await prepareFork(root, branch);
+	return {
+		branch: prepared.branch,
+		upstreamRef: prepared.upstreamRef,
+		upstreamUrl: prepared.upstreamUrl,
+		created: prepared.created,
+		localBranch: prepared.localBranch,
+		behind: prepared.behind,
+		ahead: prepared.ahead,
+	};
+}
+
+export async function syncFork(
+	root: string,
+	mode: "merge" | "rebase",
+	branch?: string
+): Promise<ForkSyncResult> {
+	const prepared = await prepareFork(root, branch);
+	await runGit(
+		root,
+		mode === "merge"
+			? mergeArgs(prepared.upstreamRef)
+			: rebaseArgs(prepared.upstreamRef),
+		{
+			timeoutMs: 180_000,
+		}
+	);
+	return {
+		branch: prepared.localBranch,
+		upstreamRef: prepared.upstreamRef,
+		upstreamUrl: prepared.upstreamUrl,
+		behind: prepared.behind,
+		ahead: prepared.ahead,
+		created: prepared.created,
 	};
 }

@@ -2,6 +2,18 @@
 
 ## [Non rilasciato]
 
+### Fork: ramo scelto e commit in arrivo prima del merge
+
+-   **Ramo dell'originale**: «Sincronizza con l'originale» propone i rami letti con
+    `git ls-remote --heads` (il predefinito resta il valore iniziale) e accetta anche un nome scritto
+    a mano se la rete non risponde. `assertRefName` protegge il valore.
+-   **Anteprima prima di toccare la storia**: `forkPreview` fa il `fetch` una volta e restituisce
+    quanti commit arriverebbero (`behind`) e quanti locali non sono ancora lì (`ahead`); la conferma
+    li mostra. Solo dopo parte `merge`/`rebase`, con lo stesso ramo.
+-   **Parser dei rami in `src/core/fork.ts`** (`parseRemoteBranches`, senza duplicati e in ordine) e
+    tipo `ForkPending`.
+-   Test nuovi in `tests/fork.test.mts` per la lettura di `ls-remote`.
+
 ### Worktree
 
 -   **Dialog «Worktree»** dalla palette: elenca le cartelle collegate allo stesso repository con ramo

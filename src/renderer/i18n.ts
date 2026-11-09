@@ -723,9 +723,13 @@ const EN: Record<string, string> = {
 		"This repository is not a fork: there is no original to sync with.",
 	Unire: "Merge",
 	"Rebasare il ramo attuale su": "Rebase the current branch onto",
-	"{0} {1}/{2}? Le modifiche non committate possono fermare l'operazione; niente viene forzato.":
-		"{0} {1}/{2}? Uncommitted changes may stop the operation; nothing is forced.",
 	"Sincronizza fork": "Sync fork",
+	"Sincronizza con l'originale": "Sync with the original",
+	"Ramo dell'originale": "Branch of the original",
+	"Scrivi il ramo dell'originale da portare nel ramo attuale.":
+		"Type the branch of the original to bring into the current branch.",
+	"{0} {1}/{2}? Riceverai {3} commit da {4} e ne hai {5} non presenti lì. Le modifiche non committate possono fermare l'operazione; niente viene forzato.":
+		"{0} {1}/{2}? You will receive {3} commits from {4} and you have {5} that are not there. Uncommitted changes can stop the operation; nothing is forced.",
 	Rilettura: "Re-reading",
 	"Remoto «upstream» aggiunto ({0}). {1} è {2} commit avanti a {3}.":
 		"«upstream» remote added ({0}). {1} is {2} commits ahead of {3}.",

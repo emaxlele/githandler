@@ -41,7 +41,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Accesso dal browser (device flow OAuth)**                                                 | ✅             |
 | **«Accedi» con il token già presente** (`gh`, credential helper)                            | ✅             |
 | **Account scelto per repository** (chip nell'header)                                        | ✅             |
-| **Fork: riconoscimento e sync con l'originale**                                             | ✅             |
+| **Fork: ramo scelto e anteprima dei commit, poi sync con l'originale**                      | ✅             |
 | **GitHub Actions**: esecuzioni, riprova i falliti, ri-esecuzione, annulla                    | ✅             |
 | **File del repository** (elenco filtrabile, browser)                                        | ✅             |
 | **Esporta HEAD in uno zip**                                                                 | ✅             |
@@ -345,9 +345,10 @@ destinazione predefinita dei cloni; non è un limite, dalla finestra di scelta s
 Dal menu del tasto destro sulla scheda del repository:
 
 -   **Sincronizza con l'originale (merge/rebase)**: l'app chiede al provider qual è il repository
-    originale, crea il remoto `upstream` la prima volta, poi `fetch` e `merge`/`rebase` del ramo
-    predefinito. Niente forza: un conflitto resta annullabile. Con HEAD staccato il sync si ferma e lo
-    dice.
+    originale, crea il remoto `upstream` la prima volta e propone i suoi rami (il predefinito come
+    valore iniziale). Prima di toccare la storia mostra quanti commit arriverebbero e quanti locali
+    non sono ancora lì; poi `fetch` e `merge`/`rebase`. Niente forza: un conflitto resta annullabile.
+    Con HEAD staccato il sync si ferma e lo dice.
 -   **Pull request…**: le richieste aperte sul servizio del repository (GitHub, GitLab, Gitea/Forgejo,
     Bitbucket), con autore, ramo di partenza e di arrivo, stato di bozza e _Apri_ nel browser. Dalla
     stessa finestra se ne crea una da due rami: i rami devono essere già stati inviati con Push. Su

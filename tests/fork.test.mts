@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { parseForkParent, repoApiUrl } from "../src/core/fork.ts";
+import {
+	parseForkParent,
+	parseRemoteBranches,
+	repoApiUrl,
+} from "../src/core/fork.ts";
 import type { Account } from "../src/core/providers.ts";
 
 const github: Account = {
@@ -132,4 +136,21 @@ test("un repository che non è un fork non ha parent", () => {
 	);
 	// e un payload che non è un oggetto non deve esplodere
 	assert.equal(parseForkParent("bitbucket", "strano"), null);
+});
+
+test("i rami dell'originale si leggono da ls-remote, senza duplicati", () => {
+	const output = [
+		"a\trefs/heads/main",
+		"b\trefs/heads/dev",
+		"c\trefs/heads/main",
+		"d\trefs/tags/v1.0",
+		"riga senza tab",
+		"e\trefs/heads/feature/x",
+	].join("\n");
+	assert.deepEqual(parseRemoteBranches(output), [
+		"dev",
+		"feature/x",
+		"main",
+	]);
+	assert.deepEqual(parseRemoteBranches(""), []);
 });

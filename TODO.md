@@ -54,7 +54,8 @@ Stato al 2026-11-09 (v0.10.0). Le voci spuntate sono in `CHANGELOG.md`.
         unico account dell'host → primo, dichiarato), `Settings.repoAccounts`, chip nell'header con
         menu di scelta
 -   [x] **Fork**: parent dall'API dei 4 provider, remoto `upstream` creato al primo sync, `fetch` +
-        `merge`/`rebase` del ramo predefinito, nessuna forza, HEAD staccato = errore detto
+        `merge`/`rebase` del ramo scelto fra quelli dell'originale, con anteprima dei commit in arrivo
+        e di quelli locali; nessuna forza, HEAD staccato = errore detto
 -   [x] **GitHub Actions**: ultime esecuzioni, **riprova i job falliti** (`rerun-failed-jobs`), intera
         ri-esecuzione e annullamento dal menu della scheda, con il token dell'account risolto
 -   [x] **Elenco dei file tracciati** (`git ls-tree -r -z`, `ls-files` senza HEAD) filtrabile, con
@@ -190,8 +191,6 @@ minmax(0, 1fr)`), non più contenuto tagliato
 -   [ ] Device flow: un Client ID predefinito per GitHub nell'app, così l'accesso dal browser funziona
         senza che l'utente registri una sua applicazione OAuth. Nell'attesa «Accedi» usa il token che
         c'è già sulla macchina
--   [ ] Fork: scegliere un ramo dell'originale diverso da quello predefinito, e mostrare quanti commit
-        si sono ricevuti prima del merge invece che solo dopo
 -   [ ] Actions: workflow con input e con più tentativi per esecuzione; l'annullamento è offerto solo
         alle esecuzioni non concluse
 -   [x] **Pannello staccato**: quando la finestra principale cambia repository, la finestra dei

@@ -41,7 +41,7 @@ Italiano: [README.md](README.md)
 | **Browser sign-in (OAuth device flow)**                                              | ✅             |
 | **“Sign in” with the token already on the machine** (`gh`, credential helper)        | ✅             |
 | **Account chosen per repository** (header chip)                                      | ✅             |
-| **Fork: detect the original and sync**                                               | ✅             |
+| **Fork: choose the branch, preview the commits, then sync**                          | ✅             |
 | **GitHub Actions**: runs, retry failed jobs, re-run, cancel                          | ✅             |
 | **Repository files** (filterable list, browser)                                      | ✅             |
 | **Export HEAD as a zip**                                                             | ✅             |
@@ -344,8 +344,10 @@ destination of clones; it is not a limit, from the chooser you can navigate anyw
 From the right-click menu on the repository tab:
 
 -   **Sync with the original (merge/rebase)**: the app asks the provider which the original repository
-    is, creates the `upstream` remote the first time, then `fetch` and `merge`/`rebase` of the default
-    branch. Never forced: a conflict remains undoable. With a detached HEAD the sync stops and says so.
+    is, creates the `upstream` remote the first time and offers its branches (the default as the
+    initial value). Before touching the history it shows how many commits would arrive and how many
+    local ones are not there yet; then `fetch` and `merge`/`rebase`. Never forced: a conflict remains
+    undoable. With a detached HEAD the sync stops and says so.
 -   **Pull request…**: the requests open on the repository service (GitHub, GitLab, Gitea/Forgejo,
     Bitbucket), with author, source and target branch, draft state and _Open_ in the browser. From the
     same window one is created from two branches: the branches must already be pushed. On GitLab the

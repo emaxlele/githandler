@@ -3025,8 +3025,8 @@ function askInput(options: {
 	value?: string;
 }): Promise<string | null> {
 	if (ui.inputDialog.open) settleInput(null);
-	ui.inputTitle.textContent = options.title;
-	ui.inputLabel.textContent = options.label;
+	ui.inputTitle.textContent = t(options.title);
+	ui.inputLabel.textContent = t(options.label);
 	ui.inputField.value = options.value ?? "";
 	ui.inputDialog.showModal();
 	ui.inputField.focus();
@@ -4367,15 +4367,44 @@ async function syncForkWith(mode: "merge" | "rebase"): Promise<void> {
 		return;
 	}
 	const parent = info.parent;
-	const verb = mode === "merge" ? "Unire" : "Rebasare il ramo attuale su";
+
+	// l'elenco aiuta a scegliere; se la rete non risponde si può ancora scrivere il nome
+	let branches: string[] = [];
+	try {
+		branches = await api.forkBranches();
+	} catch (error) {
+		console.warn("rami dell'originale non leggibili:", error);
+	}
+	const candidates =
+		branches.length > 0
+			? ` (${branches.slice(0, 12).join(", ")}${
+					branches.length > 12 ? ", …" : ""
+			  })`
+			: "";
+	const branch = await askInput({
+		title: "Sincronizza con l'originale",
+		label: `${t("Ramo dell'originale")}${candidates}`,
+		value: parent.defaultBranch,
+	});
+	if (branch === null) return;
+	if (!branch.trim()) {
+		toast("Scrivi il ramo dell'originale da portare nel ramo attuale.");
+		return;
+	}
+
+	const preview = await guardRepo("Fork", () =>
+		api.forkPreview(branch.trim())
+	);
+	if (!preview) return;
+	const verb = t(mode === "merge" ? "Unire" : "Rebasare il ramo attuale su");
 	if (
 		!askConfirm(
-			`${verb} ${parent.fullName}/${parent.defaultBranch}? Le modifiche non committate possono fermare l'operazione; niente viene forzato.`
+			`${verb} ${parent.fullName}/${preview.branch}? Riceverai ${preview.behind} commit da ${preview.upstreamRef} e ne hai ${preview.ahead} non presenti lì. Le modifiche non committate possono fermare l'operazione; niente viene forzato.`
 		)
 	)
 		return;
 	const result = await guardRepo("Sincronizza fork", () =>
-		api.syncFork(mode)
+		api.syncFork(mode, branch.trim())
 	);
 	if (!result) return;
 	const snapshot = await guard("Rilettura", () => api.refresh());

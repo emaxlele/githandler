@@ -55,7 +55,12 @@ import { listWorkflowRuns, runWorkflowAction } from "./actions.ts";
 import type { WorkflowAction } from "../core/actions.ts";
 import { createPull, listPulls, pullChecks } from "./pulls.ts";
 import { exportArchive } from "./export.ts";
-import { forkInfo, syncFork } from "./fork.ts";
+import {
+	forkBranches,
+	forkInfo,
+	forkPreview,
+	syncFork,
+} from "./fork.ts";
 import { CliGitBackend } from "./backend.ts";
 import {
 	listRepoFiles,
@@ -551,8 +556,14 @@ function registerIpc(): void {
 
 	// Fork e Actions: sono dati del provider, non del repository.
 	handle("repo:forkInfo", (root: string) => forkInfo(root));
-	handle("repo:syncFork", (root: string, mode: "merge" | "rebase") =>
-		syncFork(root, mode)
+	handle("repo:forkBranches", (root: string) => forkBranches(root));
+	handle("repo:forkPreview", (root: string, branch?: string) =>
+		forkPreview(root, branch)
+	);
+	handle(
+		"repo:syncFork",
+		(root: string, mode: "merge" | "rebase", branch?: string) =>
+			syncFork(root, mode, branch)
 	);
 	handle("actions:runs", (root: string) => listWorkflowRuns(root));
 	handle("pulls:list", (root: string) => listPulls(root));

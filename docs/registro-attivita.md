@@ -5,6 +5,20 @@
 
 ## 2026-11-09
 
+### Scegliere da quale ramo dell'originale sincronizzare un fork
+
+-   **Cosa**: «Sincronizza con l'originale» ora propone i rami dell'originale (con il predefinito già
+    scritto) e, prima di unire o rebasare, dice quanti commit arriverebbero e quanti locali non sono
+    ancora presenti lì.
+-   **Perché**: richiesta dell'utente — un fork non si sincronizza sempre dal ramo principale, e
+    sapere in anticipo quanti commit si ricevono evita un merge alla cieca.
+-   **Come**: l'app legge i rami senza scaricare il repository, fa un solo aggiornamento e mostra i
+    conteggi nella richiesta di conferma; solo dopo applica il merge o il rebase, senza forzare
+    niente.
+-   **Verifica**: typecheck, test nuovi sulla lettura dei rami e build.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Lavorare su più cartelle dello stesso repository
 
 -   **Cosa**: dalla palette dei comandi si apre **«Worktree»**: elenca le cartelle collegate allo

@@ -5,7 +5,11 @@ import type { HealthReport } from "../core/health.ts";
 import type { RemoteCheck } from "../core/remotes.ts";
 import type { WorktreeInfo } from "../core/worktrees.ts";
 import type { WorkflowAction, WorkflowRun } from "../core/actions.ts";
-import type { ForkInfo, ForkSyncResult } from "../core/fork.ts";
+import type {
+	ForkInfo,
+	ForkPending,
+	ForkSyncResult,
+} from "../core/fork.ts";
 import type { Account, AccountChoice, RemoteRepo } from "../core/providers.ts";
 import type { NewPullRequest, PullList, PullRequest } from "../core/pulls.ts";
 import type { PatchMode } from "../core/patch.ts";
@@ -104,8 +108,12 @@ export interface GitApi {
 	setRepoAccount(id: string | null): Promise<AccountChoice>;
 	/** Il repository attivo è un fork? E qual è l'originale? */
 	forkInfo(): Promise<ForkInfo>;
+	/** Rami disponibili sull'originale, senza scaricare gli oggetti. */
+	forkBranches(): Promise<string[]>;
+	/** Cosa cambierebbe un sync sul ramo scelto: commit in arrivo e commit locali. */
+	forkPreview(branch?: string): Promise<ForkPending>;
 	/** Porta nel ramo locale i commit dell'originale (`merge` o `rebase`, mai forza). */
-	syncFork(mode: "merge" | "rebase"): Promise<ForkSyncResult>;
+	syncFork(mode: "merge" | "rebase", branch?: string): Promise<ForkSyncResult>;
 	/** Ultime esecuzioni delle GitHub Actions del repository. */
 	workflowRuns(): Promise<WorkflowRun[]>;
 	/** Ri-esegue tutti o solo i job falliti, oppure annulla un'esecuzione. */
@@ -354,6 +362,8 @@ export type IpcChannel =
 	| "repo:account"
 	| "repo:account:set"
 	| "repo:forkInfo"
+	| "repo:forkBranches"
+	| "repo:forkPreview"
 	| "repo:syncFork"
 	| "actions:runs"
 	| "actions:run"
