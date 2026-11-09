@@ -1000,6 +1000,19 @@ const EN: Record<string, string> = {
 		"Write the comment before sending it.",
 	"Invio il commento…": "Sending the comment…",
 	"Commento inviato.": "Comment sent.",
+	Revisioni: "Reviews",
+	"Legge chi ha approvato la richiesta e permette di approvarla.":
+		"Reads who approved the request and lets you approve it.",
+	"Leggo le approvazioni…": "Reading the approvals…",
+	"Approvata da te.": "Approved by you.",
+	"{0} approvazioni.": "{0} approvals.",
+	"Nessuna approvazione.": "No approvals.",
+	Approva: "Approve",
+	"Approva la richiesta sul servizio.":
+		"Approves the request on the service.",
+	"Approvare la pull request #{0}? L'approvazione è visibile sul servizio.":
+		"Approve pull request #{0}? The approval is visible on the service.",
+	"Pull request approvata.": "Pull request approved.",
 	Invia: "Send",
 };
 

@@ -5,6 +5,22 @@
 
 ## 2026-11-09
 
+### Approvare una pull request senza uscire dall'app
+
+-   **Cosa**: ogni pull request ha il pulsante **«Revisioni»**: dice chi ha approvato e permette di
+    approvare con una conferma; su una richiesta chiusa o già approvata il pulsante non compare.
+-   **Perché**: richiesta dell'utente — dopo aver letto i commenti, l'ultimo passo che costringeva al
+    browser era l'approvazione.
+-   **Come**: l'app legge lo stato dal servizio con l'account già collegato (review per GitHub e
+    Gitea, `approved_by` per GitLab, `participants` per Bitbucket) e invia l'approvazione nella forma
+    che ogni servizio si aspetta; poi rilegge, perché le risposte al comando cambiano troppo. Ritirare
+    l'approvazione e «chiedi modifiche» restano nella pagina web: le quattro API non le espongono allo
+    stesso modo.
+-   **Verifica**: typecheck, 4 test nuovi sulle risposte dei quattro servizi e build; la finestra è
+    stata controllata in inglese su un repository di prova.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Avviare un workflow di GitHub dall'app
 
 -   **Cosa**: nella finestra delle GitHub Actions c'è ora **«Avvia un workflow…»**: si sceglie il

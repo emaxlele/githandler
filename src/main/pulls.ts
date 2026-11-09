@@ -29,6 +29,13 @@ import {
 	remoteIdentity,
 	type Account,
 } from "../core/providers.ts";
+import {
+	approvePayload,
+	approveUrl,
+	parseReviewSummary,
+	reviewsUrl,
+	type ReviewSummary,
+} from "../core/reviews.ts";
 import { repoAccountChoice, tokenFor } from "./accounts.ts";
 import { originRemote } from "./remote.ts";
 
@@ -209,6 +216,50 @@ export async function addPullComment(
 		}
 	);
 	return parseComment(context.account, created);
+}
+
+/** Chi ha approvato una pull request, per i quattro servizi. */
+export async function pullReviews(
+	root: string,
+	number: number
+): Promise<ReviewSummary> {
+	const context = await contextFor(root);
+	const payload = await request(
+		context,
+		reviewsUrl(context.account, context.namespace, context.name, number),
+		{ method: "GET" }
+	);
+	return parseReviewSummary(context.account, payload, context.account.username);
+}
+
+/**
+ * Approva la pull request e rilegge lo stato: la risposta al `POST` cambia troppo fra i servizi
+ * (GitHub restituisce la review, GitLab e Bitbucket il corpo della richiesta), quindi la verità
+ * arriva sempre dalla lettura successiva.
+ */
+export async function approvePull(
+	root: string,
+	number: number
+): Promise<ReviewSummary> {
+	const context = await contextFor(root);
+	const body = approvePayload(context.account);
+	await request(
+		context,
+		approveUrl(context.account, context.namespace, context.name, number),
+		body
+			? {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(body),
+			  }
+			: { method: "POST" }
+	);
+	const payload = await request(
+		context,
+		reviewsUrl(context.account, context.namespace, context.name, number),
+		{ method: "GET" }
+	);
+	return parseReviewSummary(context.account, payload, context.account.username);
 }
 
 export async function createPull(

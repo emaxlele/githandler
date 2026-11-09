@@ -56,7 +56,7 @@ Italiano: [README.md](README.md)
 | **Stash** (save selected files only, apply, pop, drop)                               | ✅             |
 | **Merge, rebase, cherry-pick**, abort operation                                      | ✅             |
 | **Interactive rebase**: reorder, squash/fixup, reword, drop                          | ✅             |
-| **Pull request / merge request**: list, create and discuss                           | ✅             |
+| **Pull request / merge request**: list, create, discuss and approve                  | ✅             |
 | **Conflicts resolved in the app** (per file and per hunk, "continue")                | ✅             |
 | **Interface in Italian and English**                                                 | ✅             |
 | **Command palette** (`Ctrl+K`) and documented shortcuts                              | ✅             |
@@ -360,7 +360,9 @@ From the right-click menu on the repository tab:
     repository. _Checks_ reads the workflow results on the head commit of the request — green, red
     or pending, with the detail and a link to each one. _Discussion_ shows the conversation comments,
     oldest first, and publishes new ones; the text stays text and the service formatting is on the
-    web page.
+    web page. _Reviews_ shows who approved and lets you approve after a confirmation, for all four
+    services; withdrawing an approval and "request changes" stay on the web page, because the APIs
+    do not expose them the same way.
 -   **GitHub Actions…**: latest runs with workflow, status, branch, event and attempt; _Retry failed
     jobs_ (only the red ones, after a failure), _Re-run_ (the whole workflow), _Cancel_ (a running
     one), _Open_ in the browser. _Start a workflow…_ runs a workflow on the chosen branch or tag,

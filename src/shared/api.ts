@@ -21,6 +21,7 @@ import type {
 } from "../core/fork.ts";
 import type { Account, AccountChoice, RemoteRepo } from "../core/providers.ts";
 import type { PullComment } from "../core/comments.ts";
+import type { ReviewSummary } from "../core/reviews.ts";
 import type { NewPullRequest, PullList, PullRequest } from "../core/pulls.ts";
 import type { PatchMode } from "../core/patch.ts";
 import type { ResetMode } from "../core/ops.ts";
@@ -142,6 +143,10 @@ export interface GitApi {
 	pullComments(number: number): Promise<PullComment[]>;
 	/** Aggiunge un commento alla conversazione e restituisce quello creato. */
 	addPullComment(number: number, body: string): Promise<PullComment>;
+	/** Chi ha approvato la pull request. */
+	pullReviews(number: number): Promise<ReviewSummary>;
+	/** Approva la pull request e restituisce lo stato aggiornato. */
+	approvePull(number: number): Promise<ReviewSummary>;
 	/** File tracciati nel ref indicato (o in HEAD); serve al selettore dei file. */
 	listRepoFiles(ref?: string | null): Promise<RepoFileList>;
 	/** Salva il contenuto di HEAD in un archivio zip scelto dall'utente. */
@@ -407,6 +412,8 @@ export type IpcChannel =
 	| "pulls:checks"
 	| "pulls:comments"
 	| "pulls:comment"
+	| "pulls:reviews"
+	| "pulls:approve"
 	| "repo:listFiles"
 	| "repo:exportZip"
 	| "repo:openFileInBrowser"

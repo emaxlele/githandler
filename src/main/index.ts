@@ -61,10 +61,12 @@ import {
 import type { WorkflowAction } from "../core/actions.ts";
 import {
 	addPullComment,
+	approvePull,
 	createPull,
 	listPulls,
 	pullChecks,
 	pullComments,
+	pullReviews,
 } from "./pulls.ts";
 import { exportArchive } from "./export.ts";
 import { forkBranches, forkInfo, forkPreview, syncFork } from "./fork.ts";
@@ -604,6 +606,12 @@ function registerIpc(): void {
 		"pulls:comment",
 		(root: string, number: number, body: string) =>
 			addPullComment(root, number, body)
+	);
+	handle("pulls:reviews", (root: string, number: number) =>
+		pullReviews(root, number)
+	);
+	handle("pulls:approve", (root: string, number: number) =>
+		approvePull(root, number)
 	);
 	handle("actions:run", (root: string, id: string, action: WorkflowAction) =>
 		runWorkflowAction(root, id, action)

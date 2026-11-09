@@ -64,6 +64,7 @@ import type { WorktreeInfo } from "../core/worktrees.ts";
 import { summarizeRecovery, type RecoverySummary } from "../core/recovery.ts";
 import type { CheckRun, CheckSummary } from "../core/checks.ts";
 import type { PullComment } from "../core/comments.ts";
+import type { ReviewSummary } from "../core/reviews.ts";
 import type { PullList, PullRequest } from "../core/pulls.ts";
 import type { ReflogEntry } from "../core/reflog.ts";
 import { deviceFlow, tokenPageUrl } from "../core/oauth.ts";
@@ -5025,6 +5026,10 @@ function renderPullItem(pull: PullRequest): void {
 	checks.hidden = true;
 	item.appendChild(checks);
 
+	const reviews = el("div", "pull-checks");
+	reviews.hidden = true;
+	item.appendChild(reviews);
+
 	const actions = el("div", "actions-actions");
 	const run = el(
 		"button",
@@ -5061,6 +5066,21 @@ function renderPullItem(pull: PullRequest): void {
 	discuss.addEventListener("click", () => void openComments(pull));
 	actions.appendChild(discuss);
 
+	const reviewsButton = el(
+		"button",
+		"btn btn-small",
+		t("Revisioni")
+	) as HTMLButtonElement;
+	reviewsButton.type = "button";
+	reviewsButton.title = t(
+		"Legge chi ha approvato la richiesta e permette di approvarla."
+	);
+	reviewsButton.addEventListener(
+		"click",
+		() => void loadPullReviews(pull, reviewsButton, reviews)
+	);
+	actions.appendChild(reviewsButton);
+
 	const open = el("button", "btn btn-small", t("Apri")) as HTMLButtonElement;
 	open.type = "button";
 	open.title = t("Apre la pull request nel browser.");
@@ -5092,6 +5112,93 @@ async function loadPullChecks(
 		);
 	} finally {
 		button.disabled = false;
+	}
+}
+
+async function loadPullReviews(
+	pull: PullRequest,
+	button: HTMLButtonElement,
+	container: HTMLElement
+): Promise<void> {
+	button.disabled = true;
+	container.hidden = false;
+	clear(container);
+	container.appendChild(
+		el("div", "checks-summary", t("Leggo le approvazioni…"))
+	);
+	try {
+		const summary = await api.pullReviews(pull.number);
+		renderReviewSummary(pull, summary, container);
+	} catch (error) {
+		clear(container);
+		container.appendChild(
+			el("div", "checks-summary is-bad", readableError(error))
+		);
+	} finally {
+		button.disabled = false;
+	}
+}
+
+/**
+ * Lo stato si dice in una riga; i nomi sotto, perché «2 approvazioni» da solo non dice di chi.
+ * Il pulsante compare solo su una richiesta aperta e solo se l'utente non ha già approvato.
+ */
+function renderReviewSummary(
+	pull: PullRequest,
+	summary: ReviewSummary,
+	container: HTMLElement
+): void {
+	clear(container);
+	const headline = summary.approved
+		? t("Approvata da te.")
+		: summary.count > 0
+		? t(`${summary.count} approvazioni.`)
+		: t("Nessuna approvazione.");
+	container.appendChild(
+		el(
+			"div",
+			`checks-summary ${summary.count > 0 ? "is-ok" : ""}`.trim(),
+			headline
+		)
+	);
+	if (summary.approvers.length > 0)
+		container.appendChild(
+			el("div", "check-line", summary.approvers.join(", "))
+		);
+
+	if (pull.state !== "open" || summary.approved) return;
+	const approve = el(
+		"button",
+		"btn btn-small",
+		t("Approva")
+	) as HTMLButtonElement;
+	approve.type = "button";
+	approve.title = t("Approva la richiesta sul servizio.");
+	approve.addEventListener("click", () => void approvePull(pull, container));
+	container.appendChild(approve);
+}
+
+async function approvePull(
+	pull: PullRequest,
+	container: HTMLElement
+): Promise<void> {
+	if (
+		!askConfirm(
+			t(
+				`Approvare la pull request #${pull.number}? L'approvazione è visibile sul servizio.`
+			)
+		)
+	)
+		return;
+	try {
+		const summary = await api.approvePull(pull.number);
+		renderReviewSummary(pull, summary, container);
+		toast(t("Pull request approvata."), "ok");
+	} catch (error) {
+		clear(container);
+		container.appendChild(
+			el("div", "checks-summary is-bad", readableError(error))
+		);
 	}
 }
 

@@ -2,6 +2,21 @@
 
 ## [Non rilasciato]
 
+### Approvazione delle pull request
+
+-   **Nuovo pulsante «Revisioni»** su ogni richiesta: legge chi ha approvato — review per GitHub e
+    Gitea, `approved_by` per GitLab, `participants` per Bitbucket — e permette di approvare dopo una
+    conferma, perché l'approvazione è visibile sul servizio. Su una richiesta chiusa o già approvata
+    il pulsante non compare.
+-   **Una sola operazione, quella che tutti sanno fare** in `src/core/reviews.ts` (`reviewsUrl`,
+    `approveUrl`, `approvePayload`, `parseReviewSummary`): GitHub usa `event: APPROVE`, Gitea il
+    participio `APPROVED`, GitLab e Bitbucket un endpoint dedicato senza corpo.
+-   **Stato riletto dopo il `POST`**: la risposta cambia troppo fra i servizi, quindi la verità è
+    sempre la lettura successiva. Un'approvazione respinta o ritirata non conta.
+-   **Fuori**: ritirare l'approvazione e «chiedi modifiche», che le quattro API non espongono allo
+    stesso modo.
+-   Test nuovi in `tests/reviews.test.mts`.
+
 ### Avvio di un workflow e tentativi delle esecuzioni
 
 -   **«Avvia un workflow…»** nella finestra delle Actions: elenca i workflow attivi del repository e
