@@ -53,6 +53,7 @@ import {
 } from "../core/actions.ts";
 import type { HealthReport } from "../core/health.ts";
 import type { RemoteCheck } from "../core/remotes.ts";
+import type { TreeEntry } from "../core/tree.ts";
 import type { WorktreeInfo } from "../core/worktrees.ts";
 import { summarizeRecovery, type RecoverySummary } from "../core/recovery.ts";
 import type { CheckRun, CheckSummary } from "../core/checks.ts";
@@ -189,6 +190,14 @@ interface State {
 	treePath: string | null;
 	/** cartelle chiuse nell'albero; vuoto = tutto aperto */
 	treeCollapsed: Set<string>;
+	/** albero completo pigro invece dei soli file modificati */
+	treeAll: boolean;
+	/** un livello per cartella già letto (`""` è la radice) */
+	lazyTree: Map<string, TreeEntry[]>;
+	/** cartelle aperte nell'albero pigro */
+	lazyExpanded: Set<string>;
+	/** richieste in corso: evita di chiedere due volte la stessa cartella */
+	lazyLoading: Set<string>;
 	changePath: string | null;
 	changeStaged: boolean;
 	/** Diff attualmente disegnato per il working tree: serve a ricostruire le patch parziali. */
@@ -218,6 +227,10 @@ function emptyState(root = ""): State {
 		commitDiffs: [],
 		treePath: null,
 		treeCollapsed: new Set(),
+		treeAll: false,
+		lazyTree: new Map(),
+		lazyExpanded: new Set(),
+		lazyLoading: new Set(),
 		changePath: null,
 		changeStaged: false,
 		changeDiff: null,
@@ -464,6 +477,7 @@ const ui = {
 	treeList: byId("tree-list"),
 	treeDiff: byId("tree-diff"),
 	treeTitle: byId("tree-title"),
+	btnTreeMode: byId<HTMLButtonElement>("btn-tree-mode"),
 	btnTreeToggle: byId<HTMLButtonElement>("btn-tree-toggle"),
 	blamePath: byId("blame-path"),
 	changesCount: byId("changes-count"),
@@ -823,7 +837,13 @@ function applySnapshot(snapshot: Snapshot): void {
 		return;
 	}
 
+	const previousHead = state.snapshot?.commits[0]?.sha ?? null;
 	state.snapshot = snapshot;
+	// un commit nuovo cambia l'albero di HEAD: le cartelle già lette vanno rilette
+	if (!state.selectedCommit && previousHead !== (snapshot.commits[0]?.sha ?? null)) {
+		state.lazyTree.clear();
+		state.lazyLoading.clear();
+	}
 	// il refresh riparte dalla prima pagina: le pagine accumulate non valgono più
 	state.commits = snapshot.commits;
 	state.hasMore = snapshot.hasMore;
@@ -1573,7 +1593,120 @@ function treeFiles(
 	}));
 }
 
+/** Badge di stato per un percorso, quando il file è modificato o fa parte del commit. */
+function treeStatus(path: string): string | null {
+	if (state.selectedCommit) {
+		return state.commitFiles.find((file) => file.path === path)?.status ?? null;
+	}
+	const entry = state.snapshot?.status.entries.find(
+		(item) => item.path === path
+	);
+	if (!entry) return null;
+	if (entry.kind === "untracked") return "?";
+	return entry.worktree !== "." ? entry.worktree : entry.index;
+}
+
+/** Chiede al main un livello dell'albero; la radice è il percorso vuoto. */
+async function loadTreeDir(path: string): Promise<void> {
+	if (state.lazyLoading.has(path)) return;
+	const root = state.root;
+	const ref = state.selectedCommit;
+	state.lazyLoading.add(path);
+	try {
+		const entries = await api.treeEntries(ref, path);
+		if (!isActive(root) || state.selectedCommit !== ref) return;
+		state.lazyTree.set(path, entries);
+	} catch (error) {
+		toast(`Cartella: ${readableError(error)}`);
+		if (isActive(root) && state.selectedCommit === ref)
+			state.lazyTree.set(path, []);
+	} finally {
+		state.lazyLoading.delete(path);
+		if (isActive(root) && state.snapshot) renderTree(state.snapshot);
+	}
+}
+
+/**
+ * Albero completo letto una cartella alla volta: la radice parte subito, ogni cartella quando la
+ * si apre. Un repository grande non costa più di ciò che si guarda.
+ */
+function renderLazyTree(): void {
+	ui.treeTitle.textContent = t(
+		state.selectedCommit
+			? "File tree · commit (tutti i file)"
+			: "File tree · tutti i file"
+	);
+	clear(ui.treeList);
+
+	const fragment = document.createDocumentFragment();
+	const walk = (path: string, depth: number): void => {
+		const entries = state.lazyTree.get(path);
+		if (!entries) {
+			if (!state.lazyLoading.has(path)) void loadTreeDir(path);
+			fragment.appendChild(
+				el(
+					"div",
+					"muted tree-loading",
+					t("Leggo la cartella…")
+				)
+			);
+			return;
+		}
+		for (const entry of entries) {
+			const dir = entry.type === "tree";
+			const expanded = state.lazyExpanded.has(entry.path);
+			const row = el("div", "tree-node");
+			if (dir) row.classList.add("is-dir");
+			row.style.paddingLeft = `${10 + depth * 14}px`;
+			row.dataset.path = entry.path;
+			row.dataset.dir = String(dir);
+			row.appendChild(
+				el(
+					"span",
+					dir ? "twisty" : "twisty is-leaf",
+					dir ? (expanded ? "▾" : "▸") : ""
+				)
+			);
+			const status = treeStatus(entry.path);
+			if (status) {
+				row.appendChild(
+					el(
+						"span",
+						`st st-${status === "?" ? "a" : status.toLowerCase()}`,
+						status
+					)
+				);
+			}
+			row.appendChild(el("span", "label", entry.name));
+			if (!dir && entry.path === state.treePath)
+				row.classList.add("is-selected");
+			// solo il working tree ha file sul disco: in un commit il path può non esistere
+			if (!dir && !state.selectedCommit && status !== "D") {
+				row.draggable = true;
+				row.title = t("Trascina fuori per copiare il file.");
+			}
+			fragment.appendChild(row);
+			if (dir && expanded) walk(entry.path, depth + 1);
+		}
+	};
+	walk("", 0);
+	ui.treeList.appendChild(fragment);
+}
+
 function renderTree(snapshot: Snapshot): void {
+	ui.btnTreeMode.textContent = t(
+		state.treeAll ? "Modifiche" : "Tutti i file"
+	);
+	ui.btnTreeMode.title = t(
+		state.treeAll
+			? "Mostra solo i file modificati o del commit"
+			: "Mostra tutti i file del repository, una cartella alla volta"
+	);
+	if (state.treeAll) {
+		renderLazyTree();
+		return;
+	}
+
 	const files = treeFiles(snapshot);
 	ui.treeTitle.textContent = t(
 		state.selectedCommit ? "File tree · commit" : "File tree · working tree"
@@ -1901,6 +2034,12 @@ async function refresh(): Promise<void> {
 
 async function selectCommit(sha: string): Promise<void> {
 	const root = state.root;
+	if (state.selectedCommit !== sha) {
+		// l'albero letto per un commit non vale per un altro
+		state.lazyTree.clear();
+		state.lazyExpanded.clear();
+		state.lazyLoading.clear();
+	}
 	state.selectedCommit = sha;
 	rememberPanelCommit(root, sha);
 	state.commitDetails = null;
@@ -5852,7 +5991,13 @@ ui.treeList.addEventListener("click", (event) => {
 	const path = target?.dataset.path;
 	if (!path || !target) return;
 	if (target.dataset.dir === "true") {
-		if (state.treeCollapsed.has(path)) state.treeCollapsed.delete(path);
+		if (state.treeAll) {
+			if (state.lazyExpanded.has(path)) state.lazyExpanded.delete(path);
+			else {
+				state.lazyExpanded.add(path);
+				if (!state.lazyTree.has(path)) void loadTreeDir(path);
+			}
+		} else if (state.treeCollapsed.has(path)) state.treeCollapsed.delete(path);
 		else state.treeCollapsed.add(path);
 		if (state.snapshot) renderTree(state.snapshot);
 		return;
@@ -5879,6 +6024,15 @@ ui.treeList.addEventListener("contextmenu", (event) => {
 	if (!path || target?.dataset.dir === "true") return;
 	event.preventDefault();
 	openMenu(event.clientX, event.clientY, fileMenuEntries(path));
+});
+
+ui.btnTreeMode.addEventListener("click", () => {
+	state.treeAll = !state.treeAll;
+	// l'altra vista non ha dati validi: si riparte dalla radice
+	state.lazyTree.clear();
+	state.lazyExpanded.clear();
+	state.lazyLoading.clear();
+	if (state.snapshot) renderTree(state.snapshot);
 });
 
 ui.btnTreeToggle.addEventListener("click", () => {

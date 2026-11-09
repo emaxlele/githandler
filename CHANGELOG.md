@@ -2,6 +2,19 @@
 
 ## [Non rilasciato]
 
+### Albero dei file pigro
+
+-   **«Tutti i file»** nel File Tree: mostra l'albero completo del commit o di HEAD leggendo una
+    cartella alla volta con `git ls-tree -z`; «Modifiche» torna all'elenco dei soli file toccati.
+    Un repository grande costa solo ciò che si apre.
+-   **Parser puro in `src/core/tree.ts`** (`parseTreeEntries`, `sortTreeEntries`): cartelle prima,
+    file dopo, percorso completo e nome breve, più i sottomoduli (`commit`).
+-   **Backend prudente**: `treeEntries` accetta la radice vuota e `HEAD`, valida il percorso con
+    `assertSafePath` e restituisce un elenco vuoto su un repository senza commit.
+-   **Cache legata alla vista**: le cartelle lette si scartano cambiando commit o quando HEAD si
+    muove; espansioni e caricamenti in corso seguono la stessa vista.
+-   Test nuovi in `tests/tree.test.mts`.
+
 ### Fork: ramo scelto e commit in arrivo prima del merge
 
 -   **Ramo dell'originale**: «Sincronizza con l'originale» propone i rami letti con

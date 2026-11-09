@@ -43,6 +43,11 @@ import {
 	type RemoteCheck,
 } from "../core/remotes.ts";
 import {
+	parseTreeEntries,
+	sortTreeEntries,
+	type TreeEntry,
+} from "../core/tree.ts";
+import {
 	parseWorktrees,
 	type WorktreeInfo,
 } from "../core/worktrees.ts";
@@ -1192,6 +1197,24 @@ export class CliGitBackend implements GitBackend {
 			timeoutMs: 120_000,
 		});
 		return this.worktrees();
+	}
+
+	async treeEntries(
+		ref: string | null,
+		path: string
+	): Promise<TreeEntry[]> {
+		const info = this.#requireInfo();
+		const commit = ref ?? "HEAD";
+		if (!/^[0-9a-f]{7,64}$/.test(commit) && commit !== "HEAD")
+			throw new Error(`Riferimento non valido: ${commit}`);
+		const target = path.trim();
+		if (target) assertSafePath(target);
+		const args = ["ls-tree", "-z", commit];
+		if (target) args.push("--", `${target.replace(/\/+$/, "")}/`);
+		const result = await runGit(info.root, args, { allowFailure: true });
+		// un repository senza commit non ha un albero: vuoto, non un errore
+		if (result.code !== 0) return [];
+		return sortTreeEntries(parseTreeEntries(result.stdout));
 	}
 
 	async undo(): Promise<Snapshot> {

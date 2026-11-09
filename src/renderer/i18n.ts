@@ -800,6 +800,15 @@ const EN: Record<string, string> = {
 	"Cartella del nuovo worktree": "Folder of the new worktree",
 	"Rimuovere il worktree «{0}»? La cartella viene eliminata; Git rifiuta se contiene modifiche non committate.":
 		"Remove the worktree «{0}»? The folder is deleted; Git refuses if it holds uncommitted changes.",
+	"Tutti i file": "All files",
+	Modifiche: "Changes",
+	"Mostra solo i file modificati o del commit":
+		"Shows only the changed files or the files of the commit",
+	"Mostra tutti i file del repository, una cartella alla volta":
+		"Shows every file of the repository, one folder at a time",
+	"File tree · commit (tutti i file)": "File tree · commit (all files)",
+	"File tree · tutti i file": "File tree · all files",
+	"Leggo la cartella…": "Reading the folder…",
 	"Controlla i remoti": "Check the remotes",
 	"Contatta ogni remoto con git ls-remote; usa la rete":
 		"Contacts every remote with git ls-remote; uses the network",

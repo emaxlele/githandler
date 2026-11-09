@@ -41,7 +41,9 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 -   ✅ Network progress from `git` stderr during clone, fetch, pull and push.
 -   ✅ Partial stash with a file checklist.
 -   ✅ Drag a file out of the window.
--   ⏳ Lazy tree in the file view, syntax highlighting.
+-   ✅ Lazy tree in the file view: "All files" reads one folder at a time, the working-tree mode keeps
+    the list of changed files.
+-   ⏳ Syntax highlighting.
 -   ✅ Commit message templates (`commit.template`) and hook/signature output visible in the UI.
 -   ✅ Signed commits: a "sign (GPG)" switch adds `-S`, so the key already configured in Git signs
     the commit; the app never handles keys.

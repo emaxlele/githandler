@@ -5,6 +5,21 @@
 
 ## 2026-11-09
 
+### Vedere tutti i file del repository, non solo quelli toccati
+
+-   **Cosa**: nel File Tree c'è ora il pulsante **«Tutti i file»**: mostra l'albero completo del
+    commit o del repository e apre una cartella alla volta; «Modifiche» riporta all'elenco dei soli
+    file modificati.
+-   **Perché**: richiesta dell'utente — l'albero mostrava solo i file toccati, quindi per aprire un
+    file non modificato bisognava lasciare l'app.
+-   **Come**: l'app chiede a Git una cartella per volta invece di leggere tutto il repository in una
+    volta, così un progetto grande non rallenta l'apertura della scheda; le cartelle già lette si
+    scartano quando si cambia commit.
+-   **Verifica**: typecheck, 3 test nuovi (lettura dell'albero, cartella annidata, repository senza
+    commit) e build; la vista è stata controllata in inglese su un repository di prova.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Scegliere da quale ramo dell'originale sincronizzare un fork
 
 -   **Cosa**: «Sincronizza con l'originale» ora propone i rami dell'originale (con il predefinito già

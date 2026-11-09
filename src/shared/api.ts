@@ -3,6 +3,7 @@ import type { CheckSummary } from "../core/checks.ts";
 import type { ContentQuery, ContentSearchResult } from "../core/content.ts";
 import type { HealthReport } from "../core/health.ts";
 import type { RemoteCheck } from "../core/remotes.ts";
+import type { TreeEntry } from "../core/tree.ts";
 import type { WorktreeInfo } from "../core/worktrees.ts";
 import type { WorkflowAction, WorkflowRun } from "../core/actions.ts";
 import type {
@@ -201,6 +202,8 @@ export interface GitApi {
 	createWorktree(path: string, branch: string): Promise<WorktreeInfo[]>;
 	/** Toglie un worktree pulito, mai il principale. */
 	removeWorktree(path: string): Promise<WorktreeInfo[]>;
+	/** Un livello dell'albero di HEAD o di un commit: la radice è il percorso vuoto. */
+	treeEntries(ref: string | null, path: string): Promise<TreeEntry[]>;
 	/** Impostazioni correnti (permessi API, copia dei file non tracciati). */
 	settings(): Promise<Settings>;
 	/** Salva le impostazioni e restituisce la versione normalizzata. */
@@ -346,6 +349,7 @@ export type IpcChannel =
 	| "git:worktrees"
 	| "git:createWorktree"
 	| "git:removeWorktree"
+	| "git:treeEntries"
 	| "app:watching"
 	| "app:settings"
 	| "app:chooseFolder"

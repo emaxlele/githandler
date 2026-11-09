@@ -162,6 +162,7 @@ const api: GitApi = {
 	createWorktree: (path, branch) =>
 		invokeRepo("git:createWorktree", path, branch),
 	removeWorktree: (path) => invokeRepo("git:removeWorktree", path),
+	treeEntries: (ref, path) => invokeRepo("git:treeEntries", ref, path),
 	settings: () => ipcRenderer.invoke("app:settings"),
 	saveSettings: (settings) =>
 		ipcRenderer.invoke("app:settings:save", settings),

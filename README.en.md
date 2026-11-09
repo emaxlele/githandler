@@ -69,12 +69,12 @@ Italiano: [README.md](README.md)
 | **Reflog** in the app and "go to commit" by SHA                                      | ✅             |
 | **Pull request checks** (result and links)                                           | ✅             |
 | **CI notifications from the system tray**                                            | ✅             |
-| **Repository health**: diverged branches, old stashes, submodules, detached HEAD      | ✅             |
-| **Reachable remotes**, checked on request from the health panel                       | ✅             |
-| **Drag a file** out of the window                                                   | ✅             |
-| **Recovery window**: last operation, stashes, copies, reflog                        | ✅             |
-| **Worktrees**: list, create, open in a tab, remove                                  | ✅             |
-| **Signed commits** (GPG or SSH with the Git key)                                    | ✅             |
+| **Repository health**: diverged branches, old stashes, submodules, detached HEAD     | ✅             |
+| **Reachable remotes**, checked on request from the health panel                      | ✅             |
+| **Drag a file** out of the window                                                    | ✅             |
+| **Recovery window**: last operation, stashes, copies, reflog                         | ✅             |
+| **Worktrees**: list, create, open in a tab, remove                                   | ✅             |
+| **Signed commits** (GPG or SSH with the Git key)                                     | ✅             |
 | **Network progress** (clone, fetch, pull, push)                                      | ✅             |
 | **Themes** light / dark / OLED, density and text size                                | ✅             |
 | **Automatic refresh** (`--watch`)                                                    | ✅             |
@@ -150,7 +150,8 @@ settings:
     subject, date, copyable SHA, parents and a one-line analysis: proportional bar between additions
     and deletions, `+N`/`−M`, files, folders, binaries and a count per status; below, the diff of the
     whole commit in a single scroll, up to 12 files and 4,000 lines), `File Tree` (tree of the commit
-    or of the working tree, diff on the right, the only file-by-file view), `Blame` and `Terminal`.
+    or of the working tree, diff on the right, the only file-by-file view; "All files" reads the
+    repository one folder at a time), `Blame` and `Terminal`.
     The handle above the panel resizes it, `▾` collapses it to the tab row and `⧉` opens it in a
     separate window: when that is closed, the panel returns to its place. While it is separate, a
     «Details ↗» chip in the toolbar brings that window to the front; when the repository changes,

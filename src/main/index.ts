@@ -512,6 +512,9 @@ function registerIpc(): void {
 	handle("git:removeWorktree", (root: string, path: string) =>
 		backendFor(root).removeWorktree(path)
 	);
+	handle("git:treeEntries", (root: string, ref: string | null, path: string) =>
+		backendFor(root).treeEntries(ref, path)
+	);
 	handle("app:watching", async () => watchEnabled && stopWatching !== null);
 	handle("app:settings", () => loadSettings());
 	handle("app:settings:save", async (input: unknown) => {
@@ -941,6 +944,22 @@ async function runShots(): Promise<void> {
 			`document.getElementById("tab-tree")?.click();
 			 document.querySelector("#tree-list .tree-node:last-child")?.click();`,
 			target.replace(/\.png$/, "-tree.png"),
+		],
+		[
+			`(() => {
+				document.getElementById("btn-tree-mode")?.click();
+				return new Promise((resolve) => setTimeout(resolve, 400));
+			})()`,
+			null,
+		],
+		[
+			`(() => {
+				const dir = [...document.querySelectorAll("#tree-list .tree-node")]
+					.find((node) => node.dataset.dir === "true");
+				dir?.click();
+				return new Promise((resolve) => setTimeout(resolve, 500));
+			})()`,
+			target.replace(/\.png$/, "-tree-all.png"),
 		],
 		[
 			`document.getElementById("tab-blame")?.click()`,

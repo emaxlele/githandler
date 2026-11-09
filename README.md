@@ -42,7 +42,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **«Accedi» con il token già presente** (`gh`, credential helper)                            | ✅             |
 | **Account scelto per repository** (chip nell'header)                                        | ✅             |
 | **Fork: ramo scelto e anteprima dei commit, poi sync con l'originale**                      | ✅             |
-| **GitHub Actions**: esecuzioni, riprova i falliti, ri-esecuzione, annulla                    | ✅             |
+| **GitHub Actions**: esecuzioni, riprova i falliti, ri-esecuzione, annulla                   | ✅             |
 | **File del repository** (elenco filtrabile, browser)                                        | ✅             |
 | **Esporta HEAD in uno zip**                                                                 | ✅             |
 | Storia con grafo a corsie, paginata (2.000/pagina)                                          | ✅             |
@@ -69,12 +69,12 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Reflog** nell'app e «vai al commit» per SHA                                               | ✅             |
 | **Controlli delle pull request** (esito e collegamenti)                                     | ✅             |
 | **Notifiche CI dalla barra di sistema**                                                     | ✅             |
-| **Salute del repository**: divergenti, stash vecchi, submodule, HEAD staccato                | ✅             |
-| **Remoti raggiungibili**, controllati su richiesta dal pannello della salute                 | ✅             |
-| **Trascinare un file** fuori dalla finestra                                                  | ✅             |
+| **Salute del repository**: divergenti, stash vecchi, submodule, HEAD staccato               | ✅             |
+| **Remoti raggiungibili**, controllati su richiesta dal pannello della salute                | ✅             |
+| **Trascinare un file** fuori dalla finestra                                                 | ✅             |
 | **Finestra Recupero**: ultima operazione, stash, copie, reflog                              | ✅             |
 | **Worktree**: elenco, creazione, apertura in una scheda, rimozione                          | ✅             |
-| **Commit firmati** (GPG o SSH con la chiave di Git)                                          | ✅             |
+| **Commit firmati** (GPG o SSH con la chiave di Git)                                         | ✅             |
 | **Avanzamento di rete** (clone, fetch, pull, push)                                          | ✅             |
 | **Temi** chiaro / scuro / OLED, densità e dimensione del testo                              | ✅             |
 | **Aggiornamento automatico** (`--watch`)                                                    | ✅             |
@@ -152,7 +152,8 @@ impostazioni:
     un altro — oggetto, data, SHA copiabile, genitori e una riga di analisi: barra proporzionale fra
     aggiunte e rimozioni, `+N`/`−M`, file, cartelle, binari e conteggio per stato; sotto, il diff
     dell'intero commit in un unico scorrimento, fino a 12 file e 4.000 righe), `File Tree` (albero dei
-    file del commit o del working tree, diff a destra, l'unica vista file per file), `Blame` e
+    file del commit o del working tree, diff a destra, l'unica vista file per file; «Tutti i file»
+    legge il repository una cartella alla volta), `Blame` e
     `Terminale`. La maniglia sopra il pannello lo ridimensiona, `▾` lo riduce alla sola riga delle schede
     e `⧉` lo apre in una finestra separata: chiusa quella, il pannello torna al suo posto. Finché è
     separata, un chip «Dettagli ↗» nella toolbar la riporta davanti; cambiando repository, la
