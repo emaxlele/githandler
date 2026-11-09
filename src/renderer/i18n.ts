@@ -892,6 +892,11 @@ const EN: Record<string, string> = {
 	"Niente da recuperare.": "Nothing to recover.",
 	"1 segnalazione.": "1 warning.",
 	"{0} segnalazioni.": "{0} warnings.",
+	"Repository molto grande": "Very large repository",
+	"oltre le dimensioni misurate: la storia arriva a pagine e l'elenco dei file si legge una cartella alla volta.":
+		"beyond the measured sizes: history arrives in pages and the file list is read one folder at a time.",
+	commit: "commits",
+	file: "files",
 	"Accesso non riuscito.": "Sign-in failed.",
 	"Accesso fatto.": "Signed in.",
 	"Impostazioni salvate.": "Settings saved.",

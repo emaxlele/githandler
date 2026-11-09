@@ -196,6 +196,7 @@ try {
 		runGit(root, statusArgs(), { allowFailure: true })
 	);
 	const refresh = await measureAsync(5, () => backend.refresh());
+	const scale = await measureAsync(5, () => backend.measureScale());
 
 	process.stdout.write(
 		[
@@ -205,6 +206,7 @@ try {
 			`refs                            ${fmt(refsCall.ms)}`,
 			`status nel refresh              ${fmt(statusCall.ms)}`,
 			`refresh completo                ${fmt(refresh.ms)}   ${refresh.result.commits.length} commit, ${refresh.result.status.entries.length} modifiche`,
+			`dimensioni (pannello salute)    ${fmt(scale.ms)}   ${scale.result.commits} commit, ${scale.result.files} file`,
 			"",
 		].join("\n"),
 	);

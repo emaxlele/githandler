@@ -38,7 +38,11 @@ import {
 	parseRefs,
 	refsArgs,
 } from "../core/log.ts";
-import { assessHealth, type HealthReport } from "../core/health.ts";
+import {
+	assessHealth,
+	type HealthReport,
+	type HealthScale,
+} from "../core/health.ts";
 import {
 	summarizeRemoteCheck,
 	type RemoteCheck,
@@ -1117,10 +1121,11 @@ export class CliGitBackend implements GitBackend {
 
 	async health(): Promise<HealthReport> {
 		const info = this.#requireInfo();
-		const [snapshot, stashes, submodules] = await Promise.all([
+		const [snapshot, stashes, submodules, scale] = await Promise.all([
 			this.refresh(),
 			this.stashList(),
 			this.submodules(),
+			this.measureScale(),
 		]);
 		return assessHealth({
 			refs: snapshot.refs,
@@ -1128,7 +1133,27 @@ export class CliGitBackend implements GitBackend {
 			submodules,
 			detached: snapshot.info.detached || !info.branch,
 			now: Date.now(),
+			scale,
 		});
+	}
+
+	/**
+	 * Due conteggi per dire quanto è grande il repository. `rev-list --count` costa quanto una
+	 * camminata del grafo e `ls-files` legge solo l'indice: entrambi restano sotto il decimo di
+	 * secondo sui repository della misura, e il pannello li chiede solo quando si apre.
+	 */
+	async measureScale(): Promise<HealthScale> {
+		const info = this.#requireInfo();
+		const [commits, files] = await Promise.all([
+			runGit(info.root, ["rev-list", "--count", "HEAD"], {
+				allowFailure: true,
+			}),
+			runGit(info.root, ["ls-files"], { allowFailure: true }),
+		]);
+		return {
+			commits: Number.parseInt(commits.stdout.trim(), 10) || 0,
+			files: files.stdout.split("\n").filter(Boolean).length,
+		};
 	}
 
 	async remoteChecks(): Promise<RemoteCheck[]> {

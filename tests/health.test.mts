@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { assessHealth, STALE_STASH_DAYS } from "../src/core/health.ts";
+import {
+	assessHealth,
+	LARGE_HISTORY_COMMITS,
+	LARGE_WORKTREE_FILES,
+	STALE_STASH_DAYS,
+} from "../src/core/health.ts";
 import type { RefInfo, StashEntry, SubmoduleInfo } from "../src/core/types.ts";
 
 const NOW = Date.parse("2026-11-09T12:00:00Z");
@@ -52,6 +57,7 @@ test("un repository in ordine non ha niente da segnalare", () => {
 		submodules: [submodule("vendor/lib", "clean")],
 		detached: false,
 		now: NOW,
+		scale: { commits: 120, files: 40 },
 	});
 	assert.deepEqual(report, {
 		diverged: [],
@@ -59,6 +65,8 @@ test("un repository in ordine non ha niente da segnalare", () => {
 		staleStashes: [],
 		dirtySubmodules: [],
 		detached: false,
+		scale: { commits: 120, files: 40 },
+		outgrown: false,
 		clean: true,
 	});
 });
@@ -121,6 +129,48 @@ test("i submodule non puliti e HEAD staccato non passano inosservati", () => {
 	assert.equal(report.clean, false);
 });
 
+test("le dimensioni dicono quando il repository ha superato il layout misurato", () => {
+	const base = {
+		refs: [],
+		stashes: [],
+		submodules: [],
+		detached: false,
+		now: NOW,
+	};
+
+	// alla soglia esatta non c'è ancora niente da segnalare: il numero è misurato, non un limite
+	const atLimit = assessHealth({
+		...base,
+		scale: { commits: LARGE_HISTORY_COMMITS, files: LARGE_WORKTREE_FILES },
+	});
+	assert.equal(atLimit.outgrown, false);
+	assert.equal(atLimit.clean, true);
+	assert.deepEqual(atLimit.scale, {
+		commits: LARGE_HISTORY_COMMITS,
+		files: LARGE_WORKTREE_FILES,
+	});
+
+	const history = assessHealth({
+		...base,
+		scale: { commits: LARGE_HISTORY_COMMITS + 1, files: 10 },
+	});
+	assert.equal(history.outgrown, true);
+	assert.equal(history.clean, false);
+
+	const worktree = assessHealth({
+		...base,
+		scale: { commits: 10, files: LARGE_WORKTREE_FILES + 1 },
+	});
+	assert.equal(worktree.outgrown, true);
+	assert.equal(worktree.clean, false);
+
+	// senza misura il pannello resta com'era
+	const unknown = assessHealth(base);
+	assert.deepEqual(unknown.scale, { commits: 0, files: 0 });
+	assert.equal(unknown.outgrown, false);
+	assert.equal(unknown.clean, true);
+});
+
 test("il backend guarda ref reali e non inventa problemi", async () => {
 	const { execFile } = await import("node:child_process");
 	const { mkdtemp, rm, writeFile } = await import("node:fs/promises");
@@ -161,6 +211,8 @@ test("il backend guarda ref reali e non inventa problemi", async () => {
 		assert.deepEqual(report.dirtySubmodules, []);
 		assert.equal(report.detached, false);
 		assert.equal(report.clean, false);
+		// le dimensioni si leggono davvero: un commit e un file tracciato
+		assert.deepEqual(report.scale, { commits: 1, files: 1 });
 	} finally {
 		await rm(base, { recursive: true, force: true });
 	}

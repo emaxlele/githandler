@@ -132,6 +132,10 @@ minmax(0, 1fr)`), non più contenuto tagliato
 -   [x] **Salute del repository**: rami divergenti, rami senza upstream, stash più vecchi di 30
         giorni, submodule non puliti e HEAD staccato, in una finestra di sola lettura; la regola sta
         in `src/core/health.ts` e riceve ref, stash e submodule, senza rete
+-   [x] **Repository che hanno superato il layout misurato**: lo stesso pannello conta i commit
+        (`git rev-list --count HEAD`) e i file tracciati (`git ls-files`) e lo segnala sopra 50.000
+        commit o 100.000 file, le dimensioni provate in `docs/backend-performance.md`. La misura parte
+        solo all'apertura del pannello (210 ms a quelle dimensioni), non a ogni refresh
 -   [x] **Progetto pubblicabile**: licenza **GPL-3.0-or-later**, CI GitHub Actions (typecheck, test,
         build, smoke del benchmark), `SECURITY.md`, `CONTRIBUTING.md`, `ROADMAP.md`, moduli per le issue,
         `AGENTS.md`, badge nel README

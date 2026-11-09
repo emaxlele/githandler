@@ -64,7 +64,9 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
     HEAD.
 -   ✅ Reachability of remotes: "Check the remotes" contacts each one with `git ls-remote` and says
     whether it answers and how many branches it has.
--   ⏳ Repositories that outgrew the layout, in the same panel.
+-   ✅ Repositories that outgrew the measured layout: the same panel counts commits and tracked files
+    and says so above 50,000 commits or 100,000 files, with the measurement from
+    `docs/backend-performance.md` behind the threshold.
 -   ✅ Recovery explained: one screen that says what can be recovered and from where — the last
     operation, stashes, copies under `refs/githandler/trash/*`, the reflog.
 

@@ -138,9 +138,11 @@ settings:
     by a hook or by the signature stays visible under the field, with the full output.
 -   **Repository health…** (command palette): a read-only check for diverged branches (commits both
     to send and to receive), local branches without upstream, stashes older than 30 days, submodules
-    that are not clean and a detached HEAD. "Check the remotes" uses `git ls-remote` to say whether
-    each remote answers and how many branches it has, waiting at most 8 seconds per remote. It
-    changes nothing: it says what to look at.
+    that are not clean and a detached HEAD. It also counts commits and tracked files and says when
+    the repository outgrew the measured sizes (over 50,000 commits or 100,000 files): the lists are
+    still paginated, but it is worth knowing why. "Check the remotes" uses `git ls-remote` to say
+    whether each remote answers and how many branches it has, waiting at most 8 seconds per remote.
+    It changes nothing: it says what to look at.
 -   **A single view for changes**: the _Changes_ entry in the sidebar brings them to the whole area,
     without history or lower panel: Staged and Unstaged lists, the diff and the commit box.
     _All Commits_ goes back to history.

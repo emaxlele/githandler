@@ -2,6 +2,20 @@
 
 ## [Non rilasciato]
 
+### Il pannello della salute dice quanto è grande il repository
+
+-   **Due conteggi in più**: il pannello ora legge i commit raggiungibili da HEAD
+    (`git rev-list --count HEAD`) e i file tracciati (`git ls-files`) e li mostra accanto alle altre
+    segnalazioni.
+-   **Sopra le dimensioni misurate lo dice**: oltre 50.000 commit o 100.000 file compare «Repository
+    molto grande», con i due numeri e il motivo — la storia arriva a pagine e l'elenco dei file si
+    legge una cartella alla volta. Le soglie sono quelle provate in `docs/backend-performance.md`
+    (`LARGE_HISTORY_COMMITS`, `LARGE_WORKTREE_FILES` in `src/core/health.ts`), non un limite tecnico.
+-   **Il costo è di chi apre il pannello**: la misura parte in parallelo alle altre letture solo
+    quando la finestra si apre — **210 ms** a 50.000 commit e 100.000 file — e non entra nel refresh
+    che gira a ogni evento del filesystem. Il benchmark la stampa come riga a sé.
+-   Un repository grande non rende `clean` il pannello: è una segnalazione, come uno stash vecchio.
+
 ### Revisioni delle pull request: approvare, chiedere modifiche, ritirare
 
 -   **Il pannello _Revisioni_ dice di più**: oltre a chi ha approvato mostra anche chi ha chiesto

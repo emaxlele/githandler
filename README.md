@@ -140,7 +140,9 @@ impostazioni:
     un hook o della firma resta visibile sotto il campo, con l'output completo.
 -   **Salute del repository…** (palette dei comandi): un controllo in sola lettura su rami divergenti
     (commit sia da inviare sia da ricevere), rami locali senza upstream, stash più vecchi di 30
-    giorni, submodule non puliti e HEAD staccato. «Controlla i remoti» usa `git ls-remote` per dire
+    giorni, submodule non puliti e HEAD staccato. Conta anche commit e file tracciati e segnala
+    quando il repository ha superato le dimensioni misurate (oltre 50.000 commit o 100.000 file): le
+    liste restano paginate, ma è bene sapere perché. «Controlla i remoti» usa `git ls-remote` per dire
     se ogni remoto risponde e quanti rami ha, con 8 secondi di attesa per ciascuno. Non cambia
     niente: dice cosa guardare.
 -   **Una vista sola per le modifiche**: la voce _Changes_ della barra laterale le porta a tutta area,

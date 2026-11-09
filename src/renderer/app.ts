@@ -6116,6 +6116,22 @@ function renderHealth(report: HealthReport): void {
 			)
 		);
 	}
+	// Il numero non è un allarme: dice perché le liste possono diventare lente e cosa fare.
+	if (report.outgrown) {
+		const dimensions = `${report.scale.commits.toLocaleString(
+			localeTag()
+		)} ${t("commit")} · ${report.scale.files.toLocaleString(
+			localeTag()
+		)} ${t("file")}`;
+		ui.healthList.appendChild(
+			healthRow(
+				"Repository molto grande",
+				`${dimensions} — ${t(
+					"oltre le dimensioni misurate: la storia arriva a pagine e l'elenco dei file si legge una cartella alla volta."
+				)}`
+			)
+		);
+	}
 	if (report.diverged.length > 0) {
 		ui.healthList.appendChild(
 			healthRow(
@@ -6158,7 +6174,8 @@ function renderHealth(report: HealthReport): void {
 		report.diverged.length +
 		report.orphanBranches.length +
 		report.staleStashes.length +
-		report.dirtySubmodules.length;
+		report.dirtySubmodules.length +
+		(report.outgrown ? 1 : 0);
 	ui.healthStatus.textContent = t(
 		total === 1 ? "1 segnalazione." : `${total} segnalazioni.`
 	);

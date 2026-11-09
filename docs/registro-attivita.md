@@ -5,6 +5,22 @@
 
 ## 2026-11-10
 
+### Il pannello della salute dice anche quanto è grande il repository
+
+-   **Cosa**: il controllo «Salute del repository» ora conta i commit e i file tracciati e avvisa
+    quando il repository supera le dimensioni per cui l'app è stata misurata (50.000 commit o
+    100.000 file), spiegando cosa cambia: la storia si legge a pagine e l'elenco dei file una cartella
+    alla volta.
+-   **Perché**: su repository molto grandi l'applicazione resta corretta ma più lenta, e finora non
+    lo diceva da nessuna parte. Saperlo prima evita di pensare a un guasto.
+-   **Come**: due comandi Git di sola lettura, eseguiti solo quando si apre il pannello (210 ms alle
+    dimensioni di prova) e mai durante l'aggiornamento automatico; le soglie sono documentate in
+    `docs/backend-performance.md` con le misure che le giustificano.
+-   **Verifica**: typecheck, 275 test (uno nuovo sulle soglie e uno che legge un repository vero),
+    build e misura con `npm run bench -- --commits 50000 --files 100000`.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Approvare, chiedere modifiche e ritirare un'approvazione dall'app
 
 -   **Cosa**: il pannello _Revisioni_ di una pull request ora dice anche chi ha chiesto modifiche e

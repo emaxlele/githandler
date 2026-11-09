@@ -22,6 +22,7 @@ Rust + `git2`, C++ + libgit2)? Senza numeri la risposta è un'opinione. Questi s
 | `parseStatus` (stesso repo)                      | 0,3 ms     | l'output è minuscolo                               |
 | `refresh` completo (50.000 commit, 100.000 file) | **78 ms**  | misura del 2026-11-09, pagina di storia riusata    |
 | `git log --date-order` 2.000 commit su 50.000    | **239 ms** | il costo che il refresh non paga più a ogni evento |
+| `rev-list --count` + `ls-files` (50.000/100.000) | **210 ms** | solo quando si apre il pannello della salute       |
 
 Conclusioni che si leggono direttamente:
 
@@ -45,6 +46,13 @@ salvataggio costava **245 ms** anche quando HEAD e i ref non erano cambiati. Ora
 memoria con l'impronta di HEAD (`branch.oid` di `git status`) e dei ref, e viene riletta solo se
 l'impronta cambia: **78 ms**, sotto la soglia dei 200 ms. Nello stesso passaggio è sparita la
 `symbolic-ref` separata, perché ramo e SHA arrivano già da `git status --branch`.
+
+Il pannello della salute chiede anche quanto è grande il repository: `git rev-list --count HEAD` e
+`git ls-files`. Sono **210 ms** a 50.000 commit e 100.000 file, e sono una fotografia, non un costo
+ricorrente: la misura parte solo quando il pannello viene aperto, in parallelo alle altre letture.
+Sopra quella dimensione il pannello lo dice (`LARGE_HISTORY_COMMITS`, `LARGE_WORKTREE_FILES` in
+`src/core/health.ts`): non è un limite tecnico, è il punto in cui la storia arriva a pagine e
+l'elenco dei file si legge una cartella alla volta.
 
 ## Cosa un core nativo non risolverebbe
 
