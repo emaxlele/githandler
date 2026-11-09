@@ -141,8 +141,12 @@ minmax(0, 1fr)`), non più contenuto tagliato
 -   [ ] Milestone 2 — il diff che conta
     -   [x] **Risoluzione dei conflitti in-app**: tre versioni (base / mio / loro), scelta per file e
             per hunk, editor del risultato, «segna risolto», «continua» per merge, rebase e cherry-pick
-    -   [ ] Evidenziazione della sintassi (CodeMirror 6, licenza MIT): dipendenza nuova, va decisa
-            prima di aggiungerla
+    -   [x] **Evidenziazione della sintassi** (CodeMirror 6, licenza MIT): il tipo di file decide
+            il parser (oltre trenta linguaggi, inclusi TypeScript, Markdown, YAML, Dockerfile), il
+            core produce intervalli con classi `tok-…` e il renderer li unisce all'evidenza della
+            porzione cambiata senza rinunciare all'HTML a stringa; un hunk oltre 400.000 caratteri
+            resta testo semplice. L'impostazione «Colora la sintassi nel diff» la spegne, e con i
+            colori spenti la tokenizzazione non parte nemmeno.
     -   [x] Interfaccia in italiano **e** inglese (`i18n`), lingua scelta nelle impostazioni
     -   [x] Command palette (`Ctrl+K`) e scorciatoie documentate
     -   [x] **Ricerca più forte**: `regex:` sul messaggio, `change:` (`-S`), `diff:` (`-G`),

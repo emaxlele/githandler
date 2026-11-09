@@ -82,7 +82,7 @@ Italiano: [README.md](README.md)
 | **Blame in the UI** (virtualized panel)                                              | ✅             |
 | **Resizable, collapsible, detachable panel**                                         | ✅             |
 | **MCP server with configurable permissions**                                         | ✅             |
-| Syntax highlighting (CodeMirror 6)                                                   | ⏳ milestone 2 |
+| **Syntax highlighting** (CodeMirror 6, over thirty languages)                        | ✅             |
 | **`.deb`** (Electron included, `npm run deb`)                                        | ✅             |
 | AppArmor profile in the package                                                      | ⏳ milestone 4 |
 
@@ -248,7 +248,8 @@ to turn it off when enabled through the environment.
 
 Two ways.
 
-**`.deb` package**, with the Electron runtime included and no npm dependencies at runtime:
+**`.deb` package**, with the Electron runtime included and the interface libraries (CodeMirror
+included) compiled into the package: no npm dependencies to install:
 
 ```bash
 npm run deb

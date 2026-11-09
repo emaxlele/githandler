@@ -61,6 +61,21 @@
 	--add-strong-bg: rgba(126, 231, 135, 0.14);
 	--highlight: rgba(255, 255, 255, 0.16);
 
+	/* syntax colours in the diff (CodeMirror highlight classes) */
+	--tok-keyword: #ff7b72;
+	--tok-string: #a5d6ff;
+	--tok-number: #79c0ff;
+	--tok-comment: #8b949e;
+	--tok-variable: #e6edf3;
+	--tok-definition: #d2a8ff;
+	--tok-type: #ffa657;
+	--tok-tag: #7ee787;
+	--tok-attribute: #79c0ff;
+	--tok-meta: #8b949e;
+	--tok-heading: #79c0ff;
+	--tok-link: #a5d6ff;
+	--tok-punctuation: #8b95a8;
+
 	/* status */
 	--ok-bg: #16261c;
 	--ok-border: #2c5b3a;
@@ -157,6 +172,19 @@ html[data-theme="light"] {
 	--tag-border: rgba(180, 83, 9, 0.35);
 	--add-strong-bg: rgba(21, 122, 60, 0.14);
 	--highlight: rgba(31, 111, 235, 0.16);
+	--tok-keyword: #cf222e;
+	--tok-string: #0a3069;
+	--tok-number: #0550ae;
+	--tok-comment: #6e7781;
+	--tok-variable: #1b2430;
+	--tok-definition: #8250df;
+	--tok-type: #953800;
+	--tok-tag: #116329;
+	--tok-attribute: #0550ae;
+	--tok-meta: #6e7781;
+	--tok-heading: #0550ae;
+	--tok-link: #0a3069;
+	--tok-punctuation: #556172;
 	--ok-bg: #e6f4ea;
 	--ok-border: #b7dfc2;
 	--ok-fg: #157a3c;
@@ -1482,6 +1510,124 @@ body {
 .tx .hl {
 	background: var(--highlight);
 	border-radius: 2px;
+}
+
+/* ── sintassi nel diff (classi di CodeMirror) ───────────────────────────── */
+
+.tx .tok-keyword,
+.tx .tok-controlKeyword,
+.tx .tok-definitionKeyword,
+.tx .tok-moduleKeyword {
+	color: var(--tok-keyword);
+}
+
+.tx .tok-atom,
+.tx .tok-bool,
+.tx .tok-null,
+.tx .tok-number,
+.tx .tok-literal,
+.tx .tok-unit {
+	color: var(--tok-number);
+}
+
+.tx .tok-string,
+.tx .tok-string2,
+.tx .tok-url,
+.tx .tok-escape,
+.tx .tok-regexp,
+.tx .tok-character {
+	color: var(--tok-string);
+}
+
+.tx .tok-comment,
+.tx .tok-lineComment,
+.tx .tok-blockComment,
+.tx .tok-docComment {
+	color: var(--tok-comment);
+	font-style: italic;
+}
+
+.tx .tok-variableName,
+.tx .tok-propertyName,
+.tx .tok-attributeName,
+.tx .tok-macroName {
+	color: var(--tok-variable);
+}
+
+.tx .tok-definition,
+.tx .tok-function {
+	color: var(--tok-definition);
+}
+
+.tx .tok-typeName,
+.tx .tok-className,
+.tx .tok-namespace,
+.tx .tok-labelName,
+.tx .tok-annotation {
+	color: var(--tok-type);
+}
+
+.tx .tok-tagName {
+	color: var(--tok-tag);
+}
+
+.tx .tok-attributeValue {
+	color: var(--tok-attribute);
+}
+
+.tx .tok-meta,
+.tx .tok-processingInstruction {
+	color: var(--tok-meta);
+}
+
+.tx .tok-heading {
+	color: var(--tok-heading);
+	font-weight: 600;
+}
+
+.tx .tok-link {
+	color: var(--tok-link);
+	text-decoration: underline;
+}
+
+.tx .tok-strong {
+	font-weight: 600;
+}
+
+.tx .tok-emphasis {
+	font-style: italic;
+}
+
+.tx .tok-strikethrough {
+	text-decoration: line-through;
+}
+
+.tx .tok-inserted {
+	color: var(--add-fg);
+}
+
+.tx .tok-deleted {
+	color: var(--del-fg);
+}
+
+.tx .tok-invalid {
+	color: var(--danger-bright);
+	text-decoration: underline wavy;
+}
+
+.tx .tok-operator,
+.tx .tok-punctuation,
+.tx .tok-bracket,
+.tx .tok-separator {
+	color: var(--tok-punctuation);
+}
+
+/* Impostazione spenta: i token restano nel DOM, il colore torna quello della riga. */
+html[data-syntax="off"] .tx :is([class^="tok-"], [class*=" tok-"]) {
+	color: inherit;
+	font-style: inherit;
+	font-weight: inherit;
+	text-decoration: inherit;
 }
 
 .binary-note {

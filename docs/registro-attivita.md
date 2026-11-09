@@ -5,6 +5,22 @@
 
 ## 2026-11-09
 
+### Colori del codice nel diff
+
+-   **Cosa**: il diff ora colora il codice secondo il linguaggio del file (TypeScript, Python, JSON,
+    YAML, Markdown, Dockerfile e molti altri), con una nuova voce nelle impostazioni per spegnere i
+    colori.
+-   **Perché**: era l'ultima voce della milestone «il diff che conta»; leggere centinaia di righe
+    senza sintassi rende più lenti i controlli prima del commit.
+-   **Come**: sono stati aggiunti i parser di CodeMirror 6 (licenza MIT), compilati dentro
+    l'interfaccia e quindi senza installazioni a parte. Il testo del repository continua a essere
+    trattato come testo, mai come HTML; il colore della porzione cambiata nel diff affiancato resta
+    esatto e un blocco troppo grande viene lasciato senza colori invece di rallentare la finestra.
+-   **Verifica**: typecheck, 268 test (6 nuovi sul riconoscimento della lingua e sui token), build e
+    screenshot in inglese di un diff TypeScript e della finestra delle impostazioni.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Approvare una pull request senza uscire dall'app
 
 -   **Cosa**: ogni pull request ha il pulsante **«Revisioni»**: dice chi ha approvato e permette di

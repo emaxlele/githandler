@@ -48,7 +48,8 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 -   ✅ Drag a file out of the window.
 -   ✅ Lazy tree in the file view: "All files" reads one folder at a time, the working-tree mode keeps
     the list of changed files.
--   ⏳ Syntax highlighting.
+-   ✅ Syntax highlighting (CodeMirror 6): the file type picks the parser, the diff keeps the
+    string-based renderer, and the setting can turn the colours off.
 -   ✅ Commit message templates (`commit.template`) and hook/signature output visible in the UI.
 -   ✅ Signed commits: a "sign (GPG)" switch adds `-S`, so the key already configured in Git signs
     the commit; the app never handles keys.

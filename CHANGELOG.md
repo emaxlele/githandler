@@ -2,6 +2,24 @@
 
 ## [Non rilasciato]
 
+### Evidenziazione della sintassi nel diff
+
+-   **CodeMirror 6** (MIT) colora il codice nel diff: `@codemirror/language`,
+    `@codemirror/legacy-modes`, `@codemirror/lang-markdown` e `@lezer/highlight` restano dentro il
+    bundle del renderer, senza runtime esterno. Oltre trenta linguaggi, scelti dal nome del file
+    (TypeScript, JavaScript, JSON, CSS/SCSS/Less, HTML/XML, Markdown, Python, Ruby, Go, Rust, Java,
+    Kotlin, C/C++/C#, Swift, shell, SQL, YAML, TOML, Dockerfile…).
+-   **Il renderer resta a stringa HTML**: `src/core/syntax.ts` produce solo intervalli con classi
+    `tok-…`, `src/renderer/diff-view.ts` li compone con `escapeHtml` e con l'evidenza della porzione
+    cambiata del diff affiancato. Nessun parser riceve HTML e nessun testo del repository finisce
+    nel markup senza escape.
+-   **Limite esplicito**: un hunk oltre 400.000 caratteri non viene tokenizzato; le classi sono
+    filtrate prima di entrare nell'HTML.
+-   **Nuova impostazione** «Colora la sintassi nel diff» (accesa di default): spegnerla toglie i
+    colori subito e salta la tokenizzazione ai disegni successivi. I colori seguono i tre temi.
+-   **Costo misurato**: ~30 ms per 3.000 righe di TypeScript, ~5 ms per 200 hunk piccoli.
+-   Test nuovi in `tests/syntax.test.mts`; impostazione coperta da `tests/settings.test.mts`.
+
 ### Approvazione delle pull request
 
 -   **Nuovo pulsante «Revisioni»** su ogni richiesta: legge chi ha approvato — review per GitHub e

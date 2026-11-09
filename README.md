@@ -56,7 +56,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Stash** (salva anche solo alcuni file, applica, pop, elimina)                             | ✅             |
 | **Merge, rebase, cherry-pick**, annulla operazione                                          | ✅             |
 | **Rebase interattivo**: riordina, squash/fixup, reword, drop                                | ✅             |
-| **Pull request / merge request**: elenco, creazione, discussione e approvazione              | ✅             |
+| **Pull request / merge request**: elenco, creazione, discussione e approvazione             | ✅             |
 | **Conflitti risolti nell'app** (per file e per hunk, «continua»)                            | ✅             |
 | **Interfaccia in italiano e in inglese**                                                    | ✅             |
 | **Palette dei comandi** (`Ctrl+K`) e scorciatoie documentate                                | ✅             |
@@ -82,7 +82,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Blame nella UI** (pannello virtualizzato)                                                 | ✅             |
 | **Pannello ridimensionabile, a icona, in finestra**                                         | ✅             |
 | **Server MCP con permessi configurabili**                                                   | ✅             |
-| Syntax highlighting (CodeMirror 6)                                                          | ⏳ milestone 2 |
+| **Evidenziazione della sintassi** (CodeMirror 6, oltre trenta linguaggi)                    | ✅             |
 | **`.deb`** (Electron incluso, `npm run deb`)                                                | ✅             |
 | Profilo AppArmor nel pacchetto                                                              | ⏳ milestone 4 |
 
@@ -250,7 +250,8 @@ Flag di avvio: `--repo <path>`, `--watch` (sorveglianza del repository, o `GITHA
 
 Due strade.
 
-**Pacchetto `.deb`**, con il runtime Electron incluso, senza dipendenze npm a runtime:
+**Pacchetto `.deb`**, con il runtime Electron incluso e le librerie dell'interfaccia (CodeMirror
+compreso) compilate dentro il pacchetto: nessuna dipendenza npm da installare:
 
 ```bash
 npm run deb

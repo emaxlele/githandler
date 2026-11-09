@@ -146,6 +146,7 @@ test("la serializzazione si rilegge uguale", () => {
 			theme: "dark" as const,
 			density: "compact" as const,
 			fontScale: "large" as const,
+			syntax: true,
 		},
 		defaultRoot: null,
 		trash: {
@@ -204,6 +205,7 @@ test("senza file valgono i default; salvare e rileggere conserva i valori", asyn
 			theme: "light" as const,
 			density: "comfortable" as const,
 			fontScale: "small" as const,
+			syntax: true,
 		},
 		defaultRoot: "/tmp/progetti",
 		trash: {
@@ -248,19 +250,27 @@ test("l'aspetto torna ai default campo per campo", () => {
 			theme: "light",
 			density: "compact",
 			fontScale: "large",
+			syntax: false,
 		},
 	});
 	assert.deepEqual(chosen.appearance, {
 		theme: "light",
 		density: "compact",
 		fontScale: "large",
+		syntax: false,
 	});
 
 	// un campo rotto non trascina gli altri, e valori ignoti non passano
 	const mixed = normalizeSettings({
-		appearance: { theme: "sepia", density: "compact", fontScale: 3 },
+		appearance: {
+			theme: "sepia",
+			density: "compact",
+			fontScale: 3,
+			syntax: "sì",
+		},
 	});
 	assert.equal(mixed.appearance.theme, defaults.theme);
 	assert.equal(mixed.appearance.density, "compact");
 	assert.equal(mixed.appearance.fontScale, defaults.fontScale);
+	assert.equal(mixed.appearance.syntax, defaults.syntax);
 });

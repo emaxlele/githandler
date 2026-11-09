@@ -73,6 +73,8 @@ export interface AppearanceSettings {
 	theme: ThemePreference;
 	density: DensityPreference;
 	fontScale: FontScalePreference;
+	/** Colori della sintassi nel diff; spegnerli lascia il testo, toglie solo i colori. */
+	syntax: boolean;
 }
 
 export interface Settings {
@@ -105,6 +107,7 @@ export const APPEARANCE_DEFAULTS: AppearanceSettings = {
 	theme: "auto",
 	density: "comfortable",
 	fontScale: "normal",
+	syntax: true,
 };
 
 /** Valori usati quando il file manca o un campo non è valido. */
@@ -185,6 +188,10 @@ export function normalizeAppearance(data: unknown): AppearanceSettings {
 		fontScale: isFontScalePreference(record?.fontScale)
 			? record.fontScale
 			: APPEARANCE_DEFAULTS.fontScale,
+		syntax:
+			typeof record?.syntax === "boolean"
+				? record.syntax
+				: APPEARANCE_DEFAULTS.syntax,
 	};
 }
 

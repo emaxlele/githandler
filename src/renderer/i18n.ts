@@ -62,6 +62,7 @@ const EN: Record<string, string> = {
 	Scuro: "Dark",
 	Chiaro: "Light",
 	"OLED (nero)": "OLED (black)",
+	"Colora la sintassi nel diff": "Colour syntax in diffs",
 	Densità: "Density",
 	Comoda: "Comfortable",
 	Compatta: "Compact",

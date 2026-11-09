@@ -145,6 +145,7 @@ function applyAppearance(next: AppearanceSettings): void {
 	const root = document.documentElement;
 	root.dataset.theme = theme;
 	root.dataset.density = next.density;
+	root.dataset.syntax = next.syntax ? "on" : "off";
 	root.style.colorScheme = theme === "light" ? "light" : "dark";
 }
 
@@ -343,6 +344,7 @@ const ui = {
 	settingTheme: byId<HTMLSelectElement>("setting-theme"),
 	settingDensity: byId<HTMLSelectElement>("setting-density"),
 	settingFontScale: byId<HTMLSelectElement>("setting-font-scale"),
+	settingSyntax: byId<HTMLInputElement>("setting-syntax"),
 	btnChooseBase: byId<HTMLButtonElement>("btn-choose-base"),
 	createDialog: byId<HTMLDialogElement>("create-dialog"),
 	createForm: byId<HTMLFormElement>("create-form"),
@@ -1243,6 +1245,7 @@ function readAppearanceFromForm(): AppearanceSettings {
 		theme: ui.settingTheme.value as AppearanceSettings["theme"],
 		density: ui.settingDensity.value as AppearanceSettings["density"],
 		fontScale: ui.settingFontScale.value as AppearanceSettings["fontScale"],
+		syntax: ui.settingSyntax.checked,
 	};
 }
 
@@ -1264,6 +1267,7 @@ function fillSettings(settings: Settings): void {
 	ui.settingTheme.value = settings.appearance.theme;
 	ui.settingDensity.value = settings.appearance.density;
 	ui.settingFontScale.value = settings.appearance.fontScale;
+	ui.settingSyntax.checked = settings.appearance.syntax;
 	setBaseFolder(settings.defaultRoot);
 	ui.settingTrash.checked = settings.trash.enabled;
 	ui.settingTrashBytes.value = String(toMebibytes(settings.trash.maxBytes));
@@ -6396,6 +6400,9 @@ for (const select of [ui.settingTheme, ui.settingDensity]) {
 		applyAppearance(readAppearanceFromForm())
 	);
 }
+ui.settingSyntax.addEventListener("change", () =>
+	applyAppearance(readAppearanceFromForm())
+);
 ui.settingsDialog.addEventListener("close", () =>
 	applyAppearance(dialogAppearance)
 );

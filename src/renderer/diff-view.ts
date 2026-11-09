@@ -1,5 +1,10 @@
 import { alignHunk, changedRanges, type AlignedRow } from "../core/align.ts";
 import { canStagePartially, type PatchMode } from "../core/patch.ts";
+import {
+	highlightLines,
+	languageForPath,
+	type SyntaxSpan,
+} from "../core/syntax.ts";
 import type { DiffFile, DiffHunk, DiffLine } from "../core/types.ts";
 import { escapeHtml } from "./dom.ts";
 import { t } from "./i18n.ts";
@@ -13,9 +18,7 @@ function statusLabel(file: DiffFile): string {
 		case "deleted":
 			return t("eliminato");
 		case "renamed":
-			return t(
-				`rinominato${file.oldPath ? ` da ${file.oldPath}` : ""}`
-			);
+			return t(`rinominato${file.oldPath ? ` da ${file.oldPath}` : ""}`);
 		case "copied":
 			return t("copiato");
 		case "typechange":
@@ -45,18 +48,69 @@ export function pickKey(hunk: number, line: number): string {
 	return `${hunk}:${line}`;
 }
 
-function escapeWithHighlight(
+/**
+ * HTML di una riga: testo sempre passato da `escapeHtml`, con i colori della sintassi e, se c'è,
+ * l'intervallo cambiato del diff affiancato. I due livelli si combinano tagliando i pezzi sui
+ * confini di entrambi, così il carattere cambiato resta esatto anche dentro un token.
+ */
+function lineHtml(
 	text: string,
-	range: [number, number] | null
+	spans: readonly SyntaxSpan[],
+	changed: [number, number] | null
 ): string {
-	if (!range) return escapeHtml(text);
-	const [start, end] = range;
-	if (end <= start) return escapeHtml(text);
-	return (
-		escapeHtml(text.slice(0, start)) +
-		`<span class="hl">${escapeHtml(text.slice(start, end))}</span>` +
-		escapeHtml(text.slice(end))
-	);
+	if (text.length === 0) return "";
+
+	const pieces: Array<{ from: number; to: number; classes: string[] }> = [];
+	let cursor = 0;
+	for (const span of spans) {
+		const from = Math.max(cursor, Math.min(span.from, text.length));
+		const to = Math.max(from, Math.min(span.to, text.length));
+		if (from > cursor) pieces.push({ from: cursor, to: from, classes: [] });
+		if (to > from) {
+			pieces.push({ from, to, classes: span.className.split(" ") });
+		}
+		cursor = to;
+	}
+	if (cursor < text.length) {
+		pieces.push({ from: cursor, to: text.length, classes: [] });
+	}
+
+	const out: string[] = [];
+	const emit = (from: number, to: number, classes: string[]): void => {
+		if (to <= from) return;
+		const body = escapeHtml(text.slice(from, to));
+		out.push(
+			classes.length > 0
+				? `<span class="${classes.join(" ")}">${body}</span>`
+				: body
+		);
+	};
+
+	const marked =
+		changed && changed[1] > changed[0]
+			? [
+					Math.max(0, Math.min(changed[0], text.length)),
+					Math.max(0, Math.min(changed[1], text.length)),
+			  ]
+			: null;
+
+	for (const piece of pieces) {
+		if (!marked || piece.to <= marked[0] || piece.from >= marked[1]) {
+			emit(piece.from, piece.to, piece.classes);
+			continue;
+		}
+		if (piece.from < marked[0]) {
+			emit(piece.from, marked[0], piece.classes);
+		}
+		emit(Math.max(piece.from, marked[0]), Math.min(piece.to, marked[1]), [
+			...piece.classes,
+			"hl",
+		]);
+		if (piece.to > marked[1]) {
+			emit(marked[1], piece.to, piece.classes);
+		}
+	}
+	return out.join("");
 }
 
 /**
@@ -137,11 +191,17 @@ export function fileDiffHtml(
 		options.mode && canStagePartially(file) ? options.mode : undefined;
 	const picked = options.picked ?? new Set<string>();
 	const layout = options.layout ?? "unified";
+	// Le impostazioni sono già applicate al documento prima del primo disegno; così anche un diff
+	// ridisegnato dopo il cambio non paga la tokenizzazione quando i colori sono spenti.
+	const language =
+		document.documentElement.dataset.syntax === "off"
+			? null
+			: languageForPath(file.path);
 
 	const body =
 		layout === "split"
-			? renderSplitBody(file, mode, picked)
-			: renderUnifiedBody(file, mode, picked);
+			? renderSplitBody(file, mode, picked, language)
+			: renderUnifiedBody(file, mode, picked, language);
 
 	return head + body;
 }
@@ -149,11 +209,16 @@ export function fileDiffHtml(
 function renderUnifiedBody(
 	file: DiffFile,
 	mode: PatchMode | undefined,
-	picked: ReadonlySet<string>
+	picked: ReadonlySet<string>,
+	language: string | null
 ): string {
 	const out: string[] = [];
 	file.hunks.forEach((hunk, hunkIndex) => {
 		out.push(renderHunkHeader(hunk, hunkIndex, mode, picked));
+		const spans = highlightLines(
+			language,
+			hunk.lines.map((line) => line.text)
+		);
 
 		hunk.lines.forEach((line, lineIndex) => {
 			const cls =
@@ -187,8 +252,10 @@ function renderUnifiedBody(
 			out.push(
 				`<div class="dline ${cls}${pickClass}"${attrs}>${markers(
 					line
-				)}<span class="mk">${mark}</span><span class="tx">${escapeHtml(
-					line.text
+				)}<span class="mk">${mark}</span><span class="tx">${lineHtml(
+					line.text,
+					line.type === "nonewline" ? [] : spans[lineIndex] ?? [],
+					null
 				)}</span></div>`
 			);
 		});
@@ -199,13 +266,15 @@ function renderUnifiedBody(
 function renderSplitBody(
 	file: DiffFile,
 	mode: PatchMode | undefined,
-	picked: ReadonlySet<string>
+	picked: ReadonlySet<string>,
+	language: string | null
 ): string {
 	// Le due colonne hanno la stessa larghezza: si prende la riga più lunga del file, così le due
 	// metà restano simmetriche invece di allargarsi una a scapito dell'altra.
 	let widest = 0;
 	for (const hunk of file.hunks) {
-		for (const line of hunk.lines) widest = Math.max(widest, line.text.length);
+		for (const line of hunk.lines)
+			widest = Math.max(widest, line.text.length);
 	}
 	const columns = Math.max(48, widest + 6);
 	const out: string[] = [
@@ -214,6 +283,10 @@ function renderSplitBody(
 
 	file.hunks.forEach((hunk, hunkIndex) => {
 		out.push(renderHunkHeader(hunk, hunkIndex, mode, picked));
+		const spans = highlightLines(
+			language,
+			hunk.lines.map((line) => line.text)
+		);
 
 		for (const row of alignHunk(hunk)) {
 			if (row.kind === "note") {
@@ -235,14 +308,16 @@ function renderSplitBody(
 					hunkIndex,
 					mode,
 					picked,
-					ranges ? ranges.left : null
+					ranges ? ranges.left : null,
+					spans
 				)}${splitSide(
 					row,
 					"right",
 					hunkIndex,
 					mode,
 					picked,
-					ranges ? ranges.right : null
+					ranges ? ranges.right : null,
+					spans
 				)}</div>`
 			);
 		}
@@ -258,7 +333,8 @@ function splitSide(
 	hunkIndex: number,
 	mode: PatchMode | undefined,
 	picked: ReadonlySet<string>,
-	highlight: [number, number] | null
+	highlight: [number, number] | null,
+	spans: SyntaxSpan[][]
 ): string {
 	const line: DiffLine | null = side === "left" ? row.left : row.right;
 	const lineIndex = side === "left" ? row.leftIndex : row.rightIndex;
@@ -291,8 +367,9 @@ function splitSide(
 			number ?? ""
 		}</span>` +
 		`<span class="sc mk ${side} ${kind}${extra}"${attrs}>${mark}</span>` +
-		`<span class="sc tx ${side} ${kind}${extra}"${attrs}>${escapeWithHighlight(
+		`<span class="sc tx ${side} ${kind}${extra}"${attrs}>${lineHtml(
 			line.text,
+			lineIndex === null ? [] : spans[lineIndex] ?? [],
 			highlight
 		)}</span>`
 	);
