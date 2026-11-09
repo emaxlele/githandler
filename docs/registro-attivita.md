@@ -5,6 +5,25 @@
 
 ## 2026-11-09
 
+### Le pull request si vedono e si aprono dall'app
+
+-   **Cosa**: nel menu del tasto destro sulla scheda del repository c'è ora **«Pull request…»**. Mostra
+    le richieste aperte sul servizio (GitHub, GitLab, Gitea/Forgejo, Bitbucket) con titolo, autore,
+    ramo di partenza e di arrivo e il pulsante per aprirle nel browser; dalla stessa finestra se ne
+    **crea una nuova** scegliendo due rami, titolo e descrizione. Su GitLab la finestra si chiama
+    «Merge request», come le chiama il servizio. Il comando è anche nella palette.
+-   **Perché**: richiesta dell'utente — è il pezzo che chiude il ciclo quotidiano: commit, push, e
+    infine la richiesta di fusione, senza cambiare programma.
+-   **Come**: si usa l'account già scelto per il repository e lo stesso collegamento alle API delle
+    GitHub Actions; i rami devono essere già stati inviati con Push, altrimenti il servizio rifiuta e
+    l'app riporta il messaggio. Per sicurezza, un collegamento che arriva dal servizio si apre solo se
+    porta allo stesso sito dell'account.
+-   **Verifica**: typecheck, **192 test** verdi (10 nuovi sugli indirizzi, i corpi delle richieste e le
+    risposte dei quattro servizi) e build; screenshot del dialogo in inglese. La prova senza un
+    repository remoto mostra l'errore atteso.
+-   **Stato**: completato. Restano fuori, per ora, commenti e revisioni e le richieste da un fork.
+-   **Riferimento**: commit di questa sessione.
+
 ### L'assistente AI può anche modificare il repository
 
 -   **Cosa**: il programma può ormai essere collegato a un assistente AI (tramite il protocollo MCP)

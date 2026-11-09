@@ -2,6 +2,11 @@ import type { BlameFile } from "../core/blame.ts";
 import type { WorkflowRun } from "../core/actions.ts";
 import type { ForkInfo, ForkSyncResult } from "../core/fork.ts";
 import type { Account, AccountChoice, RemoteRepo } from "../core/providers.ts";
+import type {
+	NewPullRequest,
+	PullList,
+	PullRequest,
+} from "../core/pulls.ts";
 import type { PatchMode } from "../core/patch.ts";
 import type { ResetMode } from "../core/ops.ts";
 import type { Settings, TrashUsage } from "../core/settings.ts";
@@ -101,6 +106,10 @@ export interface GitApi {
 	workflowRuns(): Promise<WorkflowRun[]>;
 	/** Ri-esegue o annulla un'esecuzione (`rerun` solo se è finita). */
 	workflowRunAction(id: string, action: "rerun" | "cancel"): Promise<void>;
+	/** Pull request aperte del repository, con la parola e la pagina web del servizio. */
+	pullRequests(): Promise<PullList>;
+	/** Apre una pull request dai due rami indicati. */
+	createPullRequest(input: NewPullRequest): Promise<PullRequest>;
 	/** File tracciati nel ref indicato (o in HEAD); serve al selettore dei file. */
 	listRepoFiles(ref?: string | null): Promise<RepoFileList>;
 	/** Salva il contenuto di HEAD in un archivio zip scelto dall'utente. */
@@ -311,6 +320,8 @@ export type IpcChannel =
 	| "repo:syncFork"
 	| "actions:runs"
 	| "actions:run"
+	| "pulls:list"
+	| "pulls:create"
 	| "repo:listFiles"
 	| "repo:exportZip"
 	| "repo:openFileInBrowser"

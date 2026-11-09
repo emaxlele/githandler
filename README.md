@@ -55,6 +55,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Pull** (`--ff-only`) e **push** (mai con forza)                | ✅             |
 | **Stash** (salva, applica, pop, elimina)                         | ✅             |
 | **Merge, rebase, cherry-pick**, annulla operazione               | ✅             |
+| **Pull request / merge request**: elenco e creazione da due rami  | ✅             |
 | **Conflitti risolti nell'app** (per file e per hunk, «continua»)  | ✅             |
 | **Interfaccia in italiano e in inglese**                          | ✅             |
 | **Palette dei comandi** (`Ctrl+K`) e scorciatoie documentate      | ✅             |
@@ -286,7 +287,7 @@ la scelta. Fetch, pull, push e clone usano quell'account.
 La **cartella di base** (Impostazioni) è il punto di partenza di «Apri», «Crea» e «Clona» e la
 destinazione predefinita dei cloni; non è un limite, dalla finestra di scelta si naviga ovunque.
 
-## Fork e GitHub Actions
+## Fork, pull request e GitHub Actions
 
 Dal menu del tasto destro sulla scheda del repository:
 
@@ -294,6 +295,11 @@ Dal menu del tasto destro sulla scheda del repository:
     originale, crea il remoto `upstream` la prima volta, poi `fetch` e `merge`/`rebase` del ramo
     predefinito. Niente forza: un conflitto resta annullabile. Con HEAD staccato il sync si ferma e lo
     dice.
+-   **Pull request…**: le richieste aperte sul servizio del repository (GitHub, GitLab, Gitea/Forgejo,
+    Bitbucket), con autore, ramo di partenza e di arrivo, stato di bozza e _Apri_ nel browser. Dalla
+    stessa finestra se ne crea una da due rami: i rami devono essere già stati inviati con Push. Su
+    GitLab la finestra si chiama _merge request_. Non serve un token nuovo: usa l'account già scelto
+    per il repository.
 -   **GitHub Actions…**: ultime esecuzioni con workflow, stato, ramo ed evento; _Ri-esegui_ (i job
     falliti di un'esecuzione conclusa), _Annulla_ (una in corso), _Apri_ nel browser. Solo GitHub.
 -   **Apri un file del repository…**: elenco filtrabile dei file tracciati in HEAD, apertura dal sistema

@@ -1277,6 +1277,90 @@
 			</form>
 		</dialog>
 
+		<dialog class="dialog dialog-wide" id="pulls-dialog">
+			<form id="pulls-form">
+				<h2 id="pulls-title">Pull request</h2>
+				<p class="hint">
+					Richieste aperte sul servizio del repository. Se ne crea una
+					da due rami già inviati con Push; «Apri» mostra la pagina
+					web della richiesta.
+				</p>
+				<div class="account-repos-head">
+					<strong>Aperte</strong>
+					<div class="actions-actions">
+						<button
+							type="button"
+							class="btn btn-small"
+							id="pulls-open-page"
+							title="Apre nel browser l'elenco delle pull request del repository"
+							disabled
+						>
+							Apri l'elenco
+						</button>
+						<button
+							type="button"
+							class="btn btn-small"
+							id="pulls-refresh"
+							title="Rilegge dal servizio le pull request aperte"
+						>
+							Aggiorna
+						</button>
+					</div>
+				</div>
+				<ul class="repo-list actions-list" id="pulls-list"></ul>
+				<div class="pulls-new">
+					<strong>Nuova</strong>
+					<label class="field">
+						<span>Titolo</span>
+						<input id="pulls-new-title" autocomplete="off" />
+					</label>
+					<label class="field">
+						<span>Descrizione</span>
+						<textarea id="pulls-new-body" rows="3"></textarea>
+					</label>
+					<div class="field-grid">
+						<label class="field">
+							<span>Ramo di partenza</span>
+							<input
+								id="pulls-new-source"
+								autocomplete="off"
+								spellcheck="false"
+							/>
+						</label>
+						<label class="field">
+							<span>Ramo di arrivo</span>
+							<input
+								id="pulls-new-target"
+								autocomplete="off"
+								spellcheck="false"
+							/>
+						</label>
+					</div>
+					<div class="dialog-actions">
+						<button
+							type="submit"
+							class="btn btn-primary"
+							id="pulls-create"
+							title="Apre la pull request sul servizio"
+						>
+							Crea
+						</button>
+					</div>
+				</div>
+				<div class="dialog-actions">
+					<span class="account-status" id="pulls-status"></span>
+					<button
+						type="button"
+						class="btn"
+						id="pulls-close"
+						title="Chiude la finestra delle pull request"
+					>
+						Chiudi
+					</button>
+				</div>
+			</form>
+		</dialog>
+
 		<dialog class="dialog" id="input-dialog">
 			<form method="dialog" id="input-form">
 				<h2 id="input-title">Titolo</h2>

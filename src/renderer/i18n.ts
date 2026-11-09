@@ -720,6 +720,31 @@ const EN: Record<string, string> = {
 	"(nessun messaggio)": "(no message)",
 	"Righe non ancora committate": "Lines not committed yet",
 	"Elemento mancante: #{0}": "Missing element: #{0}",
+	"Richieste aperte sul servizio del repository. Se ne crea una da due rami già inviati con Push; «Apri» mostra la pagina web della richiesta.":
+		"Requests open on the repository service. Create one from two branches already pushed; \"Open\" shows the request page.",
+	Aperte: "Open",
+	"Nuova": "New",
+	"Ramo di partenza": "Source branch",
+	"Ramo di arrivo": "Target branch",
+	Descrizione: "Description",
+	"Apri l'elenco": "Open the list",
+	"Apre nel browser l'elenco delle pull request del repository":
+		"Opens the repository pull request list in the browser",
+	"Rilegge dal servizio le pull request aperte":
+		"Re-reads the open pull requests from the service",
+	"Apre la pull request sul servizio": "Opens the pull request on the service",
+	"Chiude la finestra delle pull request": "Closes the pull requests window",
+	"Leggo le pull request…": "Reading the pull requests…",
+	"Nessuna pull request aperta.": "No open pull request.",
+	"{0} aperte.": "{0} open.",
+	bozza: "draft",
+	"Apre la pull request nel browser.": "Opens the pull request in the browser.",
+	"Servono titolo e due rami: quello di partenza e quello di arrivo.":
+		"A title and two branches are required: source and target.",
+	"Pull request #{0} creata.": "Pull request #{0} created.",
+	"Elenca le pull request aperte e ne crea una da due rami già inviati.":
+		"Lists the open pull requests and creates one from two pushed branches.",
+	"Merge request": "Merge request",
 };
 
 const EXACT = new Map<string, string>();

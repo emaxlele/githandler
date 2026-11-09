@@ -25,7 +25,8 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 
 ## 3. From repository to pull request
 
--   ⏳ Pull request / merge request: list, open, create from two branches, review comments.
+-   ✅ Pull request / merge request: list the open ones, open them, create one from two branches.
+-   ⏳ Review comments: read and answer, without leaving the app.
 -   ⏳ Checks: status per pull request, with a link to the run.
 -   ⏳ CI notifications from the tray, without keeping the window in front.
 

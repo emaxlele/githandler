@@ -118,6 +118,11 @@ minmax(0, 1fr)`), non più contenuto tagliato
     -   [x] Command palette (`Ctrl+K`) e scorciatoie documentate
     -   [ ] Ricerca più forte: regex, `-S` (pickaxe), contenuto dei file, `log -L`
     -   [ ] Pannello reflog / cronologia undo e «vai al commit per SHA»
+-   [x] **Pull request / merge request**: elenco delle aperte (GitHub, GitLab, Gitea/Forgejo,
+        Bitbucket), creazione da due rami già inviati, apertura nel browser, bozza; dal menu della
+        scheda e dalla palette
+-   [ ] Commenti e revisioni delle pull request nell'app
+-   [ ] Stato dei check per pull request e notifiche CI dal tray
 -   [ ] Milestone 3 — scala e affidabilità
     -   [x] Misura di `status`, refresh e primo paint su repo da 100k file e 50k commit
     -   [x] **Refresh incrementale**: la pagina di storia si riusa se HEAD e i ref non cambiano

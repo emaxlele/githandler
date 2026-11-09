@@ -55,6 +55,7 @@ Italiano: [README.md](README.md)
 | **Pull** (`--ff-only`) and **push** (never forced)                            | ✅             |
 | **Stash** (save, apply, pop, drop)                                            | ✅             |
 | **Merge, rebase, cherry-pick**, abort operation                               | ✅             |
+| **Pull request / merge request**: list and create from two branches            | ✅             |
 | **Conflicts resolved in the app** (per file and per hunk, "continue")         | ✅             |
 | **Interface in Italian and English**                                          | ✅             |
 | **Command palette** (`Ctrl+K`) and documented shortcuts                       | ✅             |
@@ -287,13 +288,18 @@ Fetch, pull, push and clone use that account.
 The **base folder** (Settings) is the starting point of “Open”, “Create” and “Clone” and the default
 destination of clones; it is not a limit, from the chooser you can navigate anywhere.
 
-## Forks and GitHub Actions
+## Forks, pull requests and GitHub Actions
 
 From the right-click menu on the repository tab:
 
 -   **Sync with the original (merge/rebase)**: the app asks the provider which the original repository
     is, creates the `upstream` remote the first time, then `fetch` and `merge`/`rebase` of the default
     branch. Never forced: a conflict remains undoable. With a detached HEAD the sync stops and says so.
+-   **Pull request…**: the requests open on the repository service (GitHub, GitLab, Gitea/Forgejo,
+    Bitbucket), with author, source and target branch, draft state and _Open_ in the browser. From the
+    same window one is created from two branches: the branches must already be pushed. On GitLab the
+    window is titled _merge request_. No new token: it uses the account already chosen for the
+    repository.
 -   **GitHub Actions…**: latest runs with workflow, status, branch and event; _Re-run_ (failed jobs of
     a completed run), _Cancel_ (a running one), _Open_ in the browser. GitHub only.
 -   **Open a repository file…**: filterable list of files tracked in HEAD, opened from the system or

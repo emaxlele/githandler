@@ -29,6 +29,7 @@ import {
 	remoteWeb,
 } from "../core/providers.ts";
 import { normalizeSettings } from "../core/settings.ts";
+import type { NewPullRequest } from "../core/pulls.ts";
 import {
 	accountRepos,
 	accountsInfo,
@@ -40,6 +41,7 @@ import {
 	setRepoAccount,
 } from "./accounts.ts";
 import { listWorkflowRuns, runWorkflowAction } from "./actions.ts";
+import { createPull, listPulls } from "./pulls.ts";
 import { exportArchive } from "./export.ts";
 import { forkInfo, syncFork } from "./fork.ts";
 import { CliGitBackend } from "./backend.ts";
@@ -423,6 +425,10 @@ function registerIpc(): void {
 		syncFork(root, mode)
 	);
 	handle("actions:runs", (root: string) => listWorkflowRuns(root));
+	handle("pulls:list", (root: string) => listPulls(root));
+	handle("pulls:create", (root: string, input: NewPullRequest) =>
+		createPull(root, input)
+	);
 	handle(
 		"actions:run",
 		(root: string, id: string, action: "rerun" | "cancel") =>
@@ -847,6 +853,17 @@ async function runShots(): Promise<void> {
 			`(() => {
 				document.getElementById("settings-dialog")?.close();
 				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+				const input = document.getElementById("palette-input");
+				input.value = "pull request";
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+			})()`,
+			target.replace(/\.png$/, "-pulls.png"),
+		],
+		[`document.getElementById("pulls-dialog")?.close()`, null],
+		[
+			`(() => {
+				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
 			})()`,
 			target.replace(/\.png$/, "-palette.png"),
 		],
@@ -874,10 +891,7 @@ async function runShots(): Promise<void> {
 			})()`,
 			target.replace(/\.png$/, "-keys.png"),
 		],
-		[
-			`document.getElementById("keys-dialog")?.close()`,
-			null,
-		],
+		[`document.getElementById("keys-dialog")?.close()`, null],
 	];
 
 	try {

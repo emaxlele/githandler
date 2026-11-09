@@ -2,6 +2,20 @@
 
 ## [Non rilasciato]
 
+### Pull request e merge request dentro l'app
+
+-   **Elenco delle richieste aperte** per GitHub, GitLab, Gitea/Forgejo e Bitbucket: numero, titolo,
+    autore, ramo di partenza e di arrivo, stato di bozza, data e _Apri_ nel browser. Su GitLab la
+    finestra si intitola «Merge request».
+-   **Creazione da due rami** già inviati con Push, con titolo, descrizione e rami proposti (quello
+    corrente e `main`/`master`); l'API risponde con la richiesta appena aperta e la lista si aggiorna.
+-   **Core nuovo** `src/core/pulls.ts`: indirizzi e corpi per i quattro servizi, parser delle risposte
+    (`number`/`iid`/`id`, `head.ref`/`source.branch.name`), stato normalizzato, validazione dei nomi di
+    ramo. Un indirizzo che arriva dall'API si apre solo se è `https` e resta sull'host dell'account.
+-   **Un solo account**: usa quello già scelto per il repository; senza account o con token scaduto la
+    finestra dice cosa manca. Comando anche nella palette e nel menu della scheda.
+-   Test nuovi in `tests/pulls.test.mts` (10 casi, senza rete) e scenario di screenshot del dialogo.
+
 ### API per l'AI in scrittura, con audit
 
 -   **Cinque tool nuovi**: `stage`, `unstage`, `commit`, `create_branch`, `checkout_branch`. Usano lo

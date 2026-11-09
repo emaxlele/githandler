@@ -38,6 +38,7 @@ import {
 	type RemoteRepo,
 } from "../core/providers.ts";
 import { describeRun, type WorkflowRun } from "../core/actions.ts";
+import type { PullList, PullRequest } from "../core/pulls.ts";
 import { deviceFlow, tokenPageUrl } from "../core/oauth.ts";
 import type {
 	AccountInput,
@@ -318,6 +319,19 @@ const ui = {
 	actionsStatus: byId("actions-status"),
 	actionsRefresh: byId<HTMLButtonElement>("actions-refresh"),
 	actionsClose: byId<HTMLButtonElement>("actions-close"),
+	pullsDialog: byId<HTMLDialogElement>("pulls-dialog"),
+	pullsForm: byId<HTMLFormElement>("pulls-form"),
+	pullsTitle: byId("pulls-title"),
+	pullsList: byId("pulls-list"),
+	pullsStatus: byId("pulls-status"),
+	pullsRefresh: byId<HTMLButtonElement>("pulls-refresh"),
+	pullsOpenPage: byId<HTMLButtonElement>("pulls-open-page"),
+	pullsClose: byId<HTMLButtonElement>("pulls-close"),
+	pullsNewTitle: byId<HTMLInputElement>("pulls-new-title"),
+	pullsNewBody: byId<HTMLTextAreaElement>("pulls-new-body"),
+	pullsNewSource: byId<HTMLInputElement>("pulls-new-source"),
+	pullsNewTarget: byId<HTMLInputElement>("pulls-new-target"),
+	pullsCreate: byId<HTMLButtonElement>("pulls-create"),
 	btnUndo: byId<HTMLButtonElement>("btn-undo"),
 	btnRefresh: byId<HTMLButtonElement>("btn-refresh"),
 	btnFetch: byId<HTMLButtonElement>("btn-fetch"),
@@ -3159,6 +3173,11 @@ ui.repoTabs.addEventListener("contextmenu", (event) => {
 			hint: "Elenca le esecuzioni dei workflow di GitHub per il ramo corrente.",
 			action: onRepo(openActions),
 		},
+		{
+			label: "Pull request…",
+			hint: "Elenca le pull request aperte e ne crea una da due rami già inviati.",
+			action: onRepo(openPulls),
+		},
 		"separator",
 		{
 			label: "Chiudi la scheda",
@@ -4255,6 +4274,139 @@ async function workflowAction(
 	await loadWorkflowRuns();
 }
 
+// ── pull request / merge request ────────────────────────────────────────────
+
+let pullsCache: PullList | null = null;
+
+/**
+ * Ramo di arrivo proposto: il primo nome abituale che esiste fra i rami locali, altrimenti quello
+ * corrente. Non è una regola del servizio, è solo il valore già scritto nel campo.
+ */
+function defaultTargetBranch(): string {
+	const locals = new Set(
+		(state.snapshot?.refs ?? [])
+			.filter((ref) => ref.kind === "local")
+			.map((ref) => ref.short)
+	);
+	for (const name of ["main", "master", "trunk", "develop"]) {
+		if (locals.has(name)) return name;
+	}
+	return state.snapshot?.info.branch ?? "";
+}
+
+async function openPulls(): Promise<void> {
+	if (!state.snapshot) return;
+	const branch = state.snapshot.info.branch ?? "";
+	const target = defaultTargetBranch();
+	/*
+	 * Sul ramo principale il senso è «dal ramo di lavoro verso main»: il campo di partenza resta
+	 * vuoto invece di proporre un ramo uguale a quello di arrivo, che il servizio rifiuterebbe.
+	 */
+	ui.pullsNewSource.value = branch === target ? "" : branch;
+	ui.pullsNewTarget.value = target;
+	if (!ui.pullsDialog.open) ui.pullsDialog.showModal();
+	await loadPulls();
+}
+
+async function loadPulls(): Promise<void> {
+	ui.pullsRefresh.disabled = true;
+	ui.pullsStatus.textContent = t("Leggo le pull request…");
+	ui.pullsStatus.classList.remove("is-error");
+	clear(ui.pullsList);
+	try {
+		pullsCache = await api.pullRequests();
+		renderPulls();
+	} catch (error) {
+		pullsCache = null;
+		ui.pullsStatus.classList.add("is-error");
+		ui.pullsStatus.textContent = readableError(error);
+		ui.pullsOpenPage.disabled = true;
+	} finally {
+		ui.pullsRefresh.disabled = false;
+	}
+}
+
+function renderPulls(): void {
+	clear(ui.pullsList);
+	const list = pullsCache?.pulls ?? [];
+	// GitLab le chiama merge request: il titolo lo dice invece di lasciare la parola sbagliata
+	ui.pullsTitle.textContent = t(
+		pullsCache?.label === "merge request" ? "Merge request" : "Pull request"
+	);
+	ui.pullsOpenPage.disabled = !pullsCache?.webUrl;
+	if (list.length === 0) {
+		ui.pullsList.appendChild(
+			el("li", "muted", t("Nessuna pull request aperta."))
+		);
+		ui.pullsStatus.textContent = "";
+		return;
+	}
+	for (const pull of list) renderPullItem(pull);
+	ui.pullsStatus.textContent = t(`${list.length} aperte.`);
+}
+
+function renderPullItem(pull: PullRequest): void {
+	const item = el("li");
+	const description = el("div", "actions-text");
+	const title = `${pull.draft ? `[${t("bozza")}] ` : ""}#${pull.number} · ${
+		pull.title
+	}`;
+	description.appendChild(el("span", "actions-name", title));
+	const when = Date.parse(pull.updatedAt);
+	const meta = [
+		pull.author,
+		`${pull.source || "?"} → ${pull.target || "?"}`,
+		Number.isFinite(when) ? shortDate(when) : "",
+	]
+		.filter(Boolean)
+		.join(" · ");
+	description.appendChild(el("span", "actions-meta", meta));
+	item.appendChild(description);
+
+	const actions = el("div", "actions-actions");
+	const open = el("button", "btn btn-small", t("Apri")) as HTMLButtonElement;
+	open.type = "button";
+	open.title = t("Apre la pull request nel browser.");
+	open.addEventListener(
+		"click",
+		() => void guard("Browser", () => api.openExternal(pull.url))
+	);
+	actions.appendChild(open);
+	item.appendChild(actions);
+	ui.pullsList.appendChild(item);
+}
+
+async function createPullFromForm(): Promise<void> {
+	const title = ui.pullsNewTitle.value.trim();
+	const source = ui.pullsNewSource.value.trim();
+	const target = ui.pullsNewTarget.value.trim();
+	if (!title || !source || !target) {
+		ui.pullsStatus.classList.add("is-error");
+		ui.pullsStatus.textContent = t(
+			"Servono titolo e due rami: quello di partenza e quello di arrivo."
+		);
+		return;
+	}
+	ui.pullsCreate.disabled = true;
+	try {
+		const pull = await guard("Pull request", () =>
+			api.createPullRequest({
+				title,
+				body: ui.pullsNewBody.value,
+				source,
+				target,
+			})
+		);
+		if (!pull) return;
+		ui.pullsNewTitle.value = "";
+		ui.pullsNewBody.value = "";
+		toast(`Pull request #${pull.number} creata.`, "ok");
+		await loadPulls();
+	} finally {
+		ui.pullsCreate.disabled = false;
+	}
+}
+
 // ── eventi ───────────────────────────────────────────────────────────────────
 
 ui.btnOpen.addEventListener("click", () => void openRepository());
@@ -4335,6 +4487,17 @@ ui.fileDialog.addEventListener("close", () => {
 ui.actionsForm.addEventListener("submit", (event) => event.preventDefault());
 ui.actionsRefresh.addEventListener("click", () => void loadWorkflowRuns());
 ui.actionsClose.addEventListener("click", () => ui.actionsDialog.close());
+
+ui.pullsForm.addEventListener("submit", (event) => {
+	event.preventDefault();
+	void createPullFromForm();
+});
+ui.pullsRefresh.addEventListener("click", () => void loadPulls());
+ui.pullsClose.addEventListener("click", () => ui.pullsDialog.close());
+ui.pullsOpenPage.addEventListener("click", () => {
+	if (pullsCache?.webUrl)
+		void guard("Browser", () => api.openExternal(pullsCache!.webUrl));
+});
 ui.accountOauthClientHelp.addEventListener("click", openOauthClientHelp);
 ui.accountTokenPage.addEventListener("click", openTokenPage);
 // chiudere il dialogo ferma l'attesa: nessun ciclo che continua senza finestra
@@ -4851,6 +5014,14 @@ const COMMANDS: PaletteCommand[] = [
 		keywords: "submodule sottomoduli",
 		enabled: repoReady,
 		run: () => void openSubmodules(),
+	},
+	{
+		id: "pulls",
+		group: "Rami e sincronizzazione",
+		label: "Pull request…",
+		keywords: "pull request merge request pr mr richieste",
+		enabled: repoReady,
+		run: () => void openPulls(),
 	},
 	{
 		id: "tab-commit",
