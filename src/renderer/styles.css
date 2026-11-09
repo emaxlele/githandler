@@ -2224,6 +2224,13 @@ body {
 	gap: 6px;
 }
 
+.content-options {
+	display: flex;
+	gap: 16px;
+	font-size: 12px;
+	color: var(--text-dim);
+}
+
 .stash-paths-head {
 	display: flex;
 	align-items: center;

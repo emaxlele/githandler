@@ -785,6 +785,25 @@ const EN: Record<string, string> = {
 	"Mostra gli spostamenti di HEAD e ne apre un commit.":
 		"Shows the moves of HEAD and opens one of its commits.",
 	"Vai al commit per SHA…": "Go to commit by SHA…",
+	"Cerca nel contenuto…": "Search in content…",
+	"Cerca nel contenuto": "Search in content",
+	"Cerca nei file tracciati con git grep. Il testo è letterale salvo «Espressione regolare»; clic su un risultato per aprirlo nell'app del sistema.":
+		"Searches tracked files with git grep. The text is literal unless «Regular expression»; click a result to open it in the system app.",
+	Cerca: "Search",
+	"Testo da cercare": "Text to search",
+	Espressione: "Expression",
+	"Espressione regolare": "Regular expression",
+	"Distingui maiuscole": "Case sensitive",
+	"Chiude la ricerca nel contenuto": "Closes the content search",
+	"Apre il file con l'app del sistema.":
+		"Opens the file with the system app.",
+	"Scrivi un testo da cercare.": "Type some text to search.",
+	"Cerco nei file…": "Searching files…",
+	"Nessun risultato.": "No results.",
+	"Primi {0} risultati: restringi la ricerca.":
+		"First {0} results: narrow the search.",
+	"{0} risultato.": "{0} result.",
+	"{0} risultati.": "{0} results.",
 	Controlli: "Checks",
 	"Legge gli esiti dei controlli sul commit in testa alla richiesta.":
 		"Reads the check results on the head commit of the request.",

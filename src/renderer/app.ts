@@ -1,6 +1,11 @@
 import type { HunkSelection, PatchMode } from "../core/patch.ts";
 import { buildPatch } from "../core/patch.ts";
 import { layoutGraph } from "../core/graph.ts";
+import type {
+	ContentMatch,
+	ContentQuery,
+	ContentSearchResult,
+} from "../core/content.ts";
 import { localNameForRemote } from "../core/ops.ts";
 import {
 	APPEARANCE_DEFAULTS,
@@ -386,6 +391,14 @@ const ui = {
 	reflogStatus: byId("reflog-status"),
 	reflogRefresh: byId<HTMLButtonElement>("reflog-refresh"),
 	reflogClose: byId<HTMLButtonElement>("reflog-close"),
+	contentDialog: byId<HTMLDialogElement>("content-dialog"),
+	contentForm: byId<HTMLFormElement>("content-form"),
+	contentQuery: byId<HTMLInputElement>("content-query"),
+	contentRegex: byId<HTMLInputElement>("content-regex"),
+	contentCase: byId<HTMLInputElement>("content-case"),
+	contentList: byId("content-list"),
+	contentStatus: byId("content-status"),
+	contentClose: byId<HTMLButtonElement>("content-close"),
 	btnUndo: byId<HTMLButtonElement>("btn-undo"),
 	btnRefresh: byId<HTMLButtonElement>("btn-refresh"),
 	btnFetch: byId<HTMLButtonElement>("btn-fetch"),
@@ -4781,8 +4794,79 @@ function renderReflogItem(entry: ReflogEntry): void {
 	ui.reflogList.appendChild(item);
 }
 
-/**
- * Salto a un commit qualsiasi: la storia caricata non conta, `selectCommit` chiede il dettaglio a
+// ── ricerca nel contenuto ────────────────────────────────────────────────────
+
+let contentRequest = 0;
+
+function openContentSearch(): void {
+	ui.contentQuery.focus();
+	ui.contentQuery.select();
+	if (!ui.contentDialog.open) ui.contentDialog.showModal();
+}
+
+async function runContentSearch(): Promise<void> {
+	const query: ContentQuery = {
+		text: ui.contentQuery.value,
+		regex: ui.contentRegex.checked,
+		caseSensitive: ui.contentCase.checked,
+	};
+	if (!query.text.trim()) {
+		ui.contentStatus.textContent = t("Scrivi un testo da cercare.");
+		ui.contentStatus.classList.add("is-error");
+		return;
+	}
+	const token = ++contentRequest;
+	ui.contentStatus.classList.remove("is-error", "is-ok");
+	ui.contentStatus.textContent = t("Cerco nei file…");
+	clear(ui.contentList);
+	try {
+		const result = await api.searchContent(query);
+		if (token !== contentRequest) return;
+		renderContentResults(result);
+	} catch (error) {
+		if (token !== contentRequest) return;
+		ui.contentStatus.classList.add("is-error");
+		ui.contentStatus.textContent = readableError(error);
+	}
+}
+
+function renderContentResults(result: ContentSearchResult): void {
+	clear(ui.contentList);
+	if (result.matches.length === 0) {
+		ui.contentList.appendChild(el("li", "muted", t("Nessun risultato.")));
+		ui.contentStatus.textContent = "";
+		return;
+	}
+	for (const match of result.matches) renderContentMatch(match);
+	ui.contentStatus.textContent = result.truncated
+		? t(`Primi ${result.matches.length} risultati: restringi la ricerca.`)
+		: t(
+				`${result.matches.length} ${
+					result.matches.length === 1 ? "risultato" : "risultati"
+				}.`
+		  );
+}
+
+function renderContentMatch(match: ContentMatch): void {
+	const item = el("li");
+	const text = el("div", "actions-text");
+	text.appendChild(el("span", "actions-name", `${match.path}:${match.line}`));
+	text.appendChild(el("span", "actions-meta", match.text));
+	item.appendChild(text);
+
+	const actions = el("div", "actions-actions");
+	const open = el("button", "btn btn-small", t("Apri")) as HTMLButtonElement;
+	open.type = "button";
+	open.title = t("Apre il file con l'app del sistema.");
+	open.addEventListener("click", () => {
+		void guard("Apri file", () => api.openFile(state.root, match.path));
+	});
+	actions.appendChild(open);
+	item.appendChild(actions);
+	ui.contentList.appendChild(item);
+}
+
+/** Salto a un commit qualsiasi: la storia caricata non conta, `selectCommit` chiede il dettaglio a
  * Git. Lo SHA accorciato va bene, ma deve sembrare uno SHA e non un'opzione.
  */
 async function goToCommitBySha(): Promise<void> {
@@ -4898,6 +4982,11 @@ ui.pullsOpenPage.addEventListener("click", () => {
 ui.reflogForm.addEventListener("submit", (event) => event.preventDefault());
 ui.reflogRefresh.addEventListener("click", () => void loadReflog());
 ui.reflogClose.addEventListener("click", () => ui.reflogDialog.close());
+ui.contentForm.addEventListener("submit", (event) => {
+	event.preventDefault();
+	void runContentSearch();
+});
+ui.contentClose.addEventListener("click", () => ui.contentDialog.close());
 ui.accountOauthClientHelp.addEventListener("click", openOauthClientHelp);
 ui.accountTokenPage.addEventListener("click", openTokenPage);
 // chiudere il dialogo ferma l'attesa: nessun ciclo che continua senza finestra
@@ -5455,6 +5544,14 @@ const COMMANDS: PaletteCommand[] = [
 		keywords: "reflog head cronologia movimenti",
 		enabled: repoReady,
 		run: () => void openReflog(),
+	},
+	{
+		id: "content-search",
+		group: "Storia",
+		label: "Cerca nel contenuto…",
+		keywords: "grep contenuto file testo cerca",
+		enabled: repoReady,
+		run: () => openContentSearch(),
 	},
 	{
 		id: "goto-commit",

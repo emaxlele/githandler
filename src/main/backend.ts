@@ -10,6 +10,12 @@ import { basename, dirname, join } from "node:path";
 
 import { blameArgs, parseBlame, type BlameFile } from "../core/blame.ts";
 import {
+	contentSearchArgs,
+	parseContentMatches,
+	type ContentQuery,
+	type ContentSearchResult,
+} from "../core/content.ts";
+import {
 	commitDiffArgs,
 	commitFilesArgs,
 	commitStatArgs,
@@ -169,6 +175,8 @@ export interface GitBackend {
 	/** Metadati di un commit qualsiasi, anche fuori dalla pagina di storia caricata. */
 	commitInfo(sha: string): Promise<Commit>;
 	/** Attribuzione riga per riga di un file. */
+	/** Ricerca nel contenuto dei file tracciati (`git grep`). */
+	searchContent(query: ContentQuery): Promise<ContentSearchResult>;
 	blame(path: string, start?: number, end?: number): Promise<BlameFile>;
 	/** Annulla l'ultima operazione registrata (commit, checkout, scarto). */
 	undo(): Promise<Snapshot>;
@@ -947,6 +955,24 @@ export class CliGitBackend implements GitBackend {
 			allowFailure: true,
 		});
 		return parseLog(result.stdout);
+	}
+
+	async searchContent(query: ContentQuery): Promise<ContentSearchResult> {
+		const info = this.#requireInfo();
+		const result = await runGit(info.root, contentSearchArgs(query), {
+			// `git grep` esce con 1 quando non trova niente: non è un errore
+			allowFailure: true,
+			timeoutMs: 60_000,
+		});
+		if (result.code > 1) {
+			throw new GitError(
+				`git grep: ${result.stderr.trim() || "ricerca fallita"}`,
+				["grep"],
+				result.code,
+				result.stderr
+			);
+		}
+		return parseContentMatches(result.stdout);
 	}
 
 	async reflog(limit = 200): Promise<ReflogEntry[]> {

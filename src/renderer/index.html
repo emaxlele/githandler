@@ -1462,6 +1462,54 @@
 			</form>
 		</dialog>
 
+		<dialog class="dialog dialog-wide" id="content-dialog">
+			<form id="content-form">
+				<h2>Cerca nel contenuto</h2>
+				<p class="hint">
+					Cerca nei file tracciati con git grep. Il testo è letterale
+					salvo «Espressione regolare»; clic su un risultato per
+					aprirlo nell'app del sistema.
+				</p>
+				<div class="stash-save">
+					<input
+						id="content-query"
+						placeholder="Testo da cercare"
+						autocomplete="off"
+						spellcheck="false"
+					/>
+					<button
+						type="submit"
+						class="btn btn-primary"
+						id="content-search"
+					>
+						Cerca
+					</button>
+				</div>
+				<div class="content-options">
+					<label class="check">
+						<input type="checkbox" id="content-regex" />
+						<span>Espressione regolare</span>
+					</label>
+					<label class="check">
+						<input type="checkbox" id="content-case" />
+						<span>Distingui maiuscole</span>
+					</label>
+				</div>
+				<ul class="repo-list actions-list" id="content-list"></ul>
+				<div class="dialog-actions">
+					<span class="account-status" id="content-status"></span>
+					<button
+						type="button"
+						class="btn"
+						id="content-close"
+						title="Chiude la ricerca nel contenuto"
+					>
+						Chiudi
+					</button>
+				</div>
+			</form>
+		</dialog>
+
 		<dialog class="dialog" id="input-dialog">
 			<form method="dialog" id="input-form">
 				<h2 id="input-title">Titolo</h2>

@@ -5,6 +5,23 @@
 
 ## 2026-11-09
 
+### Cercare dentro i file, non solo nei commit
+
+-   **Cosa**: dalla palette (`Ctrl+K`, «Cerca nel contenuto…») si apre una finestra che cerca una
+    parola o un'espressione regolare **dentro i file** del repository, non nella storia. Ogni
+    risultato mostra il file, il numero di riga e il testo trovato; «Apri» lo apre con l'app del
+    sistema.
+-   **Perché**: richiesta dell'utente — la ricerca esistente guarda i messaggi di commit, ma quando ci
+    si chiede «dove è definita questa cosa?» serve il contenuto.
+-   **Come**: usa `git grep` sui file tracciati, con una casella per le espressioni regolari e una
+    per distinguere le maiuscole. L'elenco si ferma a 1.000 risultati e lo dice, per non bloccare la
+    finestra su un repository grande. Il testo cercato non può diventare un'opzione del comando.
+-   **Verifica**: typecheck, **225 test** verdi (4 nuovi, di cui uno su un repository reale) e build;
+    la finestra è stata provata in inglese su un repository di esempio, con due risultati e il
+    conteggio corretto.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Lo stash può salvare solo alcuni file
 
 -   **Cosa**: la finestra dello **Stash** ora elenca i file modificati e non tracciati, con una

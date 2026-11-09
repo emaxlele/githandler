@@ -36,7 +36,7 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 -   ✅ Command palette (`Ctrl+K`) with a single command registry, and `?` for the shortcut list.
 -   ✅ Stronger search: `regex:` on the message, `change:` (`-S`), `diff:` (`-G`) and `lines:`
     (`log -L`), while free text stays literal.
--   ⏳ Content search across the working tree (`git grep`), as a separate tool.
+-   ✅ Content search across the working tree (`git grep`), as a separate tool.
 -   ✅ Reflog panel and "go to commit by SHA"; the undo history is visible instead of implicit.
 -   ✅ Network progress from `git` stderr during clone, fetch, pull and push.
 -   ✅ Partial stash with a file checklist.

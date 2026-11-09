@@ -1,5 +1,6 @@
 import type { BlameFile } from "../core/blame.ts";
 import type { CheckSummary } from "../core/checks.ts";
+import type { ContentQuery, ContentSearchResult } from "../core/content.ts";
 import type { WorkflowRun } from "../core/actions.ts";
 import type { ForkInfo, ForkSyncResult } from "../core/fork.ts";
 import type { Account, AccountChoice, RemoteRepo } from "../core/providers.ts";
@@ -165,6 +166,8 @@ export interface GitApi {
 	continueOperation(): Promise<Snapshot>;
 	/** Ricerca nella storia: testo libero, `author:`, `file:`. */
 	search(query: string): Promise<Commit[]>;
+	/** Ricerca nel contenuto dei file tracciati; il testo resta letterale salvo `regex`. */
+	searchContent(query: ContentQuery): Promise<ContentSearchResult>;
 	/** Spostamenti di HEAD (commit, checkout, reset…), dal più recente. */
 	reflog(limit?: number): Promise<ReflogEntry[]>;
 	/** Pagina successiva della storia, a partire da `skip`. */
@@ -305,6 +308,7 @@ export type IpcChannel =
 	| "git:markResolved"
 	| "git:continueOperation"
 	| "git:search"
+	| "git:searchContent"
 	| "git:reflog"
 	| "git:moreCommits"
 	| "git:blame"

@@ -129,7 +129,9 @@ minmax(0, 1fr)`), non più contenuto tagliato
     -   [x] Command palette (`Ctrl+K`) e scorciatoie documentate
     -   [x] **Ricerca più forte**: `regex:` sul messaggio, `change:` (`-S`), `diff:` (`-G`),
             `lines:` (`log -L`); il testo libero resta letterale
-    -   [ ] Ricerca nel contenuto dei file (`git grep`), strumento a parte
+    -   [x] **Ricerca nel contenuto dei file** (`git grep`), strumento a parte: testo letterale o
+            espressione regolare, maiuscole facoltative, risultati con file e riga, apertura nel
+            sistema
     -   [x] **Pannello reflog** e «vai al commit per SHA»: gli spostamenti di HEAD si vedono,
             con selettore, SHA e data, e ogni voce apre il commit nel pannello
 -   [x] **Pull request / merge request**: elenco delle aperte (GitHub, GitLab, Gitea/Forgejo,

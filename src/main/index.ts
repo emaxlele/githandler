@@ -31,6 +31,7 @@ import {
 	remoteWeb,
 } from "../core/providers.ts";
 import { parseHistoryQuery } from "../core/search.ts";
+import type { ContentQuery } from "../core/content.ts";
 import {
 	APPEARANCE_DEFAULTS,
 	FONT_SCALE_FACTORS,
@@ -443,6 +444,9 @@ function registerIpc(): void {
 	);
 	handle("git:search", (root: string, query: string) =>
 		backendFor(root).search(parseHistoryQuery(query))
+	);
+	handle("git:searchContent", (root: string, query: ContentQuery) =>
+		backendFor(root).searchContent(query)
 	);
 	handle("git:reflog", (root: string, limit?: number) =>
 		backendFor(root).reflog(limit)
@@ -963,6 +967,25 @@ async function runShots(): Promise<void> {
 			target.replace(/\.png$/, "-reflog.png"),
 		],
 		[`document.getElementById("reflog-dialog")?.close()`, null],
+		[
+			`(() => {
+				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+				const input = document.getElementById("palette-input");
+				input.value = "contenuto";
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+			})()`,
+			target.replace(/\.png$/, "-content.png"),
+		],
+		[
+			`(() => {
+				const field = document.getElementById("content-query");
+				field.value = "export";
+				document.getElementById("content-form").requestSubmit();
+			})()`,
+			target.replace(/\.png$/, "-content-results.png"),
+		],
+		[`document.getElementById("content-dialog")?.close()`, null],
 		[
 			`(() => {
 				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));

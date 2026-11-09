@@ -2,6 +2,22 @@
 
 ## [Non rilasciato]
 
+### Ricerca nel contenuto dei file
+
+-   **Dialog «Cerca nel contenuto»** (palette dei comandi): cerca nei file tracciati con `git grep`,
+    con testo letterale (`-F`) o espressione regolare (`-E`) e l'opzione «Distingui maiuscole» (di
+    default ignora le maiuscole). Ogni risultato mostra percorso, riga e testo, e si apre nell'app
+    del sistema.
+-   **Output leggibile**: `git grep -z -n` separa percorso, riga e testo con NUL, così i due punti in
+    un nome di file non confondono il parsing. I record malformati si scartano.
+-   **Tetto onesto**: al massimo 1.000 corrispondenze; oltre, lo stato dice che l'elenco è tagliato e
+    invita a restringere la ricerca. Il testo è validato (non vuoto, senza NUL, massimo 500
+    caratteri) prima di arrivare a Git.
+-   **Sicurezza**: il testo passa con `-e`, quindi non può diventare un'opzione; `git grep` esce con
+    1 quando non trova nulla, e quel caso è «nessun risultato», non un errore.
+-   Test nuovi in `tests/content-search.test.mts` (argomenti, parsing `-z`, limite e tre ricerche
+    reali su un repository temporaneo).
+
 ### Stash parziale
 
 -   **Scelta dei file nello stash**: il dialog dello stash elenca i file modificati e non tracciati,

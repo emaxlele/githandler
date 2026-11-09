@@ -65,6 +65,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Undo generale** (commit, checkout, scarto, merge)                                         | ✅             |
 | **File non tracciati recuperabili** (oggetti Git)                                           | ✅             |
 | **Ricerca nella storia**: testo, `author:`, `file:`, `regex:`, `change:`, `diff:`, `lines:` | ✅             |
+| **Ricerca nel contenuto** dei file tracciati (`git grep`)                                   | ✅             |
 | **Reflog** nell'app e «vai al commit» per SHA                                               | ✅             |
 | **Controlli delle pull request** (esito e collegamenti)                                     | ✅             |
 | **Notifiche CI dalla barra di sistema**                                                     | ✅             |
@@ -117,6 +118,9 @@ impostazioni:
     commit il cui diff contiene una riga che corrisponde (`-G`), `lines:10,40:file` la storia di
     quell'intervallo di righe (`-L`, sul ramo corrente). La sintassi compare sotto il campo quando lo
     si apre.
+-   **Ricerca nel contenuto** (`git grep`): un dialog a parte cerca nei file tracciati, con testo
+    letterale o espressione regolare e l'opzione delle maiuscole; ogni risultato mostra file, riga e
+    testo, e si apre nell'app del sistema. L'elenco si ferma a 1.000 corrispondenze e lo dice.
 -   **Una vista sola per le modifiche**: la voce _Changes_ della barra laterale le porta a tutta area,
     senza storia né pannello inferiore: le liste Staged e Unstaged, il diff e il riquadro del commit.
     _All Commits_ riporta la storia.

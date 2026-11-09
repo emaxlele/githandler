@@ -65,6 +65,7 @@ Italiano: [README.md](README.md)
 | **Global undo** (commit, checkout, discard, merge)                                   | ✅             |
 | **Recoverable untracked files** (Git objects)                                        | ✅             |
 | **History search**: text, `author:`, `file:`, `regex:`, `change:`, `diff:`, `lines:` | ✅             |
+| **Content search** in tracked files (`git grep`)                                     | ✅             |
 | **Reflog** in the app and "go to commit" by SHA                                      | ✅             |
 | **Pull request checks** (result and links)                                           | ✅             |
 | **CI notifications from the system tray**                                            | ✅             |
@@ -115,6 +116,9 @@ settings:
     expression, `change:` the commits where the number of occurrences of a text changed (`-S`),
     `diff:` the commits whose diff contains a matching line (`-G`), `lines:10,40:file` the history of
     that line range (`-L`, on the current branch). The syntax appears under the field when it opens.
+-   **Content search** (`git grep`): a separate dialog searches tracked files, with literal text or
+    a regular expression and a case-sensitivity switch; every result shows file, line and text, and
+    opens in the system app. The list stops at 1,000 matches and says so.
 -   **A single view for changes**: the _Changes_ entry in the sidebar brings them to the whole area,
     without history or lower panel: Staged and Unstaged lists, the diff and the commit box.
     _All Commits_ goes back to history.
