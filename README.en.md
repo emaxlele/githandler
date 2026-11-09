@@ -55,6 +55,7 @@ Italiano: [README.md](README.md)
 | **Pull** (`--ff-only`) and **push** (never forced)                                   | ✅             |
 | **Stash** (save selected files only, apply, pop, drop)                               | ✅             |
 | **Merge, rebase, cherry-pick**, abort operation                                      | ✅             |
+| **Interactive rebase**: reorder, squash/fixup, reword, drop                         | ✅             |
 | **Pull request / merge request**: list and create from two branches                  | ✅             |
 | **Conflicts resolved in the app** (per file and per hunk, "continue")                | ✅             |
 | **Interface in Italian and English**                                                 | ✅             |
@@ -145,7 +146,10 @@ settings:
 -   **History** in five columns: swimlane graph, message with ref badges, author with initials avatar,
     short SHA, date. Click a branch or tag: the cursor moves to its commit. Right click a branch:
     checkout, merge, rebase, rename, delete, copy; on a commit: new branch from that point, merge,
-    rebase, reset soft / mixed / hard, cherry-pick, copy SHA and message.
+    rebase, reset soft / mixed / hard, cherry-pick, copy SHA and message. "Interactive rebase from
+    here…" lists the commits up to HEAD: each row can be moved, combined (squash or fixup), renamed
+    (reword, with the full message) or removed (drop). Nothing is sent to the remote and the
+    operation stays undoable.
 -   **Lower panel** with four tabs: `Commit` (a card with author — and committer, when different —
     subject, date, copyable SHA, parents and a one-line analysis: proportional bar between additions
     and deletions, `+N`/`−M`, files, folders, binaries and a count per status; below, the diff of the

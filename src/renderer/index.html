@@ -1616,6 +1616,42 @@
 			</form>
 		</dialog>
 
+		<dialog class="dialog dialog-wide" id="rebase-dialog">
+			<form id="rebase-form">
+				<h2>Rebase interattivo</h2>
+				<p class="hint">
+					Riscrive i commit scelti: puoi riordinarli, unirli
+					(squash o fixup), rinominarli (reword) o toglierli
+					(drop). La storia locale cambia, niente viene inviato
+					al remoto e l'operazione resta annullabile con Annulla.
+				</p>
+				<div class="account-repos-head">
+					<strong id="rebase-range">Intervallo</strong>
+					<span class="account-status" id="rebase-status"></span>
+				</div>
+				<ul class="repo-list rebase-list" id="rebase-list"></ul>
+				<div class="dialog-actions">
+					<span class="account-status" id="rebase-error"></span>
+					<button
+						type="button"
+						class="btn"
+						id="rebase-cancel"
+						title="Chiude senza toccare la storia"
+					>
+						Chiudi
+					</button>
+					<button
+						type="button"
+						class="btn btn-primary"
+						id="rebase-apply"
+						title="Riscrive la storia locale secondo il piano"
+					>
+						Applica
+					</button>
+				</div>
+			</form>
+		</dialog>
+
 		<dialog class="dialog dialog-wide" id="recovery-dialog">
 			<form id="recovery-form">
 				<h2>Recupero</h2>

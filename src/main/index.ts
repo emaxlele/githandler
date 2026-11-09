@@ -41,6 +41,7 @@ import {
 	type AppearanceSettings,
 } from "../core/settings.ts";
 import type { NewPullRequest } from "../core/pulls.ts";
+import type { RebaseStep } from "../core/rebase.ts";
 import {
 	accountRepos,
 	accountsInfo,
@@ -55,12 +56,7 @@ import { listWorkflowRuns, runWorkflowAction } from "./actions.ts";
 import type { WorkflowAction } from "../core/actions.ts";
 import { createPull, listPulls, pullChecks } from "./pulls.ts";
 import { exportArchive } from "./export.ts";
-import {
-	forkBranches,
-	forkInfo,
-	forkPreview,
-	syncFork,
-} from "./fork.ts";
+import { forkBranches, forkInfo, forkPreview, syncFork } from "./fork.ts";
 import { CliGitBackend } from "./backend.ts";
 import {
 	listRepoFiles,
@@ -504,16 +500,24 @@ function registerIpc(): void {
 		backendFor(root).remoteChecks()
 	);
 	handle("git:worktrees", (root: string) => backendFor(root).worktrees());
-	handle(
-		"git:createWorktree",
-		(root: string, path: string, branch: string) =>
-			backendFor(root).createWorktree(path, branch)
+	handle("git:createWorktree", (root: string, path: string, branch: string) =>
+		backendFor(root).createWorktree(path, branch)
 	);
 	handle("git:removeWorktree", (root: string, path: string) =>
 		backendFor(root).removeWorktree(path)
 	);
-	handle("git:treeEntries", (root: string, ref: string | null, path: string) =>
-		backendFor(root).treeEntries(ref, path)
+	handle(
+		"git:treeEntries",
+		(root: string, ref: string | null, path: string) =>
+			backendFor(root).treeEntries(ref, path)
+	);
+	handle("git:rebaseCandidates", (root: string, from: string) =>
+		backendFor(root).rebaseCandidates(from)
+	);
+	handle(
+		"git:rebaseInteractive",
+		(root: string, base: string, steps: RebaseStep[], head: string) =>
+			backendFor(root).rebaseInteractive(base, steps, head)
 	);
 	handle("app:watching", async () => watchEnabled && stopWatching !== null);
 	handle("app:settings", () => loadSettings());
@@ -1099,6 +1103,39 @@ async function runShots(): Promise<void> {
 			target.replace(/\.png$/, "-worktree.png"),
 		],
 		[`document.getElementById("worktree-dialog")?.close()`, null],
+		[
+			`(() => {
+				// il commit in testa al ramo: un commit di un altro ramo non è riscrivibile
+				document.querySelectorAll(".row")[3]?.click();
+				return new Promise((resolve) => setTimeout(resolve, 300));
+			})()`,
+			null,
+		],
+		[
+			`(() => {
+				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+				const input = document.getElementById("palette-input");
+				input.value = "rebase interattivo";
+				input.dispatchEvent(new Event("input", { bubbles: true }));
+				input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+				return new Promise((resolve) => setTimeout(resolve, 700));
+			})()`,
+			target.replace(/\.png$/, "-rebase.png"),
+		],
+		[
+			`(() => {
+				const select = document.querySelector('#rebase-list select[data-rebase-action="1"]');
+				if (select) {
+					select.value = "reword";
+					select.dispatchEvent(new Event("change", { bubbles: true }));
+				}
+				const area = document.querySelector('textarea[data-rebase-message="1"]');
+				if (area) area.value = "feat: tema scuro\\n\\nCorpo riscritto dall'interfaccia.";
+				return new Promise((resolve) => setTimeout(resolve, 300));
+			})()`,
+			target.replace(/\.png$/, "-rebase-reword.png"),
+		],
+		[`document.getElementById("rebase-dialog")?.close()`, null],
 		[
 			`(() => {
 				document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));

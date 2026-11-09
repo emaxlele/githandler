@@ -2,6 +2,23 @@
 
 ## [Non rilasciato]
 
+### Rebase interattivo
+
+-   **Dal commit scelto a HEAD**: il menu del commit aggiunge «Rebase interattivo da qui…». La
+    finestra elenca i commit in ordine cronologico e ogni riga si sposta su o giù, si unisce
+    (`squash` o `fixup`), si rinomina (`reword`, con il messaggio completo modificabile) o si toglie
+    (`drop`).
+-   **Piano prudente in `src/core/rebase.ts`**: `validateRebaseSteps` rifiuta duplicati, squash o
+    fixup senza un commit prima, reword senza messaggio e un piano che toglierebbe tutti i commit;
+    `assertPlanCovers` verifica che l'intervallo sia coperto esattamente, così nessun commit sparisce
+    per omissione.
+-   **Backend**: risolve gli SHA, controlla che HEAD non sia cambiato dopo l'anteprima, rifiuta gli
+    intervalli con merge e oltre 50 commit, registra una voce di undo e usa un piccolo editor
+    temporaneo per il todo; un conflitto apre la risoluzione già esistente e `Annulla` resta
+    disponibile.
+-   Test nuovi in `tests/rebase.test.mts`: piano, riordino, drop, reword con corpo, squash/fixup,
+    annullamento e rifiuto di un intervallo con merge.
+
 ### Albero dei file pigro
 
 -   **«Tutti i file»** nel File Tree: mostra l'albero completo del commit o di HEAD leggendo una

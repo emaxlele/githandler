@@ -176,7 +176,10 @@ minmax(0, 1fr)`), non più contenuto tagliato
     -   [x] **Worktree**: elenco dal dialog, creazione su un ramo esistente o nuovo, apertura in una
             scheda e rimozione (mai il principale, mai con modifiche non committate); il parser dello
             formato `--porcelain` sta in `src/core/worktrees.ts`
-    -   [ ] Rebase interattivo
+    -   [x] **Rebase interattivo**: elenco dei commit da quello scelto a HEAD, con riordino, squash,
+            fixup, reword (messaggio completo) e drop; il piano copre esattamente l'intervallo, un
+            merge nel mezzo viene rifiutato, niente viene inviato al remoto e l'operazione resta
+            annullabile; il todo si costruisce in `src/core/rebase.ts`
     -   [x] **Preferenze e temi**: chiaro, scuro, OLED (nero assoluto), densità comoda/compatta e
             tre dimensioni del testo; l'aspetto si applica a tutte le finestre, il tema «Automatico»
             segue il sistema

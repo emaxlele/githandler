@@ -5,6 +5,22 @@
 
 ## 2026-11-09
 
+### Riscrivere i commit senza il terminale, con un piano da controllare
+
+-   **Cosa**: dal tasto destro su un commit si apre **«Rebase interattivo da qui…»**: una finestra
+    elenca i commit fino a HEAD e permette di riordinarli, unirli, rinominarli o toglierli prima di
+    applicare.
+-   **Perché**: richiesta dell'utente — sistemare una serie di commit locali (unire due tentativi,
+    correggere un messaggio, togliere un commit sbagliato) richiedeva il terminale.
+-   **Come**: l'app prepara il piano e lo passa a Git; prima di eseguire controlla che nessun commit
+    sparisca per omissione, che l'intervallo non contenga merge e che la storia non sia cambiata nel
+    frattempo. Niente viene inviato al remoto e l'intera operazione resta annullabile con Annulla; un
+    conflitto apre la finestra di risoluzione già presente.
+-   **Verifica**: typecheck, 6 test nuovi su un repository vero (riordino, drop, reword con corpo,
+    squash/fixup, undo e rifiuto dei merge) e build; la finestra è stata controllata in inglese.
+-   **Stato**: completato.
+-   **Riferimento**: commit di questa sessione.
+
 ### Vedere tutti i file del repository, non solo quelli toccati
 
 -   **Cosa**: nel File Tree c'è ora il pulsante **«Tutti i file»**: mostra l'albero completo del

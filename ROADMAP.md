@@ -20,7 +20,8 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 -   ✅ Editor for the result, with the hunks listed and their content side by side.
 -   ✅ "Mark resolved" and "Continue" (`merge --continue`, `rebase --continue`, `cherry-pick --continue`),
     with "Abort" one click away.
--   ⏳ Interactive rebase (reorder, squash, drop, reword) on top of the existing history view.
+-   ✅ Interactive rebase (reorder, squash, fixup, drop, reword) on top of the existing history view,
+    with the full message for a reword and an undo entry for the whole operation.
 -   ✅ Worktrees: list, create on an existing or new branch, open in a tab, remove when clean.
 
 ## 3. From repository to pull request

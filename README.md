@@ -55,6 +55,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Pull** (`--ff-only`) e **push** (mai con forza)                                           | ✅             |
 | **Stash** (salva anche solo alcuni file, applica, pop, elimina)                             | ✅             |
 | **Merge, rebase, cherry-pick**, annulla operazione                                          | ✅             |
+| **Rebase interattivo**: riordina, squash/fixup, reword, drop                                | ✅             |
 | **Pull request / merge request**: elenco e creazione da due rami                            | ✅             |
 | **Conflitti risolti nell'app** (per file e per hunk, «continua»)                            | ✅             |
 | **Interfaccia in italiano e in inglese**                                                    | ✅             |
@@ -147,7 +148,10 @@ impostazioni:
 -   **Storia** in cinque colonne: grafo a corsie, messaggio con i badge dei ref, autore con avatar a
     iniziali, SHA breve, data. Clic su un ramo o tag: il cursore va al suo commit. Tasto destro su un
     ramo: checkout, merge, rebase, rinomina, elimina, copia; su un commit: ramo nuovo da quel punto,
-    merge, rebase, reset soft / mixed / hard, cherry-pick, copia di SHA e messaggio.
+    merge, rebase, reset soft / mixed / hard, cherry-pick, copia di SHA e messaggio. «Rebase
+    interattivo da qui…» apre una lista dei commit fino a HEAD: ogni riga si sposta, si unisce
+    (squash o fixup), si rinomina (reword, con il messaggio completo) o si toglie (drop). Niente
+    viene inviato al remoto e l'operazione resta annullabile.
 -   **Pannello inferiore** con quattro schede: `Commit` (una scheda con autore — e committer, quando è
     un altro — oggetto, data, SHA copiabile, genitori e una riga di analisi: barra proporzionale fra
     aggiunte e rimozioni, `+N`/`−M`, file, cartelle, binari e conteggio per stato; sotto, il diff

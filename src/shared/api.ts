@@ -3,6 +3,10 @@ import type { CheckSummary } from "../core/checks.ts";
 import type { ContentQuery, ContentSearchResult } from "../core/content.ts";
 import type { HealthReport } from "../core/health.ts";
 import type { RemoteCheck } from "../core/remotes.ts";
+import type {
+	RebaseCandidate,
+	RebaseStep,
+} from "../core/rebase.ts";
 import type { TreeEntry } from "../core/tree.ts";
 import type { WorktreeInfo } from "../core/worktrees.ts";
 import type { WorkflowAction, WorkflowRun } from "../core/actions.ts";
@@ -204,6 +208,16 @@ export interface GitApi {
 	removeWorktree(path: string): Promise<WorktreeInfo[]>;
 	/** Un livello dell'albero di HEAD o di un commit: la radice è il percorso vuoto. */
 	treeEntries(ref: string | null, path: string): Promise<TreeEntry[]>;
+	/** I commit da `from` a HEAD, con il genitore su cui riapplicarli. */
+	rebaseCandidates(
+		from: string
+	): Promise<{ base: string; head: string; candidates: RebaseCandidate[] }>;
+	/** Riscrive l'intervallo secondo il piano; niente viene inviato al remoto. */
+	rebaseInteractive(
+		base: string,
+		steps: RebaseStep[],
+		head: string
+	): Promise<Snapshot>;
 	/** Impostazioni correnti (permessi API, copia dei file non tracciati). */
 	settings(): Promise<Settings>;
 	/** Salva le impostazioni e restituisce la versione normalizzata. */
@@ -350,6 +364,8 @@ export type IpcChannel =
 	| "git:createWorktree"
 	| "git:removeWorktree"
 	| "git:treeEntries"
+	| "git:rebaseCandidates"
+	| "git:rebaseInteractive"
 	| "app:watching"
 	| "app:settings"
 	| "app:chooseFolder"

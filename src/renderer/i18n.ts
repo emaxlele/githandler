@@ -800,6 +800,19 @@ const EN: Record<string, string> = {
 	"Cartella del nuovo worktree": "Folder of the new worktree",
 	"Rimuovere il worktree «{0}»? La cartella viene eliminata; Git rifiuta se contiene modifiche non committate.":
 		"Remove the worktree «{0}»? The folder is deleted; Git refuses if it holds uncommitted changes.",
+	"Rebase interattivo": "Interactive rebase",
+	"Rebase interattivo dal commit selezionato…":
+		"Interactive rebase from the selected commit…",
+	"Riscrive i commit scelti: puoi riordinarli, unirli (squash o fixup), rinominarli (reword) o toglierli (drop). La storia locale cambia, niente viene inviato al remoto e l'operazione resta annullabile con Annulla.":
+		"Rewrites the chosen commits: reorder them, combine them (squash or fixup), rename them (reword) or remove them (drop). The local history changes, nothing is sent to the remote, and the operation stays undoable with Undo.",
+	Intervallo: "Range",
+	"Chiude senza toccare la storia": "Closes without touching the history",
+	"Messaggio completo del commit rinominato":
+		"Full message of the renamed commit",
+	"Cosa fare di questo commit": "What to do with this commit",
+	"Sposta prima": "Move earlier",
+	"Sposta dopo": "Move later",
+	"Rebase interattivo completato.": "Interactive rebase completed.",
 	"Tutti i file": "All files",
 	Modifiche: "Changes",
 	"Mostra solo i file modificati o del commit":
@@ -809,6 +822,9 @@ const EN: Record<string, string> = {
 	"File tree · commit (tutti i file)": "File tree · commit (all files)",
 	"File tree · tutti i file": "File tree · all files",
 	"Leggo la cartella…": "Reading the folder…",
+	"{0} commit da {1} a HEAD": "{0} commits from {1} to HEAD",
+	"Riscrivere {0} commit da {1} a HEAD? La storia locale cambia: niente viene inviato al remoto e l'operazione resta annullabile con Annulla.":
+		"Rewrite {0} commits from {1} to HEAD? The local history changes: nothing is sent to the remote, and the operation stays undoable with Undo.",
 	"Controlla i remoti": "Check the remotes",
 	"Contatta ogni remoto con git ls-remote; usa la rete":
 		"Contacts every remote with git ls-remote; uses the network",

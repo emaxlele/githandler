@@ -53,6 +53,12 @@ import {
 } from "../core/actions.ts";
 import type { HealthReport } from "../core/health.ts";
 import type { RemoteCheck } from "../core/remotes.ts";
+import {
+	subjectOf,
+	validateRebaseSteps,
+	type RebaseAction,
+	type RebaseStep,
+} from "../core/rebase.ts";
 import type { TreeEntry } from "../core/tree.ts";
 import type { WorktreeInfo } from "../core/worktrees.ts";
 import { summarizeRecovery, type RecoverySummary } from "../core/recovery.ts";
@@ -446,6 +452,14 @@ const ui = {
 	worktreeCreate: byId<HTMLButtonElement>("worktree-create"),
 	worktreeRefresh: byId<HTMLButtonElement>("worktree-refresh"),
 	worktreeClose: byId<HTMLButtonElement>("worktree-close"),
+	rebaseDialog: byId<HTMLDialogElement>("rebase-dialog"),
+	rebaseForm: byId<HTMLFormElement>("rebase-form"),
+	rebaseList: byId("rebase-list"),
+	rebaseRange: byId("rebase-range"),
+	rebaseStatus: byId("rebase-status"),
+	rebaseError: byId("rebase-error"),
+	rebaseCancel: byId<HTMLButtonElement>("rebase-cancel"),
+	rebaseApply: byId<HTMLButtonElement>("rebase-apply"),
 	btnUndo: byId<HTMLButtonElement>("btn-undo"),
 	btnRefresh: byId<HTMLButtonElement>("btn-refresh"),
 	btnFetch: byId<HTMLButtonElement>("btn-fetch"),
@@ -3708,6 +3722,11 @@ ui.log.addEventListener("contextmenu", (event) => {
 			hint: "Riapplica i commit del ramo attuale sopra questo commit.",
 			action: () => void rebaseCommit(sha),
 		},
+		{
+			label: "Rebase interattivo da qui…",
+			hint: "Riordina, unisci, rinomina o togli i commit da questo a HEAD, in locale.",
+			action: () => void openRebase(sha),
+		},
 		"separator",
 		{
 			label: "Reset soft a questo commit",
@@ -5319,6 +5338,156 @@ async function removeWorktree(entry: WorktreeInfo): Promise<void> {
 	}
 }
 
+// ── rebase interattivo ──────────────────────────────────────────────────────
+
+interface RebaseDraft {
+	sha: string;
+	message: string;
+	action: RebaseAction;
+}
+
+let rebasePlan: {
+	base: string;
+	head: string;
+	steps: RebaseDraft[];
+} | null = null;
+
+const REBASE_ACTIONS: RebaseAction[] = [
+	"pick",
+	"reword",
+	"squash",
+	"fixup",
+	"drop",
+];
+
+/** Apre il piano di rebase dal commit indicato: Git decide quali commit sono toccati. */
+async function openRebase(sha: string): Promise<void> {
+	const plan = await guard("Rebase interattivo", () =>
+		api.rebaseCandidates(sha)
+	);
+	if (!plan) return;
+	rebasePlan = {
+		base: plan.base,
+		head: plan.head,
+		steps: plan.candidates.map((candidate) => ({
+			sha: candidate.sha,
+			message: candidate.message,
+			action: "pick",
+		})),
+	};
+	ui.rebaseError.textContent = "";
+	if (!ui.rebaseDialog.open) ui.rebaseDialog.showModal();
+	renderRebase();
+}
+
+function renderRebase(): void {
+	clear(ui.rebaseList);
+	const plan = rebasePlan;
+	if (!plan) return;
+	ui.rebaseRange.textContent = t(
+		`${plan.steps.length} commit da ${plan.base.slice(0, 8)} a HEAD`
+	);
+
+	let kept = false;
+	plan.steps.forEach((step, index) => {
+		const canCombine = kept;
+		if (step.action !== "drop") kept = true;
+
+		const row = el("li", "rebase-row");
+		if (step.action === "drop") row.classList.add("is-drop");
+		row.appendChild(el("span", "rebase-order", String(index + 1)));
+
+		const text = el("div", "rebase-text");
+		text.appendChild(
+			el("span", "rebase-subject", subjectOf(step.message))
+		);
+		text.appendChild(
+			el("span", "rebase-meta", step.sha.slice(0, 8))
+		);
+		if (step.action === "reword") {
+			const area = el(
+				"textarea",
+				"rebase-message"
+			) as HTMLTextAreaElement;
+			area.value = step.message;
+			area.dataset.rebaseMessage = String(index);
+			area.title = t("Messaggio completo del commit rinominato");
+			text.appendChild(area);
+		}
+		row.appendChild(text);
+
+		const select = el("select") as HTMLSelectElement;
+		select.dataset.rebaseAction = String(index);
+		select.title = t("Cosa fare di questo commit");
+		for (const action of REBASE_ACTIONS) {
+			const option = el("option", "", action) as HTMLOptionElement;
+			option.value = action;
+			option.selected = step.action === action;
+			// unire richiede un commit prima che resti
+			if ((action === "squash" || action === "fixup") && !canCombine)
+				option.disabled = true;
+			select.appendChild(option);
+		}
+		row.appendChild(select);
+
+		const controls = el("div", "rebase-controls");
+		const up = el("button", "icon-btn", "↑") as HTMLButtonElement;
+		up.type = "button";
+		up.dataset.rebaseMove = "-1";
+		up.disabled = index === 0;
+		up.title = t("Sposta prima");
+		const down = el("button", "icon-btn", "↓") as HTMLButtonElement;
+		down.type = "button";
+		down.dataset.rebaseMove = "1";
+		down.disabled = index === plan.steps.length - 1;
+		down.title = t("Sposta dopo");
+		controls.append(up, down);
+		row.appendChild(controls);
+		ui.rebaseList.appendChild(row);
+	});
+}
+
+async function applyRebase(): Promise<void> {
+	if (!rebasePlan) return;
+	const steps: RebaseStep[] = rebasePlan.steps.map((step) =>
+		step.action === "reword"
+			? { sha: step.sha, action: step.action, message: step.message }
+			: { sha: step.sha, action: step.action }
+	);
+	try {
+		validateRebaseSteps(steps);
+	} catch (error) {
+		ui.rebaseError.textContent = readableError(error);
+		return;
+	}
+	ui.rebaseError.textContent = "";
+	if (
+		!askConfirm(
+			`Riscrivere ${steps.length} commit da ${rebasePlan.base.slice(
+				0,
+				8
+			)} a HEAD? La storia locale cambia: niente viene inviato al remoto e l'operazione resta annullabile con Annulla.`
+		)
+	)
+		return;
+	ui.rebaseApply.disabled = true;
+	try {
+		const snapshot = await guardRepo("Rebase interattivo", () =>
+			api.rebaseInteractive(rebasePlan!.base, steps, rebasePlan!.head)
+		);
+		if (!snapshot) {
+			// un conflitto apre la finestra di risoluzione: questa non deve coprirla
+			if (state.snapshot?.info.operation) ui.rebaseDialog.close();
+			return;
+		}
+		applySnapshot(snapshot);
+		ui.rebaseDialog.close();
+		toast("Rebase interattivo completato.", "ok");
+	} finally {
+		ui.rebaseApply.disabled = false;
+	}
+}
+
 // ── recupero ────────────────────────────────────────────────────────────────
 
 async function openRecovery(): Promise<void> {
@@ -5720,6 +5889,49 @@ ui.contentForm.addEventListener("submit", (event) => {
 	void runContentSearch();
 });
 ui.contentClose.addEventListener("click", () => ui.contentDialog.close());
+ui.rebaseForm.addEventListener("submit", (event) => event.preventDefault());
+ui.rebaseCancel.addEventListener("click", () => ui.rebaseDialog.close());
+ui.rebaseApply.addEventListener("click", () => void applyRebase());
+ui.rebaseList.addEventListener("change", (event) => {
+	const select = (event.target as HTMLElement).closest<HTMLSelectElement>(
+		"select[data-rebase-action]"
+	);
+	if (!select || !rebasePlan) return;
+	const index = Number(select.dataset.rebaseAction);
+	const step = rebasePlan.steps[index];
+	if (!step) return;
+	const action = select.value as RebaseAction;
+	if (!REBASE_ACTIONS.includes(action)) return;
+	step.action = action;
+	renderRebase();
+});
+ui.rebaseList.addEventListener("input", (event) => {
+	const area = (event.target as HTMLElement).closest<HTMLTextAreaElement>(
+		"textarea[data-rebase-message]"
+	);
+	if (!area || !rebasePlan) return;
+	const index = Number(area.dataset.rebaseMessage);
+	const step = rebasePlan.steps[index];
+	if (step) step.message = area.value;
+});
+ui.rebaseList.addEventListener("click", (event) => {
+	const button = (event.target as HTMLElement).closest<HTMLButtonElement>(
+		"button[data-rebase-move]"
+	);
+	if (!button || !rebasePlan) return;
+	// il dataset dice solo la direzione: l'indice arriva dalla riga
+	const row = button.closest(".rebase-row");
+	if (!row) return;
+	const rows = [...ui.rebaseList.children];
+	const from = rows.indexOf(row);
+	const to = from + Number(button.dataset.rebaseMove ?? 0);
+	if (from < 0 || to < 0 || to >= rebasePlan.steps.length) return;
+	const [step] = rebasePlan.steps.splice(from, 1);
+	if (!step) return;
+	rebasePlan.steps.splice(to, 0, step);
+	renderRebase();
+});
+
 ui.worktreeForm.addEventListener("submit", (event) => event.preventDefault());
 ui.worktreeRefresh.addEventListener("click", () => void loadWorktrees());
 ui.worktreeCreate.addEventListener("click", () => void createWorktree());
@@ -6361,6 +6573,17 @@ const COMMANDS: PaletteCommand[] = [
 		keywords: "grep contenuto file testo cerca",
 		enabled: repoReady,
 		run: () => openContentSearch(),
+	},
+	{
+		id: "rebase-interactive",
+		group: "Storia",
+		label: "Rebase interattivo dal commit selezionato…",
+		keywords: "rebase interattivo squash fixup reword riordina drop",
+		enabled: () => repoReady() && Boolean(state.selectedCommit),
+		run: () => {
+			const sha = state.selectedCommit;
+			if (sha) void openRebase(sha);
+		},
 	},
 	{
 		id: "goto-commit",

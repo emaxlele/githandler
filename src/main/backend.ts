@@ -1,13 +1,14 @@
 import {
 	access,
 	mkdir,
+	mkdtemp,
 	open,
 	readFile,
 	rename,
 	rm,
 	writeFile,
 } from "node:fs/promises";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 
 import { blameArgs, parseBlame, type BlameFile } from "../core/blame.ts";
@@ -42,6 +43,14 @@ import {
 	summarizeRemoteCheck,
 	type RemoteCheck,
 } from "../core/remotes.ts";
+import {
+	assertPlanCovers,
+	parseRebaseCandidates,
+	rebasePlanArgs,
+	rebaseTodo,
+	type RebaseCandidate,
+	type RebaseStep,
+} from "../core/rebase.ts";
 import {
 	parseTreeEntries,
 	sortTreeEntries,
@@ -267,6 +276,9 @@ function assertSafePath(path: string): void {
 		throw new Error(`Percorso non valido: ${path}`);
 	}
 }
+
+/** Oltre questa soglia la finestra diventa illeggibile e il rebase difficile da controllare. */
+const REBASE_MAX_COMMITS = 50;
 
 export class CliGitBackend implements GitBackend {
 	#info: RepoInfo | null = null;
@@ -1215,6 +1227,172 @@ export class CliGitBackend implements GitBackend {
 		// un repository senza commit non ha un albero: vuoto, non un errore
 		if (result.code !== 0) return [];
 		return sortTreeEntries(parseTreeEntries(result.stdout));
+	}
+
+	async rebaseCandidates(
+		from: string
+	): Promise<{ base: string; head: string; candidates: RebaseCandidate[] }> {
+		const info = this.#requireInfo();
+		assertSha(from);
+		const headResult = await runGit(
+			info.root,
+			["rev-parse", "--verify", "-q", "HEAD"],
+			{ allowFailure: true }
+		);
+		if (headResult.code !== 0)
+			throw new Error("Il repository non ha ancora commit da riscrivere.");
+		const head = headResult.stdout.trim();
+
+		const target = await runGit(
+			info.root,
+			["rev-parse", "--verify", "-q", `${from}^{commit}`],
+			{ allowFailure: true }
+		);
+		if (target.code !== 0)
+			throw new Error(`Commit non trovato: ${from}`);
+		const sha = target.stdout.trim();
+		if (sha === head)
+			throw new Error(
+				"Scegli un commit più vecchio di HEAD: da solo non c'è niente da riscrivere."
+			);
+
+		const ancestor = await runGit(
+			info.root,
+			["merge-base", "--is-ancestor", sha, head],
+			{ allowFailure: true }
+		);
+		if (ancestor.code !== 0)
+			throw new Error(
+				"Il commit non è nella storia del ramo attuale: niente da riscrivere."
+			);
+
+		const parentResult = await runGit(
+			info.root,
+			["rev-parse", "--verify", "-q", `${sha}^`],
+			{ allowFailure: true }
+		);
+		if (parentResult.code !== 0)
+			throw new Error(
+				"Il primo commit della storia non si riscrive con il rebase interattivo."
+			);
+		const base = parentResult.stdout.trim();
+
+		// un merge nel mezzo verrebbe appiattito: meglio dirlo che sorprendere
+		const merges = await runGit(
+			info.root,
+			["rev-list", "--merges", `${base}..${head}`],
+			{ allowFailure: true }
+		);
+		if (merges.stdout.trim())
+			throw new Error(
+				"L'intervallo contiene un merge: il rebase interattivo non è disponibile qui."
+			);
+
+		const count = await runGit(
+			info.root,
+			["rev-list", "--count", `${base}..${head}`],
+			{ allowFailure: true }
+		);
+		if ((Number.parseInt(count.stdout.trim(), 10) || 0) > REBASE_MAX_COMMITS)
+			throw new Error(
+				`Il rebase interattivo copre al massimo ${REBASE_MAX_COMMITS} commit: parti da uno più recente.`
+			);
+
+		const log = await runGit(info.root, rebasePlanArgs(base));
+		return {
+			base,
+			head,
+			candidates: parseRebaseCandidates(log.stdout),
+		};
+	}
+
+	async rebaseInteractive(
+		base: string,
+		steps: RebaseStep[],
+		head: string
+	): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		assertSha(base);
+		assertSha(head);
+		const current = await runGit(
+			info.root,
+			["rev-parse", "--verify", "-q", "HEAD"],
+			{ allowFailure: true }
+		);
+		if (current.code !== 0 || current.stdout.trim() !== head)
+			throw new Error(
+				"La storia è cambiata: riapri il rebase interattivo e ricontrolla il piano."
+			);
+
+		// gli SHA del piano possono essere abbreviati: si confrontano sempre quelli completi
+		const expectedResult = await runGit(
+			info.root,
+			["rev-list", "--reverse", `${base}..${head}`]
+		);
+		const expected = expectedResult.stdout
+			.split("\n")
+			.map((line) => line.trim())
+			.filter(Boolean);
+		const normalized: RebaseStep[] = [];
+		for (const step of steps) {
+			const resolved = await runGit(
+				info.root,
+				["rev-parse", "--verify", "-q", `${step.sha}^{commit}`],
+				{ allowFailure: true }
+			);
+			if (resolved.code !== 0)
+				throw new Error(`Commit non trovato: ${step.sha}`);
+			normalized.push({ ...step, sha: resolved.stdout.trim() });
+		}
+		assertPlanCovers(normalized, expected);
+
+		const entry = await this.#record(
+			"commit",
+			`Rebase interattivo di ${normalized.length} commit`
+		);
+		const directory = await mkdtemp(join(tmpdir(), "githandler-rebase-"));
+		try {
+			const todoPath = join(directory, "todo");
+			const messages = join(directory, "messages");
+			await mkdir(messages, { recursive: true });
+			const todo = rebaseTodo(normalized, (index) =>
+				join(messages, `${index}.txt`)
+			);
+			for (const [index, step] of normalized.entries()) {
+				if (step.action !== "reword") continue;
+				await writeFile(
+					join(messages, `${index}.txt`),
+					`${step.message!.trim()}\n`,
+					"utf8"
+				);
+			}
+			await writeFile(todoPath, todo, "utf8");
+
+			// il piccolo editor copia il piano preparato: nessun input dell'utente passa per la shell
+			const editor = join(directory, "sequence-editor.sh");
+			await writeFile(
+				editor,
+				'#!/bin/sh\ncat "$GITHANDLER_REBASE_TODO" > "$1"\n',
+				{ mode: 0o700 }
+			);
+
+			await runGit(info.root, ["rebase", "-i", base], {
+				timeoutMs: 600_000,
+				env: {
+					GIT_SEQUENCE_EDITOR: editor,
+					GIT_EDITOR: "true",
+					GITHANDLER_REBASE_TODO: todoPath,
+					GITHANDLER_REBASE_MESSAGES: messages,
+				},
+			});
+		} catch (error) {
+			if (entry) await this.#dropUndo(entry.id);
+			throw error;
+		} finally {
+			await rm(directory, { recursive: true, force: true });
+		}
+		await this.#finalizeUndo(entry);
+		return this.refresh();
 	}
 
 	async undo(): Promise<Snapshot> {
