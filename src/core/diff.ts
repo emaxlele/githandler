@@ -1,4 +1,4 @@
-import type { CommitFile, DiffFile, DiffHunk } from "./types.ts";
+import type { CommitFile, CommitStat, DiffFile, DiffHunk } from "./types.ts";
 
 export function commitFilesArgs(sha: string): string[] {
 	// `--first-parent`: un merge senza questo flag non mostra alcun file.
@@ -11,6 +11,39 @@ export function commitFilesArgs(sha: string): string[] {
 		"--no-color",
 		sha,
 	];
+}
+
+export function commitStatArgs(sha: string): string[] {
+	return [
+		"show",
+		"--numstat",
+		"--first-parent",
+		"--format=",
+		"--no-color",
+		sha,
+	];
+}
+
+/**
+ * Totali di un commit da `--numstat`: una riga per file, `aggiunte \t rimosse \t percorso`.
+ * I file binari portano `-`/`-` e si contano a parte, senza righe. Le righe che non iniziano con i
+ * due numeri (un percorso con newline può spezzarne una) vengono saltate: meglio un totale un po'
+ * basso che un totale inventato.
+ */
+export function parseNumstat(raw: string): CommitStat {
+	const stat: CommitStat = { additions: 0, deletions: 0, binaries: 0 };
+	for (const line of raw.split("\n")) {
+		const match = /^(\d+|-)\t(\d+|-)\t/.exec(line);
+		if (!match) continue;
+		const [, additions, deletions] = match;
+		if (additions === "-" || deletions === "-") {
+			stat.binaries += 1;
+			continue;
+		}
+		stat.additions += Number(additions);
+		stat.deletions += Number(deletions);
+	}
+	return stat;
 }
 
 export function commitDiffArgs(

@@ -79,22 +79,23 @@ La finestra segue la disposizione dei client Git desktop affermati, con un tema 
     ramo: checkout, merge, rebase, rinomina, elimina, copia; su un commit: ramo nuovo da quel punto,
     merge, rebase, reset soft / mixed / hard, cherry-pick, copia di SHA e messaggio.
 -   **Pannello inferiore** con quattro schede: `Commit` (una scheda con autore — e committer, quando è
-    un altro — oggetto, data, SHA copiabile, genitori e numero di file, il corpo del messaggio e i file
-    toccati come pastiglie, poi il diff a tutta larghezza), `File Tree` (albero dei file del commit o
-    del working tree, diff a destra), `Blame` e `Terminale`. La maniglia sopra il pannello lo
-    ridimensiona, `▾` lo riduce alla sola riga delle schede e `⧉` lo apre in una finestra separata:
-    chiusa quella, il pannello torna al suo posto. Diff e albero scorrono, con la loro altezza
-    vincolata al riquadro.
+    un altro — oggetto, data, SHA copiabile, genitori e una riga di analisi: barra proporzionale fra
+    aggiunte e rimozioni, `+N`/`−M`, file, cartelle, binari e conteggio per stato; sotto, il diff
+    dell'intero commit in un unico scorrimento, fino a 12 file e 4.000 righe), `File Tree` (albero dei
+    file del commit o del working tree, diff a destra, l'unica vista file per file), `Blame` e
+    `Terminale`. La maniglia sopra il pannello lo ridimensiona, `▾` lo riduce alla sola riga delle schede
+    e `⧉` lo apre in una finestra separata: chiusa quella, il pannello torna al suo posto. Diff e albero
+    scorrono, con la loro altezza vincolata al riquadro.
 
 ### Dal repository al file
 
 -   **Cartella** in toolbar: apre nel gestore file la cartella del repository attivo.
 -   Tasto destro sulla **scheda del repository**: apri la cartella, copia il percorso, apri il repository
     nel browser (dall'URL di `origin`), chiudi la scheda.
--   Tasto destro su un **file** (File Tree o elenco dei file di un commit) e doppio clic: apri con
-    l'applicazione associata, mostra nella cartella, **salva una copia** fuori dal repository, copia il
-    percorso. Da un commit la copia è la versione di allora, letta con `git show <sha>:<path>`: byte per
-    byte, anche per i binari, con un tetto di 64 MiB oltre il quale l'app lo dice invece di troncare.
+-   Tasto destro su un **file** nel File Tree e doppio clic: apri con l'applicazione associata, mostra
+    nella cartella, **salva una copia** fuori dal repository, copia il percorso. Da un commit la copia è
+    la versione di allora, letta con `git show <sha>:<path>`: byte per byte, anche per i binari, con un
+    tetto di 64 MiB oltre il quale l'app lo dice invece di troncare.
 -   Tasto destro su un **commit**: _Apri il commit nel browser_, con l'URL del servizio (GitHub, GitLab,
     Bitbucket). Se il remoto non è un sito web il comando lo dice invece di aprire un indirizzo
     inventato.

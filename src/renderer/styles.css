@@ -1388,66 +1388,92 @@ body {
 	-webkit-box-orient: vertical;
 }
 
-.commit-chips {
-	display: flex;
-	gap: 4px;
-	padding: 0 10px 8px;
-	overflow-x: auto;
-	overflow-y: hidden;
-	white-space: nowrap;
-}
+/* ── riepilogo del commit ───────────────────────────────────────────────── */
 
-.commit-chips::-webkit-scrollbar {
-	height: 6px;
-}
-
-.commit-chip {
-	appearance: none;
+/*
+ * Quello che l'elenco dei file non direbbe: peso del commit, cartelle, stati. Sta sotto la riga
+ * dell'autore e sopra il diff, quindi deve restare su una riga sola anche nel pannello stretto.
+ */
+.commit-analysis {
 	display: flex;
 	align-items: center;
-	gap: 5px;
-	flex: 0 0 auto;
-	max-width: 320px;
-	padding: 2px 8px 2px 6px;
-	border: 1px solid var(--border);
-	border-radius: 999px;
-	background: var(--panel-2);
-	color: var(--text-dim);
-	font: inherit;
+	gap: 7px;
+	padding: 0 10px 8px;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
 	font-size: 11.5px;
-	cursor: pointer;
+	color: var(--text-faint);
 }
 
-.commit-chip:hover {
-	border-color: var(--border-strong);
-	color: var(--text);
+.commit-analysis .sep {
+	color: var(--border-strong);
 }
 
-.commit-chip.is-selected {
-	border-color: rgba(106, 169, 255, 0.5);
-	background: rgba(106, 169, 255, 0.12);
-	color: var(--text);
+.commit-bar {
+	display: flex;
+	flex: 0 0 96px;
+	width: 96px;
+	height: 6px;
+	border-radius: 3px;
+	overflow: hidden;
+	background: var(--panel-2);
 }
 
-.commit-chip .st {
+.commit-bar .seg-add {
+	background: var(--add-fg);
+	opacity: 0.75;
+}
+
+.commit-bar .seg-del {
+	background: var(--del-fg);
+	opacity: 0.75;
+}
+
+.commit-totals {
+	display: flex;
+	gap: 6px;
+	font-family: var(--mono);
+	font-size: 11px;
+}
+
+.commit-totals .plus {
+	color: var(--add-fg);
+}
+
+.commit-totals .minus {
+	color: var(--del-fg);
+}
+
+.commit-states {
+	display: flex;
+	gap: 8px;
+	flex: 0 0 auto;
+}
+
+.commit-states .state {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.commit-states .st {
 	font-family: var(--mono);
 	font-size: 10.5px;
-	width: 10px;
-	text-align: center;
-	flex: 0 0 auto;
 }
 
-.commit-chip .chip-dir {
-	flex: 0 1 auto;
-	min-width: 0;
+.commit-states .state-count {
 	color: var(--text-faint);
-	overflow: hidden;
-	text-overflow: ellipsis;
 }
 
-.commit-chip .chip-name {
-	flex: 0 0 auto;
-	color: var(--text);
+/* il commit è più lungo del tetto: il resto si legge nel File Tree */
+.commit-more {
+	padding: 10px;
+	border-top: 1px solid var(--border);
+	background: var(--panel);
+	font-size: 11.5px;
+	color: var(--text-faint);
+	text-align: center;
 }
 
 /* ── toast ──────────────────────────────────────────────────────────────── */

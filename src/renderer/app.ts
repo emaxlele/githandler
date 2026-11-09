@@ -15,6 +15,7 @@ import type {
 	Commit,
 	CommitDetails,
 	CommitFile,
+	CommitStat,
 	DiffFile,
 	RefInfo,
 	Snapshot,
@@ -44,7 +45,12 @@ import type {
 	PanelTab,
 } from "../shared/api.ts";
 import { BlameView } from "./blame-view.ts";
-import { pickKey, renderDiff, type DiffLayout } from "./diff-view.ts";
+import {
+	pickKey,
+	renderDiff,
+	renderDiffs,
+	type DiffLayout,
+} from "./diff-view.ts";
 import { avatarColor, byId, clear, el, initials, shortDate } from "./dom.ts";
 import { LogView } from "./log-view.ts";
 
@@ -83,7 +89,10 @@ interface State {
 	selectedCommit: string | null;
 	commitDetails: CommitDetails | null;
 	commitFiles: CommitFile[];
-	commitPath: string | null;
+	/** Righe aggiunte e rimosse del commit: l'analisi in testa al pannello. */
+	commitStat: CommitStat | null;
+	/** Patch già lette per il diff del commit: cambiando formato non si rilegge il disco. */
+	commitDiffs: DiffFile[];
 	/** file selezionato nella scheda File Tree */
 	treePath: string | null;
 	/** cartelle chiuse nell'albero; vuoto = tutto aperto */
@@ -113,14 +122,16 @@ function emptyState(root = ""): State {
 		selectedCommit: null,
 		commitDetails: null,
 		commitFiles: [],
-		commitPath: null,
+		commitStat: null,
+		commitDiffs: [],
 		treePath: null,
 		treeCollapsed: new Set(),
 		changePath: null,
 		changeStaged: false,
 		changeDiff: null,
 		picked: new Set(),
-		diffLayout: savedLayout(),
+		// il diff parte unito; affiancato resta una scelta della sessione, non una preferenza salvata
+		diffLayout: "unified",
 		tab: "commit",
 		searchQuery: null,
 		side: "commits",
@@ -130,17 +141,6 @@ function emptyState(root = ""): State {
 /** Le sessioni aperte, per root; `state` è quella attiva (le funzioni la leggono al momento). */
 const sessions = new Map<string, State>();
 let state: State = emptyState();
-
-/** Il formato del diff è una preferenza dell'utente: si ricorda fra un avvio e l'altro. */
-function savedLayout(): DiffLayout {
-	try {
-		return localStorage.getItem("githandler.diffLayout") === "split"
-			? "split"
-			: "unified";
-	} catch {
-		return "unified";
-	}
-}
 
 const ui = {
 	repoName: byId("repo-name"),
@@ -430,7 +430,6 @@ function panelSnapshot(): PanelStateInput {
 	return {
 		tab: state.tab,
 		selectedCommit: state.selectedCommit,
-		commitPath: state.commitPath,
 		changePath: state.changePath,
 		changeStaged: state.changeStaged,
 		treePath: state.treePath,
@@ -469,10 +468,6 @@ async function applyPanelState(payload: PanelState): Promise<void> {
 		payload.selectedCommit !== state.selectedCommit
 	) {
 		await selectCommit(payload.selectedCommit);
-		if (token !== panelApplyToken) return;
-	}
-	if (payload.commitPath && payload.commitPath !== state.commitPath) {
-		await selectCommitFile(payload.commitPath);
 		if (token !== panelApplyToken) return;
 	}
 	if (payload.changePath && payload.changePath !== state.changePath) {
@@ -1367,8 +1362,8 @@ function renderCommitHead(): void {
 		);
 	}
 
-	const parents = details?.parents ?? commit.parents;
 	facts.appendChild(sep());
+	const parents = details?.parents ?? commit.parents;
 	facts.appendChild(
 		fact(
 			"",
@@ -1380,20 +1375,6 @@ function renderCommitHead(): void {
 			parents.length === 0
 				? "Commit iniziale, senza genitori"
 				: `Parent: ${parents.map((p) => p.slice(0, 8)).join(" ")}`
-		)
-	);
-
-	facts.appendChild(sep());
-	const count = state.commitFiles.length;
-	facts.appendChild(
-		fact(
-			"",
-			count === 0
-				? "nessun file"
-				: count === 1
-				? "1 file"
-				: `${count} file`,
-			"File toccati dal commit"
 		)
 	);
 	line.appendChild(facts);
@@ -1408,39 +1389,112 @@ function renderCommitHead(): void {
 	// senza file il diff dice già che il commit non tocca niente: l'intestazione si ferma qui
 	if (state.commitFiles.length === 0) return;
 
-	const chips = el("div", "commit-chips");
-	for (const file of state.commitFiles) {
-		const chip = el("button", "commit-chip");
-		chip.dataset.path = file.path;
-		chip.title = file.oldPath
-			? `${file.oldPath} → ${file.path}`
-			: file.path;
-		if (file.path === state.commitPath) chip.classList.add("is-selected");
+	ui.commitHead.appendChild(renderCommitAnalysis());
+}
 
-		const code = file.status;
-		chip.appendChild(
-			el(
-				"span",
-				`st ${code === "?" ? "st-a" : `st-${code.toLowerCase()}`}`,
-				code
-			)
-		);
-		const slash = file.path.lastIndexOf("/");
-		if (slash > 0) {
-			chip.appendChild(
-				el("span", "chip-dir", file.path.slice(0, slash + 1))
-			);
-		}
-		chip.appendChild(
-			el(
-				"span",
-				"chip-name",
-				slash > 0 ? file.path.slice(slash + 1) : file.path
-			)
-		);
-		chips.appendChild(chip);
+/** Le etichette degli stati, nell'ordine in cui compaiono nel riepilogo. */
+const COMMIT_STATES: Array<[code: string, one: string, many: string]> = [
+	["A", "nuovo", "nuovi"],
+	["D", "eliminato", "eliminati"],
+	["M", "modificato", "modificati"],
+	["R", "rinominato", "rinominati"],
+	["C", "copiato", "copiati"],
+	["T", "tipo cambiato", "tipi cambiati"],
+];
+
+/**
+ * Quello che l'elenco dei file non direbbe: quanto pesa il commit (barra proporzionale fra
+ * aggiunte e rimozioni), quante cartelle tocca e come si distribuiscono gli stati. Serve a capire
+ * la forma del commit prima di leggerlo; i file uno per uno restano nel File Tree.
+ */
+function renderCommitAnalysis(): HTMLElement {
+	const row = el("div", "commit-analysis");
+	const files = state.commitFiles;
+	const stat = state.commitStat;
+
+	const additions = stat?.additions ?? 0;
+	const deletions = stat?.deletions ?? 0;
+	if (stat && additions + deletions > 0) {
+		const bar = el("div", "commit-bar");
+		bar.title = `${additions} righe aggiunte, ${deletions} rimosse`;
+		const add = el("span", "seg-add");
+		add.style.flexGrow = String(additions);
+		const del = el("span", "seg-del");
+		del.style.flexGrow = String(deletions);
+		bar.append(add, del);
+		row.appendChild(bar);
 	}
-	ui.commitHead.appendChild(chips);
+
+	if (stat) {
+		const totals = el("span", "commit-totals");
+		if (additions > 0) {
+			totals.appendChild(el("span", "plus", `+${additions}`));
+		}
+		if (deletions > 0) {
+			totals.appendChild(el("span", "minus", `−${deletions}`));
+		}
+		if (additions + deletions === 0) {
+			totals.appendChild(el("span", "", "±0 righe"));
+		}
+		totals.title = `${additions} righe aggiunte, ${deletions} rimosse`;
+		row.appendChild(totals);
+	}
+
+	const sep = (): void => void row.appendChild(el("span", "sep", "·"));
+	sep();
+	row.appendChild(
+		el("span", "", files.length === 1 ? "1 file" : `${files.length} file`)
+	);
+
+	const folders = new Set<string>();
+	for (const file of files) {
+		const slash = file.path.lastIndexOf("/");
+		if (slash > 0) folders.add(file.path.slice(0, slash));
+	}
+	if (folders.size > 0) {
+		sep();
+		const node = el(
+			"span",
+			"",
+			folders.size === 1 ? "1 cartella" : `${folders.size} cartelle`
+		);
+		node.title = [...folders].sort().join("\n");
+		row.appendChild(node);
+	}
+
+	if (stat && stat.binaries > 0) {
+		sep();
+		row.appendChild(
+			el(
+				"span",
+				"",
+				stat.binaries === 1 ? "1 binario" : `${stat.binaries} binari`
+			)
+		);
+	}
+
+	const counts = new Map<string, number>();
+	for (const file of files) {
+		const code = file.status.toUpperCase();
+		counts.set(code, (counts.get(code) ?? 0) + 1);
+	}
+	const states = el("span", "commit-states");
+	for (const [code, one, many] of COMMIT_STATES) {
+		const count = counts.get(code);
+		if (!count) continue;
+		const item = el("span", "state");
+		item.title = `${count} ${count === 1 ? one : many}`;
+		item.append(
+			el("span", `st st-${code.toLowerCase()}`, code),
+			el("span", "state-count", String(count))
+		);
+		states.appendChild(item);
+	}
+	if (states.childElementCount > 0) {
+		row.appendChild(states);
+	}
+
+	return row;
 }
 // ── azioni ───────────────────────────────────────────────────────────────────
 
@@ -1471,43 +1525,101 @@ async function refresh(): Promise<void> {
 async function selectCommit(sha: string): Promise<void> {
 	const root = state.root;
 	state.selectedCommit = sha;
-	state.commitPath = null;
 	state.commitDetails = null;
+	state.commitFiles = [];
+	state.commitStat = null;
+	state.commitDiffs = [];
 	state.treePath = null;
 	setTab("commit");
 	logView.select(sha);
 
-	const [details, files] = await Promise.all([
+	// i tre dati arrivano da git separatamente: chiederli insieme evita tre attese in fila
+	const [details, files, stat] = await Promise.all([
 		guard("Dettaglio commit", () => api.commitDetails(sha)),
 		guard("Commit", () => api.commitFiles(sha)),
+		guard("Righe del commit", () => api.commitStat(sha)),
 	]);
 	if (!files || !isActive(root)) return;
 	state.commitDetails = details;
 	state.commitFiles = files;
+	state.commitStat = stat;
 	renderCommitHead();
 	if (state.snapshot) renderTree(state.snapshot);
-
-	const first = files[0];
-	if (first) await selectCommitFile(first.path);
-	else renderDiff(ui.commitDiff, null, "Commit senza modifiche ai file.");
+	await renderCommitDiff();
 	publishPanel();
 }
 
-async function selectCommitFile(path: string): Promise<void> {
+/** Tetto al diff del commit: oltre, la lettura per file resta al File Tree. */
+const COMMIT_DIFF_FILES = 12;
+const COMMIT_DIFF_LINES = 4000;
+
+/**
+ * Il commit si legge tutto di seguito, come `git show`: una richiesta per file, in parallelo, ma
+ * solo per i primi e finché le righe restano leggibili. Oltre il tetto il pannello lo dice e
+ * rimanda al File Tree, che resta la vista file per file.
+ */
+async function renderCommitDiff(): Promise<void> {
 	const sha = state.selectedCommit;
 	const root = state.root;
-	if (!sha) return;
-	state.commitPath = path;
-	state.treePath = path;
-	renderCommitHead();
-	if (state.snapshot) renderTree(state.snapshot);
-	const file = await guard("Diff", () => api.commitPatch(sha, path));
-	if (file && isActive(root)) {
-		renderDiff(ui.commitDiff, file, "Nessuna differenza.", {
+	state.commitDiffs = [];
+	if (!sha || state.commitFiles.length === 0) {
+		paintCommitDiff();
+		return;
+	}
+
+	renderDiffs(ui.commitDiff, [], "Lettura del diff…", {
+		layout: state.diffLayout,
+	});
+	const targets = state.commitFiles.slice(0, COMMIT_DIFF_FILES);
+	const patches = await Promise.all(
+		targets.map((file) =>
+			guard("Diff", () => api.commitPatch(sha, file.path))
+		)
+	);
+	// la selezione può essere cambiata mentre i diff arrivavano
+	if (!isActive(root) || state.selectedCommit !== sha) return;
+
+	let lines = 0;
+	for (const patch of patches) {
+		if (!patch) continue;
+		const size = patch.additions + patch.deletions;
+		// il primo file si mostra sempre: un file enorme è comunque meglio di una pagina vuota
+		if (state.commitDiffs.length > 0 && lines + size > COMMIT_DIFF_LINES) {
+			break;
+		}
+		state.commitDiffs.push(patch);
+		lines += size;
+	}
+	paintCommitDiff();
+}
+
+/** Disegna i diff già letti e, se il commit è più lungo del tetto, dice dove vedere il resto. */
+function paintCommitDiff(): void {
+	if (!state.selectedCommit) {
+		renderDiffs(ui.commitDiff, [], "Seleziona un commit.", {
 			layout: state.diffLayout,
 		});
+		return;
 	}
-	publishPanel();
+	renderDiffs(
+		ui.commitDiff,
+		state.commitDiffs,
+		state.commitFiles.length === 0
+			? "Commit senza modifiche ai file."
+			: "Diff non disponibile.",
+		{ layout: state.diffLayout }
+	);
+	const hidden = state.commitFiles.length - state.commitDiffs.length;
+	if (hidden <= 0) return;
+	ui.commitDiff.appendChild(
+		el(
+			"div",
+			"commit-more",
+			hidden === 1
+				? "1 altro file non mostrato: aprile nel File Tree."
+				: `${hidden} altri file non mostrati: aprili nel File Tree.`
+		)
+	);
 }
 
 /** Diff della scheda File Tree: stesso backend, riquadro diverso. */
@@ -1518,8 +1630,6 @@ async function selectTreeFile(path: string): Promise<void> {
 
 	if (state.selectedCommit) {
 		const sha = state.selectedCommit;
-		state.commitPath = path;
-		renderCommitHead();
 		const file = await guard("Diff", () => api.commitPatch(sha, path));
 		if (file && isActive(root)) {
 			renderDiff(ui.treeDiff, file, "Nessuna differenza.", {
@@ -1624,11 +1734,12 @@ async function applyPartial(selection: HunkSelection[]): Promise<void> {
 	applySnapshot(snapshot);
 }
 
-/** Ricarica il diff aperto dopo un'operazione: il contenuto è cambiato sotto. */
+/**
+ * Ricarica il diff aperto dopo un'operazione: il contenuto è cambiato sotto. Il diff di un commit
+ * no: è immutabile, quindi si lascia com'è invece di rileggere N patch a ogni refresh.
+ */
 async function reloadOpenDiff(): Promise<void> {
-	if (state.tab === "commit" && state.selectedCommit && state.commitPath) {
-		await selectCommitFile(state.commitPath);
-	} else if (state.changePath) {
+	if (state.changePath) {
 		const entry = state.snapshot?.status.entries.find(
 			(item) => item.path === state.changePath
 		);
@@ -1680,14 +1791,14 @@ function setTab(tab: Tab): void {
 	publishPanel();
 }
 
-/** Blame del file aperto: quello delle Modifiche, altrimenti quello del commit selezionato. */
+/** Blame del file aperto: quello delle Modifiche, altrimenti quello del File Tree. */
 async function loadBlame(): Promise<void> {
-	const path = state.changePath ?? state.commitPath;
+	const path = state.changePath ?? state.treePath;
 	ui.blamePath.textContent = path ?? "";
 	if (!path) {
 		blameView.setData(
 			null,
-			"Seleziona un file da Modifiche o da un commit."
+			"Seleziona un file da Modifiche o dal File Tree."
 		);
 		return;
 	}
@@ -3860,16 +3971,10 @@ function updateDiffButtons(): void {
 function setDiffLayout(layout: DiffLayout): void {
 	if (layout === state.diffLayout) return;
 	state.diffLayout = layout;
-	try {
-		localStorage.setItem("githandler.diffLayout", layout);
-	} catch (error) {
-		console.warn("formato del diff non salvato:", error);
-	}
 	updateDiffButtons();
 	if (state.changePath && state.changeDiff) renderChangeDiff();
-	if (state.tab === "commit" && state.commitPath) {
-		void selectCommitFile(state.commitPath);
-	}
+	// il commit è già in memoria: cambiare formato non richiede di rileggere il disco
+	if (state.tab === "commit") paintCommitDiff();
 	if (state.tab === "tree" && state.treePath) {
 		void selectTreeFile(state.treePath);
 	}
@@ -3883,7 +3988,7 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(
 		setDiffLayout(button.dataset.diff === "split" ? "split" : "unified");
 	});
 }
-// la preferenza salvata deve essere visibile già al primo avvio
+// il formato attivo va mostrato subito, prima che si apra un repository
 updateDiffButtons();
 ui.btnFetch.addEventListener("click", () => void fetchAll());
 ui.btnSettings.addEventListener("click", () => void openSettings());
@@ -4071,22 +4176,6 @@ ui.changesDiff.addEventListener("click", (event) => {
 	const hunk = line.dataset.hunk;
 	if (hunk === undefined || line.dataset.line === undefined) return;
 	togglePick(Number(hunk), Number(line.dataset.line));
-});
-
-ui.commitHead.addEventListener("contextmenu", (event) => {
-	const path = (event.target as HTMLElement).closest<HTMLElement>(
-		"[data-path]"
-	)?.dataset.path;
-	if (!path) return;
-	event.preventDefault();
-	openMenu(event.clientX, event.clientY, fileMenuEntries(path));
-});
-
-ui.commitHead.addEventListener("click", (event) => {
-	const path = (event.target as HTMLElement).closest<HTMLElement>(
-		"[data-path]"
-	)?.dataset.path;
-	if (path) void selectCommitFile(path);
 });
 
 ui.btnStageAll.addEventListener("click", () => {

@@ -87,11 +87,19 @@
     del mouse dice quanti file sono in stage e quanti fuori.
 -   Il pannello **Commit** non è più un elenco di percorsi accanto al diff, che sembrava un _File Tree_
     più povero: ora è una **scheda** con autore (e committer quando è un altro), oggetto, data, SHA (un
-    clic lo copia), numero di genitori e di file, il corpo del messaggio su due righe e i file toccati
-    come **pastiglie** orizzontali con stato e cartella. Il diff prende tutta la larghezza e _File Tree_
-    resta l'unica vista ad albero.
--   `PanelState` perde il campo `side` e la scheda `changes` (la finestra staccata non li usava): il
-    protocollo del pannello resta allineato alle schede che esistono davvero.
+    clic lo copia), genitori, il corpo del messaggio su due righe e una riga di **analisi** — barra
+    proporzionale fra aggiunte e rimozioni, `+N`/`−M`, numero di file, di cartelle, di binari e conteggio
+    per stato. Sotto, il diff dell'**intero commit** in un unico scorrimento, come `git show`.
+-   Il diff del commit è limitato a 12 file e 4.000 righe: oltre, il pannello dice quanti file restano
+    fuori e rimanda al _File Tree_, che resta l'unica vista file per file e ad albero. Lì non si vedono
+    più le pastiglie dei file: niente più due elenchi quasi uguali nella stessa finestra.
+-   Il diff parte **unified**; _Affiancato_ resta un cambio di vista della sessione e non viene più
+    salvato fra un avvio e l'altro (`localStorage["githandler.diffLayout"]` non esiste più). Scegliere il
+    formato non rilegge il disco: i diff del commit sono già in memoria.
+-   `PanelState` perde i campi `side` e `commitPath` (la finestra staccata non ne aveva bisogno: segue il
+    commit selezionato): il protocollo del pannello resta allineato alle schede che esistono davvero.
+-   In più `GitApi.commitStat` (`git show --numstat --first-parent`): i totali di righe non si potevano
+    ricavare da `--name-status`, che non li porta.
 
 ## [0.9.0] — 2026-11-08
 

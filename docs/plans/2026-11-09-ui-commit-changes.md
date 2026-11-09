@@ -83,11 +83,46 @@ Fatto e verificato. La duplicazione è sparita insieme al nodo spostato; il cont
 dire se c'è solo da committare; il pannello _Commit_ ha una gerarchia diversa da _File Tree_ (scheda in
 alto, diff a tutta larghezza).
 
+## Secondo giro — il commit è un'analisi, non un elenco
+
+Lo stesso giorno, dopo aver visto il risultato: «di default voglio unified invece che affiancato;
+riguardo la sezione commit è inutile in quel modo e una replica di _File Tree_, togli dalla sezione
+commit i file e in caso metti altro, che so qualcosa di analisi, qualcosa di utile e diverso».
+
+-   **Le pastiglie dei file spariscono**: erano la terza forma dello stesso elenco (le altre due sono
+    l'albero e l'elenco delle modifiche). Il pannello _Commit_ non seleziona più un file: nessun
+    `commitPath` nello stato né in `PanelState`, e `selectCommitFile` non esiste più.
+-   **Al loro posto una riga di analisi**: barra proporzionale aggiunte/rimozioni, `+N`/`−M` (lo zero
+    non si mostra), numero di file, di cartelle, di binari e conteggi per stato (`A`/`D`/`M`/`R`/`C`/`T`
+    con i colori già usati dall'albero). Sono i dati che l'elenco dei file non dà: il peso e la forma del
+    commit.
+-   **Il diff è quello dell'intero commit**, uno dopo l'altro come `git show`, con l'intestazione di ogni
+    file appiccicata in cima. Tetto: 12 file e 4.000 righe; oltre, una nota dice quanti file restano
+    fuori e rimanda al _File Tree_ (che resta l'unica vista file per file). Il primo file si mostra
+    sempre, anche se da solo supera il tetto.
+-   **Serve un totale di righe per file**: `--name-status` non le porta. Nuovo
+    `GitApi.commitStat` → `git show --numstat --first-parent --format=` con `parseNumstat` (puro, nel
+    core, testato: righe normali, `-`/`-` dei binari, code spezzate da percorsi con newline).
+-   **Unified di default**: via `localStorage["githandler.diffLayout"]` e `savedLayout()`. Il formato
+    parte unito e cambiarlo è una scelta della sessione; il diff del commit è già in `state.commitDiffs`,
+    quindi _Affiancato_ ridisegna senza rileggere il disco.
+-   **Il refresh non rilegge il commit**: `reloadOpenDiff` non tocca più il pannello _Commit_ (il diff di
+    un commit è immutabile); prima ogni evento del watcher riscaricava N patch.
+-   **La selezione nel _File Tree_ non tocca più il pannello _Commit_**; il blame usa il file delle
+    modifiche, altrimenti quello del _File Tree_.
+
+Verifiche: `npm run typecheck`, `npm test` (142 verdi, 2 nuovi su `parseNumstat`), `npm run build`,
+screenshot 1440×940, CDP su `/tmp/gitdemo` (formato iniziale unito, 5 blocchi in un riquadro, merge,
+commit vuoto con committer diverso, _Affiancato_ senza richieste, preferenza non salvata, _File Tree_
+indipendente), pannello staccato che segue il commit e mostra tutti i blocchi, e `/tmp/gitmany` (tetto:
+12 blocchi su 15 file con la nota; file unico da 3.000 righe mostrato).
+
 ## Prompt di ripresa
 
 Riprendi il ridisegno UI di GitHandler in `~/Projects/githandler` leggendo
 `docs/plans/2026-11-09-ui-commit-changes.md`: scheda _Changes_ del pannello inferiore rimossa (le
 modifiche restano solo a tutta area dalla barra laterale), contatore con tono verde/ambra e nascosto a
-zero, pannello _Commit_ trasformato in scheda (identità, messaggio su due righe, pastiglie dei file,
-diff a tutta larghezza). Stato: implementato, verificato con typecheck, 140 test, build, screenshot e
-CDP.
+zero, pannello _Commit_ senza elenco di file — riga di analisi (barra `+N`/`−M`, file, cartelle, binari,
+stati) e diff dell'intero commit in un unico scorrimento, con tetto di 12 file e 4.000 righe. Il diff
+parte unified e il formato non è più salvato; `commitStat` (`--numstat`) fornisce i totali. Stato:
+implementato, verificato con typecheck, 142 test, build, screenshot e CDP.

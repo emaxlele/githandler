@@ -39,6 +39,7 @@ const api: GitApi = {
 	refresh: () => invokeRepo("git:refresh"),
 	commitDetails: (sha) => invokeRepo("git:commitDetails", sha),
 	commitFiles: (sha) => invokeRepo("git:commitFiles", sha),
+	commitStat: (sha) => invokeRepo("git:commitStat", sha),
 	commitPatch: (sha, path) => invokeRepo("git:commitPatch", sha, path),
 	worktreePatch: (path, staged) =>
 		invokeRepo("git:worktreePatch", path, staged),

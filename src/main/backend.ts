@@ -12,8 +12,10 @@ import { blameArgs, parseBlame, type BlameFile } from "../core/blame.ts";
 import {
 	commitDiffArgs,
 	commitFilesArgs,
+	commitStatArgs,
 	parseDiff,
 	parseNameStatus,
+	parseNumstat,
 	worktreeDiffArgs,
 } from "../core/diff.ts";
 import { layoutGraph } from "../core/graph.ts";
@@ -69,6 +71,7 @@ import type {
 	CommitDetails,
 	CommitFile,
 	CommitPage,
+	CommitStat,
 	DiffFile,
 	RepoInfo,
 	RepoOperation,
@@ -112,6 +115,8 @@ export interface GitBackend {
 	open(dir: string): Promise<Snapshot>;
 	refresh(): Promise<Snapshot>;
 	commitFiles(sha: string): Promise<CommitFile[]>;
+	/** Righe aggiunte/rimosse e file binari del commit (`--numstat`). */
+	commitStat(sha: string): Promise<CommitStat>;
 	commitPatch(sha: string, path: string): Promise<DiffFile>;
 	worktreePatch(path: string, staged: boolean): Promise<DiffFile>;
 	stage(paths: string[]): Promise<Snapshot>;
@@ -185,9 +190,13 @@ export class CliGitBackend implements GitBackend {
 	/** Ambiente con le credenziali dell'account che corrisponde all'host di `origin`. */
 	async #networkEnv(info: RepoInfo): Promise<Record<string, string>> {
 		if (!this.#credentials) return {};
-		const remote = await runGit(info.root, ["remote", "get-url", "origin"], {
-			allowFailure: true,
-		});
+		const remote = await runGit(
+			info.root,
+			["remote", "get-url", "origin"],
+			{
+				allowFailure: true,
+			}
+		);
 		if (remote.code !== 0) return {};
 		const env = await this.#credentials(hostFromUrl(remote.stdout.trim()));
 		return env ?? {};
@@ -239,7 +248,8 @@ export class CliGitBackend implements GitBackend {
 		const refList = parseRefs(refs.stdout);
 		attachRefs(commits, refList);
 
-		const branch = headRef.code === 0 ? headRef.stdout.trim() || null : null;
+		const branch =
+			headRef.code === 0 ? headRef.stdout.trim() || null : null;
 		this.#info = {
 			...info,
 			branch,
@@ -270,6 +280,12 @@ export class CliGitBackend implements GitBackend {
 		const info = this.#requireInfo();
 		const result = await runGit(info.root, commitFilesArgs(sha));
 		return parseNameStatus(result.stdout);
+	}
+
+	async commitStat(sha: string): Promise<CommitStat> {
+		const info = this.#requireInfo();
+		const result = await runGit(info.root, commitStatArgs(sha));
+		return parseNumstat(result.stdout);
 	}
 
 	async commitPatch(sha: string, path: string): Promise<DiffFile> {

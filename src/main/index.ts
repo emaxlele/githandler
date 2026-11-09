@@ -251,6 +251,9 @@ function registerIpc(): void {
 	handle("git:commitFiles", (root: string, sha: string) =>
 		backendFor(root).commitFiles(sha)
 	);
+	handle("git:commitStat", (root: string, sha: string) =>
+		backendFor(root).commitStat(sha)
+	);
 	handle("git:commitPatch", (root: string, sha: string, path: string) =>
 		backendFor(root).commitPatch(sha, path)
 	);

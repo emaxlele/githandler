@@ -5,6 +5,32 @@
 
 ## 2026-11-09
 
+### La sezione Commit racconta il commit, non ripete l'elenco dei file
+
+-   **Cosa**: la sezione **Commit** del pannello in basso non mostra più i file come pastiglie (erano la
+    terza copia dello stesso elenco, dopo il _File Tree_ e le modifiche). Al loro posto c'è una **riga di
+    analisi**: una barra che mostra a colpo d'occhio quanto pesa il commit fra righe aggiunte e rimosse,
+    i totali `+N`/`−M`, e quanti file, cartelle, binari e file per stato tocca. Sotto, il **diff
+    dell'intero commit** in un unico scorrimento, come farebbe `git show`, invece di dover scegliere un
+    file alla volta. Il diff parte **unito** (non più affiancato) e la scelta del formato non viene più
+    ricordata da un avvio all'altro. Se un commit è enorme, il pannello mostra i primi 12 file o le prime
+    4.000 righe e scrive quanti ne restano, rimandando al _File Tree_ per leggerli uno per uno.
+-   **Perché**: era la richiesta dell'utente — «di default voglio unified invece che affiancato; riguardo
+    la sezione commit è inutile in quel modo e una replica di file tree, togli dalla sezione commit i
+    file e in caso metti altro, che so qualcosa di analisi, qualcosa di utile e diverso».
+-   **Come**: l'elenco dei file è stato tolto dal pannello e sostituito con i numeri che l'elenco non
+    dà (peso, cartelle, stati). I totali di righe non erano disponibili da quello che l'app chiedeva già
+    a Git, quindi è stata aggiunta una lettura dedicata (`git show --numstat`) con il suo parser, provato
+    anche sui file binari e sui percorsi difficili. Il diff del commit viene letto una volta e tenuto in
+    memoria: cambiare formato non rilegge il disco e il refresh automatico non lo riscarica più.
+-   **Verifica**: 142 test automatici verdi (2 nuovi sui totali delle righe), tipi e build puliti. Prova
+    reale con l'app su repository di prova: commit normale, commit di merge, commit vuoto con committer
+    diverso, commit con 5 file e commit con 15 file (12 mostrati e la nota sul resto), file unico da
+    3.000 righe, passaggio unito/affiancato senza nuove letture, pannello in finestra separata che segue
+    il commit. Screenshot a 1440×940.
+-   **Stato**: completato.
+-   **Riferimento**: commit del repository `~/Projects/githandler`.
+
 ### Accedere senza intoppi, sapere chi comanda su ogni repository, seguire fork e Actions
 
 -   **Cosa**: il pulsante **Accedi** del dialogo account ora funziona con un clic se sulla macchina c'è

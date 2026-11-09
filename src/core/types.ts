@@ -135,6 +135,13 @@ export interface CommitFile {
 	status: string;
 }
 
+/** Righe aggiunte e rimosse da un commit, con i file binari contati a parte. */
+export interface CommitStat {
+	additions: number;
+	deletions: number;
+	binaries: number;
+}
+
 export interface RepoInfo {
 	root: string;
 	gitDir: string;

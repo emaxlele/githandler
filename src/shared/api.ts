@@ -10,6 +10,7 @@ import type {
 	CommitDetails,
 	CommitFile,
 	CommitPage,
+	CommitStat,
 	DiffFile,
 	Snapshot,
 	StashEntry,
@@ -37,6 +38,8 @@ export interface GitApi {
 	commitDetails(sha: string): Promise<CommitDetails | null>;
 	/** File toccati da un commit. */
 	commitFiles(sha: string): Promise<CommitFile[]>;
+	/** Righe aggiunte e rimosse dal commit, più il numero di file binari. */
+	commitStat(sha: string): Promise<CommitStat>;
 	/** Patch di un singolo file in un commit. */
 	commitPatch(sha: string, path: string): Promise<DiffFile>;
 	/** Patch di un file nel working tree (staged o unstaged). */
@@ -221,7 +224,6 @@ export interface PanelState {
 	root: string;
 	tab: PanelTab;
 	selectedCommit: string | null;
-	commitPath: string | null;
 	changePath: string | null;
 	changeStaged: boolean;
 	treePath: string | null;
@@ -236,6 +238,7 @@ export type IpcChannel =
 	| "git:refresh"
 	| "git:commitDetails"
 	| "git:commitFiles"
+	| "git:commitStat"
 	| "git:commitPatch"
 	| "git:worktreePatch"
 	| "git:stage"

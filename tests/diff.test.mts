@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { parseDiff, parseNameStatus } from "../src/core/diff.ts";
+import { parseDiff, parseNameStatus, parseNumstat } from "../src/core/diff.ts";
 
 const unified = [
 	"diff --git a/src/a.ts b/src/a.ts",
@@ -143,4 +143,28 @@ test("parseNameStatus gestisce modifiche, rename e path vuoti", () => {
 			["D", "sparito.ts", null],
 		]
 	);
+});
+
+test("parseNumstat somma le righe e conta i binari a parte", () => {
+	const stat = parseNumstat(
+		[
+			"12\t3\tsrc/a.ts",
+			"0\t0\tcreato.ts",
+			"-\t-\tlogo.png",
+			// un percorso con newline spezza la riga: quella coda non è un file
+			"7\t1\tcon",
+			"newline.ts",
+			"",
+		].join("\n")
+	);
+
+	assert.deepEqual(stat, { additions: 19, deletions: 4, binaries: 1 });
+});
+
+test("parseNumstat su un commit vuoto non inventa niente", () => {
+	assert.deepEqual(parseNumstat(""), {
+		additions: 0,
+		deletions: 0,
+		binaries: 0,
+	});
 });

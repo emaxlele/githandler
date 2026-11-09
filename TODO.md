@@ -7,7 +7,7 @@ Stato al 2026-11-09 (v0.10.0). Le voci spuntate sono in `CHANGELOG.md`.
 -   [x] Staging parziale: per hunk e per singola riga (`git apply --cached`, anche `--reverse` per
         togliere dallo stage)
 -   [x] Diff affiancato (prima/dopo) con accoppiamento riga per riga ed evidenza della porzione
-        cambiata; scelta ricordata fra un avvio e l'altro
+        cambiata; il formato parte unito e resta una scelta di sessione, non una preferenza salvata
 -   [x] Undo generale (journal in `.git/githandler/undo.json`, `refs/githandler/snapshots/*`): commit,
         checkout e scarto, con pulsante e `Ctrl+Z`
 -   [x] Ricerca nella storia: testo letterale, `author:`, `file:`; usata da UI e API
@@ -76,6 +76,10 @@ minmax(0, 1fr)`), non più contenuto tagliato
         stessa vista della voce della barra laterale, mostrata due volte); il contatore accanto a
         _Changes_ si nasconde a zero ed è verde quando c'è solo da committare, ambra quando resta
         qualcosa fuori dallo stage
+-   [x] **Commit come analisi, non come elenco di file**: la scheda _Commit_ mostra barra proporzionale
+        fra aggiunte e rimozioni, `+N`/`−M`, file, cartelle, binari e conteggi per stato, poi il diff
+        dell'intero commit in un unico scorrimento (tetto di 12 file e 4.000 righe, con rimando al
+        _File Tree_); `commitStat` legge i totali con `git show --numstat --first-parent`
 -   [x] **Menu del commit completo**: ramo dal commit, merge, rebase, reset soft/mixed/hard (con
         conferma), cherry-pick, copia; `assertSha` sugli SHA e undo del reset tramite `target`
 -   [x] **Benvenuto all'avvio** (`body.is-empty`): senza `--repo` nessun dialog di sistema, quattro

@@ -79,7 +79,36 @@ export function renderDiff(
 		)}</div>`;
 		return;
 	}
+	container.innerHTML = fileDiffHtml(file, options);
+}
 
+/**
+ * Più file nello stesso riquadro, uno dopo l'altro come `git show`: ogni blocco tiene la sua
+ * intestazione, che resta appiccicata in cima mentre si scorre. Serve al pannello Commit, dove il
+ * commit si legge per intero invece di scegliere un file alla volta (quello è il File Tree).
+ */
+export function renderDiffs(
+	container: HTMLElement,
+	files: DiffFile[],
+	emptyText: string,
+	options: DiffRenderOptions = {}
+): void {
+	if (files.length === 0) {
+		container.innerHTML = `<div class="empty-small">${escapeHtml(
+			emptyText
+		)}</div>`;
+		return;
+	}
+	container.innerHTML = files
+		.map((file) => fileDiffHtml(file, options))
+		.join("");
+}
+
+/** HTML di un singolo file: intestazione, poi hunk oppure la nota per binari e file senza testo. */
+export function fileDiffHtml(
+	file: DiffFile,
+	options: DiffRenderOptions = {}
+): string {
 	const head =
 		`<div class="diff-head">` +
 		`<span class="path">${escapeHtml(file.path)}</span>` +
@@ -94,13 +123,11 @@ export function renderDiff(
 		`</span></div>`;
 
 	if (file.binary) {
-		container.innerHTML = `${head}<div class="binary-note">File binario: nessuna anteprima testuale.</div>`;
-		return;
+		return `${head}<div class="binary-note">File binario: nessuna anteprima testuale.</div>`;
 	}
 
 	if (file.hunks.length === 0) {
-		container.innerHTML = `${head}<div class="binary-note">Nessuna differenza testuale.</div>`;
-		return;
+		return `${head}<div class="binary-note">Nessuna differenza testuale.</div>`;
 	}
 
 	const mode =
@@ -113,7 +140,7 @@ export function renderDiff(
 			? renderSplitBody(file, mode, picked)
 			: renderUnifiedBody(file, mode, picked);
 
-	container.innerHTML = head + body;
+	return head + body;
 }
 
 function renderUnifiedBody(
