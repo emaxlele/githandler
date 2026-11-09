@@ -2,6 +2,24 @@
 
 ## [Non rilasciato]
 
+### Controlli delle pull request
+
+-   **Esito dei controlli** nella finestra delle pull request: _Controlli_ legge i workflow sul commit
+    in testa alla richiesta e mostra l'esito complessivo (verde, rosso, in corso) e ogni controllo con
+    dettaglio e collegamento alla pagina del servizio.
+-   **Quattro servizi, una forma**: `src/core/checks.ts` conosce le check run di GitHub, gli status dei
+    job di GitLab, gli status dei commit di Gitea e i build di Bitbucket, e li riduce a `ok`,
+    `failed`, `pending`, `neutral`.
+-   **Onestà del colore**: il riepilogo è verde solo con almeno un successo e nessun rosso; un esito
+    sconosciuto resta in corso, un annullato non è verde. `cancelled` e `timed_out` contano come
+    falliti.
+-   **Sicurezza**: lo SHA deve essere esadecimale (7–64 cifre) prima di entrare in un indirizzo; un
+    collegamento che arriva dall'API si apre solo se è `https` e sull'host dell'account.
+-   **Pull request** ora porta anche lo SHA in testa (`headSha`), letto da `head.sha`, `sha` o
+    `source.commit.hash`. Senza SHA il pulsante è spento e dice perché.
+-   Test nuovi in `tests/checks.test.mts` (8 casi): indirizzi per i quattro servizi, SHA non valido,
+    parser delle quattro risposte, esito complessivo.
+
 ### Reflog e salto a qualsiasi commit
 
 -   **Finestra «Reflog»**: gli ultimi 200 spostamenti di HEAD (commit, checkout, reset, rebase) con

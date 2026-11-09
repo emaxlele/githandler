@@ -5,6 +5,24 @@
 
 ## 2026-11-09
 
+### Si vede se i controlli automatici sono passati
+
+-   **Cosa**: nella finestra delle pull request ogni richiesta ha ora il pulsante **«Controlli»**: legge
+    l'esito dei controlli automatici (i workflow di GitHub, i job di GitLab, gli status di
+    Gitea/Forgejo, i build di Bitbucket) sul commit in testa alla richiesta e mostra se sono passati,
+    falliti o ancora in corso, con il dettaglio e il collegamento a ciascuno.
+-   **Perché**: richiesta dell'utente — è la domanda che si fa prima di unire una richiesta, e finora
+    la risposta stava solo sul sito.
+-   **Come**: la lettura è in `src/core/checks.ts`, con un solo esito per ogni servizio (`ok`,
+    `fallito`, `in corso`, `neutro`). Un controllo annullato o scaduto non viene mostrato come verde;
+    un esito che non si conosce resta «in corso» invece di dichiarare un successo. Il collegamento a un
+    controllo si apre solo se porta allo stesso sito dell'account.
+-   **Verifica**: typecheck, **208 test** verdi (8 nuovi: indirizzi, SHA non validi, le quattro
+    risposte e l'esito complessivo) e build. La prova dal vivo richiede un repository con account e
+    controlli reali.
+-   **Stato**: completato. Restano le notifiche dal tray, che vanno provate su una sessione desktop.
+-   **Riferimento**: commit di questa sessione.
+
 ### Si può vedere dove era HEAD, e saltare a un commit qualsiasi
 
 -   **Cosa**: c'è una finestra **«Reflog»** che mostra, dalla più recente, ogni volta che il

@@ -1,4 +1,5 @@
 import type { BlameFile } from "../core/blame.ts";
+import type { CheckSummary } from "../core/checks.ts";
 import type { WorkflowRun } from "../core/actions.ts";
 import type { ForkInfo, ForkSyncResult } from "../core/fork.ts";
 import type { Account, AccountChoice, RemoteRepo } from "../core/providers.ts";
@@ -107,6 +108,8 @@ export interface GitApi {
 	pullRequests(): Promise<PullList>;
 	/** Apre una pull request dai due rami indicati. */
 	createPullRequest(input: NewPullRequest): Promise<PullRequest>;
+	/** Controlli del commit in testa a una pull request. */
+	pullChecks(sha: string): Promise<CheckSummary>;
 	/** File tracciati nel ref indicato (o in HEAD); serve al selettore dei file. */
 	listRepoFiles(ref?: string | null): Promise<RepoFileList>;
 	/** Salva il contenuto di HEAD in un archivio zip scelto dall'utente. */
@@ -325,6 +328,7 @@ export type IpcChannel =
 	| "actions:run"
 	| "pulls:list"
 	| "pulls:create"
+	| "pulls:checks"
 	| "repo:listFiles"
 	| "repo:exportZip"
 	| "repo:openFileInBrowser"

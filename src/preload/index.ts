@@ -98,6 +98,7 @@ const api: GitApi = {
 	workflowRunAction: (id, action) => invokeRepo("actions:run", id, action),
 	pullRequests: () => invokeRepo("pulls:list"),
 	createPullRequest: (input) => invokeRepo("pulls:create", input),
+	pullChecks: (sha) => invokeRepo("pulls:checks", sha),
 	listRepoFiles: (ref) => invokeRepo("repo:listFiles", ref),
 	exportZip: () => invokeRepo("repo:exportZip"),
 	openFileInBrowser: (path, ref) =>

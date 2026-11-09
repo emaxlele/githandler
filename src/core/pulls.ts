@@ -17,6 +17,8 @@ export interface PullRequest {
 	draft: boolean;
 	source: string;
 	target: string;
+	/** SHA del commit in testa al ramo di partenza: serve ai controlli */
+	headSha: string;
 	updatedAt: string;
 	/** pagina web della pull request, sempre sull'host dell'account */
 	url: string;
@@ -223,6 +225,7 @@ interface RawPull {
 	draft: unknown;
 	source: unknown;
 	target: unknown;
+	headSha: unknown;
 	updatedAt: unknown;
 	url: string;
 	merged: boolean;
@@ -262,6 +265,7 @@ function assemble(
 		draft: raw.draft === true,
 		source,
 		target,
+		headSha: text(raw.headSha),
 		updatedAt: text(raw.updatedAt),
 		url: pullWebUrl(account, namespace, name, number, raw.url),
 	};
@@ -287,6 +291,7 @@ function parseOne(
 			draft: entry.draft ?? entry.work_in_progress,
 			source: entry.source_branch,
 			target: entry.target_branch,
+			headSha: entry.sha,
 			updatedAt: entry.updated_at,
 			url: text(entry.web_url),
 			merged: text(entry.state).toLowerCase() === "merged",
@@ -295,7 +300,8 @@ function parseOne(
 
 	if (account.provider === "bitbucket") {
 		const author = asRecord(entry.author);
-		const source = asRecord(asRecord(entry.source)?.branch);
+		const sourceRoot = asRecord(entry.source);
+		const source = asRecord(sourceRoot?.branch);
 		const destination = asRecord(asRecord(entry.destination)?.branch);
 		const links = asRecord(asRecord(entry.links)?.html);
 		return assemble(account, namespace, name, {
@@ -306,6 +312,7 @@ function parseOne(
 			draft: entry.draft,
 			source: source?.name,
 			target: destination?.name,
+			headSha: asRecord(sourceRoot?.commit)?.hash,
 			updatedAt: entry.updated_on,
 			url: text(links?.href),
 			merged: text(entry.state).toUpperCase() === "MERGED",
@@ -324,6 +331,7 @@ function parseOne(
 		draft: entry.draft,
 		source: head?.ref ?? entry.head,
 		target: base?.ref ?? entry.base,
+		headSha: head?.sha,
 		updatedAt: entry.updated_at,
 		url: text(entry.html_url),
 		merged: entry.merged === true || text(entry.merged_at).length > 0,

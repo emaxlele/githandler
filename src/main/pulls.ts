@@ -1,4 +1,11 @@
 import {
+	assertCommitSha,
+	checksUrl,
+	parseChecks,
+	summarizeChecks,
+	type CheckSummary,
+} from "../core/checks.ts";
+import {
 	createPullPayload,
 	createPullUrl,
 	parsePullRequest,
@@ -141,6 +148,25 @@ export async function listPulls(root: string): Promise<PullList> {
 			payload
 		),
 	};
+}
+
+/** Controlli del commit in testa a una pull request, dal servizio del repository. */
+export async function pullChecks(
+	root: string,
+	sha: string
+): Promise<CheckSummary> {
+	const context = await contextFor(root);
+	const payload = await request(
+		context,
+		checksUrl(
+			context.account,
+			context.namespace,
+			context.name,
+			assertCommitSha(sha)
+		),
+		{ method: "GET" }
+	);
+	return summarizeChecks(parseChecks(context.account, payload));
 }
 
 export async function createPull(

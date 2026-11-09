@@ -66,6 +66,7 @@ Italiano: [README.md](README.md)
 | **Recoverable untracked files** (Git objects)                                 | ✅             |
 | **History search**: text, `author:`, `file:`, `regex:`, `change:`, `diff:`, `lines:` | ✅             |
 | **Reflog** in the app and "go to commit" by SHA                               | ✅             |
+| **Pull request checks** (result and links)                                    | ✅             |
 | **Automatic refresh** (`--watch`)                                             | ✅             |
 | **Blame in the UI** (virtualized panel)                                       | ✅             |
 | **Resizable, collapsible, detachable panel**                                  | ✅             |
@@ -309,7 +310,8 @@ From the right-click menu on the repository tab:
     Bitbucket), with author, source and target branch, draft state and _Open_ in the browser. From the
     same window one is created from two branches: the branches must already be pushed. On GitLab the
     window is titled _merge request_. No new token: it uses the account already chosen for the
-    repository.
+    repository. _Checks_ reads the workflow results on the head commit of the request — green, red
+    or pending, with the detail and a link to each one.
 -   **GitHub Actions…**: latest runs with workflow, status, branch and event; _Re-run_ (failed jobs of
     a completed run), _Cancel_ (a running one), _Open_ in the browser. GitHub only.
 -   **Open a repository file…**: filterable list of files tracked in HEAD, opened from the system or

@@ -136,7 +136,7 @@ test("GitHub: numero, autore, draft e stato", () => {
 			user: { login: "emaxlele" },
 			state: "open",
 			draft: true,
-			head: { ref: "conflitti" },
+			head: { ref: "conflitti", sha: "c0ffee1234567890abcdefabcdefabcdefabcdef12" },
 			base: { ref: "main" },
 			updated_at: "2026-11-09T08:00:00Z",
 			html_url: "https://github.com/a/b/pull/12",
@@ -164,6 +164,7 @@ test("GitHub: numero, autore, draft e stato", () => {
 		draft: true,
 		source: "conflitti",
 		target: "main",
+		headSha: "c0ffee1234567890abcdefabcdefabcdefabcdef12",
 		updatedAt: "2026-11-09T08:00:00Z",
 		url: "https://github.com/a/b/pull/12",
 	});
@@ -179,6 +180,7 @@ test("GitLab: `iid`, merge request e stato `opened`", () => {
 			author: { username: "demo", name: "Demo" },
 			state: "opened",
 			draft: false,
+			sha: "abc1234567890abcdefabcdefabcdefabcdefabcde",
 			source_branch: "palette",
 			target_branch: "main",
 			updated_at: "2026-11-09T09:00:00Z",
@@ -198,6 +200,7 @@ test("GitLab: `iid`, merge request e stato `opened`", () => {
 	]);
 	assert.equal(pulls.length, 2);
 	assert.equal(pulls[0]!.source, "palette");
+	assert.equal(pulls[0]!.headSha, "abc1234567890abcdefabcdefabcdefabcdefabcde");
 	assert.equal(pulls[0]!.state, "open");
 	assert.equal(pulls[1]!.draft, true);
 });
@@ -211,7 +214,10 @@ test("Bitbucket: `values`, nome visualizzato e stato in maiuscolo", () => {
 				author: { display_name: "Emanuele" },
 				state: "MERGED",
 				draft: false,
-				source: { branch: { name: "diff" } },
+				source: {
+					branch: { name: "diff" },
+					commit: { hash: "def1234567890abcdefabcdefabcdefabcdef1234" },
+				},
 				destination: { branch: { name: "main" } },
 				updated_on: "2026-11-09T07:00:00Z",
 				links: { html: { href: "https://bitbucket.org/demo/repo/pull-requests/5" } },
@@ -230,6 +236,7 @@ test("Bitbucket: `values`, nome visualizzato e stato in maiuscolo", () => {
 	assert.equal(pulls.length, 2);
 	assert.equal(pulls[0]!.state, "merged");
 	assert.equal(pulls[0]!.author, "Emanuele");
+	assert.equal(pulls[0]!.headSha, "def1234567890abcdefabcdefabcdefabcdef1234");
 	assert.equal(pulls[1]!.state, "closed");
 	assert.equal(pulls[1]!.author, "demo");
 	// senza indirizzo nella risposta se ne costruisce uno sull'host dell'account

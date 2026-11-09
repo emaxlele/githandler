@@ -38,6 +38,7 @@ import {
 	type RemoteRepo,
 } from "../core/providers.ts";
 import { describeRun, type WorkflowRun } from "../core/actions.ts";
+import type { CheckRun, CheckSummary } from "../core/checks.ts";
 import type { PullList, PullRequest } from "../core/pulls.ts";
 import type { ReflogEntry } from "../core/reflog.ts";
 import { deviceFlow, tokenPageUrl } from "../core/oauth.ts";
@@ -4360,6 +4361,13 @@ function renderPulls(): void {
 	ui.pullsStatus.textContent = t(`${list.length} aperte.`);
 }
 
+function checkStateClass(state: CheckRun["state"]): string {
+	if (state === "ok") return "is-ok";
+	if (state === "failed") return "is-bad";
+	if (state === "pending") return "is-pending";
+	return "";
+}
+
 function renderPullItem(pull: PullRequest): void {
 	const item = el("li");
 	const description = el("div", "actions-text");
@@ -4378,7 +4386,25 @@ function renderPullItem(pull: PullRequest): void {
 	description.appendChild(el("span", "actions-meta", meta));
 	item.appendChild(description);
 
+	const checks = el("div", "pull-checks");
+	checks.hidden = true;
+	item.appendChild(checks);
+
 	const actions = el("div", "actions-actions");
+	const run = el("button", "btn btn-small", t("Controlli")) as HTMLButtonElement;
+	run.type = "button";
+	if (pull.headSha) {
+		run.title = t("Legge gli esiti dei controlli sul commit in testa alla richiesta.");
+		run.addEventListener("click", () =>
+			void loadPullChecks(pull, run, checks)
+		);
+	} else {
+		// senza lo SHA del ramo non c'è un indirizzo da chiedere: meglio spento che in errore
+		run.disabled = true;
+		run.title = t("Il servizio non ha indicato il commit in testa a questa richiesta.");
+	}
+	actions.appendChild(run);
+
 	const open = el("button", "btn btn-small", t("Apri")) as HTMLButtonElement;
 	open.type = "button";
 	open.title = t("Apre la pull request nel browser.");
@@ -4389,6 +4415,67 @@ function renderPullItem(pull: PullRequest): void {
 	actions.appendChild(open);
 	item.appendChild(actions);
 	ui.pullsList.appendChild(item);
+}
+
+async function loadPullChecks(
+	pull: PullRequest,
+	button: HTMLButtonElement,
+	container: HTMLElement
+): Promise<void> {
+	button.disabled = true;
+	container.hidden = false;
+	clear(container);
+	container.appendChild(el("div", "checks-summary", t("Leggo i controlli…")));
+	try {
+		const summary = await api.pullChecks(pull.headSha);
+		renderCheckSummary(summary, container);
+	} catch (error) {
+		clear(container);
+		container.appendChild(
+			el("div", "checks-summary is-bad", readableError(error))
+		);
+	} finally {
+		button.disabled = false;
+	}
+}
+
+function renderCheckSummary(
+	summary: CheckSummary,
+	container: HTMLElement
+): void {
+	clear(container);
+	const parts: string[] = [];
+	if (summary.ok) parts.push(t(`${summary.ok} ok`));
+	if (summary.failed) parts.push(t(`${summary.failed} falliti`));
+	if (summary.pending) parts.push(t(`${summary.pending} in corso`));
+	const headline = el(
+		"div",
+		`checks-summary ${checkStateClass(summary.state === "none" ? "neutral" : summary.state)}`,
+		parts.join(" · ") || t("Nessun controllo.")
+	);
+	container.appendChild(headline);
+
+	for (const run of summary.runs) {
+		const line = el("div", "check-line");
+		line.appendChild(
+			el("span", `check-dot ${checkStateClass(run.state)}`)
+		);
+		if (run.url) {
+			const link = el("button", "check-name", run.name) as HTMLButtonElement;
+			link.type = "button";
+			link.title = t("Apre il controllo nel browser.");
+			link.addEventListener(
+				"click",
+				() => void guard("Browser", () => api.openExternal(run.url))
+			);
+			line.appendChild(link);
+		} else {
+			line.appendChild(el("span", "check-name", run.name));
+		}
+		if (run.detail)
+			line.appendChild(el("span", "check-detail", run.detail));
+		container.appendChild(line);
+	}
 }
 
 async function createPullFromForm(): Promise<void> {

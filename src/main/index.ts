@@ -42,7 +42,7 @@ import {
 	setRepoAccount,
 } from "./accounts.ts";
 import { listWorkflowRuns, runWorkflowAction } from "./actions.ts";
-import { createPull, listPulls } from "./pulls.ts";
+import { createPull, listPulls, pullChecks } from "./pulls.ts";
 import { exportArchive } from "./export.ts";
 import { forkInfo, syncFork } from "./fork.ts";
 import { CliGitBackend } from "./backend.ts";
@@ -432,6 +432,9 @@ function registerIpc(): void {
 	handle("pulls:list", (root: string) => listPulls(root));
 	handle("pulls:create", (root: string, input: NewPullRequest) =>
 		createPull(root, input)
+	);
+	handle("pulls:checks", (root: string, sha: string) =>
+		pullChecks(root, sha)
 	);
 	handle(
 		"actions:run",

@@ -742,6 +742,16 @@ const EN: Record<string, string> = {
 	"Mostra gli spostamenti di HEAD e ne apre un commit.":
 		"Shows the moves of HEAD and opens one of its commits.",
 	"Vai al commit per SHA…": "Go to commit by SHA…",
+	Controlli: "Checks",
+	"Legge gli esiti dei controlli sul commit in testa alla richiesta.":
+		"Reads the check results on the head commit of the request.",
+	"Il servizio non ha indicato il commit in testa a questa richiesta.":
+		"The service did not report the head commit of this request.",
+	"Leggo i controlli…": "Reading the checks…",
+	"{0} falliti": "{0} failed",
+	"{0} in corso": "{0} pending",
+	"Nessun controllo.": "No checks.",
+	"Apre il controllo nel browser.": "Opens the check in the browser.",
 	Nuova: "New",
 	"Ramo di partenza": "Source branch",
 	"Ramo di arrivo": "Target branch",
