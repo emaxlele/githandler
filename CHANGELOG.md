@@ -13,6 +13,11 @@
 -   **Versione allineata**: `package.json` passa a **0.12.0** con la sezione di rilascio datata, così
     il nome del file, il campo `Version` del pacchetto e il controllo aggiornamenti dicono la stessa
     cosa.
+-   **L'icona non sparisce passando al pacchetto**: l'installazione da sorgenti generava un indice
+    delle icone nella home (`gtk-update-icon-cache`); rimossa l'icona utente, l'indice restava e il
+    nome `githandler` continuava a puntare a un file inesistente, quindi la griglia delle applicazioni
+    mostrava una tile vuota. Lo script non crea più quell'indice e ha `--remove`, che toglie i tre
+    file e gli indici.
 -   **Provato dove conta**: `apt-get install ./githandler_0.12.0_amd64.deb` su `ubuntu:24.04` pulita,
     con utente non privilegiato, avvio da `/usr/bin/githandler` senza `--no-sandbox` e 36 screenshot
     prodotti dall'app installata; `apt-get purge` non lascia niente in `/opt`, `/usr/bin`,

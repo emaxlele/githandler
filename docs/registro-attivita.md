@@ -151,6 +151,11 @@
     profilo `githandler`. Avviata l'app da lì su un repository di prova: otto processi, **nessuno con
     `--no-sandbox`**, etichetta AppArmor `githandler (unconfined)` su ognuno, finestra aperta. È il
     percorso con il sandbox vero, che l'installazione da sorgenti aggirava sempre con `--no-sandbox`.
+-   **Icona mancante, e perché**: nella griglia delle applicazioni GitHandler compariva come una tile
+    vuota. Non era il pacchetto: l'installazione da sorgenti aveva lasciato nella home un indice delle
+    icone che puntava al file appena rimosso, e quel nome copriva l'icona buona. Tolto l'indice, lo
+    script non lo crea più e ora ha `--remove`, che toglie i file e gli indici: chi passa dai sorgenti
+    al pacchetto non se lo ritrova più davanti.
 -   **Stato**: fatto e verificato.
 -   **Riferimento**: commit di questa sessione.
 

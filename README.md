@@ -279,7 +279,11 @@ sudo apt install ./release/githandler_0.12.0_amd64.deb
 ```
 
 Installa l'app in `/opt/githandler`, il launcher in `/usr/bin/githandler`, la voce nel menu e
-l'icona. Dichiara `git` (≥ 2.23) e le librerie GTK fra le dipendenze: `apt` le installa se mancano. Il pacchetto include `chrome-sandbox` con il bit setuid e il profilo AppArmor in
+l'icona. Dichiara `git` (≥ 2.23) e le librerie GTK fra le dipendenze: `apt` le installa se mancano.
+
+Se avevi installato dai sorgenti con `./build/install-local.sh`, togli prima quei file con
+`./build/install-local.sh --remove`: stanno nella home, vengono prima di quelli del sistema e
+coprirebbero il pacchetto (compresa l'icona). Il pacchetto include `chrome-sandbox` con il bit setuid e il profilo AppArmor in
 `/etc/apparmor.d/githandler`, che `postinst` carica: su Ubuntu 24.04+ il sandbox di Chromium resta
 attivo. Il launcher ripiega su `--no-sandbox` solo se il bit setuid è stato perso e i namespace
 utente sono limitati.
