@@ -2,6 +2,17 @@
 
 ## [Non rilasciato]
 
+### Il chip dell'account dice di nuovo quale account lavora sul repository
+
+-   **Una risposta per repository**: la scelta dell'account si legge per la scheda attiva. Riaprendo
+    più schede all'avvio, la lettura fatta per l'ultima scheda veniva scartata e quella della scheda
+    attiva non arrivava mai: il chip restava su «account…».
+-   **Il chip non si blocca**: mentre la risposta non c'è resta cliccabile, quindi il menu con
+    «Gestisci account…» è raggiungibile anche se la lettura fallisce. Prima l'unica porta verso gli
+    account spariva insieme alla risposta.
+-   **Cambio scheda**: passando da un repository all'altro la scelta viene riletta, così il chip non
+    mostra più quella del repository lasciato indietro.
+
 ### Il remoto `upstream` dei fork si vede e si cambia dall'app
 
 -   **«Remoto dell'originale…»** nel menu della scheda: mostra l'originale letto dal provider,

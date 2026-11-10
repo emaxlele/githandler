@@ -5,6 +5,22 @@
 
 ## 2026-11-10
 
+### L'account del repository non sparisce più dalla barra
+
+-   **Cosa**: l'indicatore con l'account in alto torna a mostrare l'account giusto e resta cliccabile;
+    dal suo menu si arriva a «Gestisci account…», dove gli account si aggiungono e si tolgono.
+-   **Perché**: era stato segnalato che non si vedeva l'account e non c'era un posto per aggiungerne
+    uno. L'indicatore restava su «account…» e non rispondeva al clic: all'avvio l'app leggeva
+    l'account dell'ultima scheda riaperta e la scheda attiva non riceveva mai la sua risposta.
+-   **Come**: ogni scheda ha la sua scelta dell'account, riletta quando si cambia repository; se la
+    lettura non è ancora arrivata l'indicatore resta cliccabile e il menu porta comunque alla
+    gestione degli account.
+-   **Verifica**: typecheck, 297 test e build; provato sull'app in funzione con le tre schede
+    riaperte: all'avvio, cambiando scheda e tornando indietro l'indicatore mostra l'account e il
+    menu offre «Gestisci account…».
+-   **Stato**: fatto.
+-   **Riferimento**: commit di questa sessione.
+
 ### Anche il remoto che punta al repository originale si gestisce dall'app
 
 -   **Cosa**: nel menu della scheda c'è «Remoto dell'originale…»: apre una finestra con il repository

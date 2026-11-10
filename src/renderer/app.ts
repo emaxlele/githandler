@@ -977,28 +977,28 @@ function renderOperation(snapshot: Snapshot | null): void {
  * Quale account tiene questo repository. La risposta viene dal main, che applica le regole
  * (`chooseRepoAccount`): scelta salvata, proprietario del remoto, unico account, altrimenti il
  * primo — e in quel caso il chip lo dice, invece di far finta che sia una certezza.
+ *
+ * Una voce per repository: all'avvio le schede tornano in ordine e la lettura dell'ultima non è
+ * quella attiva, quindi una sola casella mostrerebbe «account…» sulla scheda sbagliata.
  */
-let repoAccountCache: { root: string; choice: AccountChoice } | null = null;
-let repoAccountRequest = 0;
+const repoAccountChoices = new Map<string, AccountChoice>();
 
 async function refreshRepoAccount(): Promise<void> {
 	const root = state.root;
-	const request = ++repoAccountRequest;
 	if (!root) {
-		repoAccountCache = null;
+		repoAccountChoices.clear();
 		renderRepoAccount();
 		return;
 	}
 	try {
+		// la risposta vale per il repository attivo del main, che è questo: `state.root`
 		const choice = await api.repoAccount();
-		if (request !== repoAccountRequest) return;
-		repoAccountCache = { root, choice };
+		repoAccountChoices.set(root, choice);
 	} catch (error) {
-		if (request !== repoAccountRequest) return;
+		// un errore non cancella la scelta già nota: il chip la mostra ancora e si può cambiare
 		console.warn("account del repository:", readableError(error));
-		repoAccountCache = null;
 	}
-	renderRepoAccount();
+	if (state.root === root) renderRepoAccount();
 }
 
 function accountReasonText(choice: AccountChoice): string {
@@ -1025,14 +1025,12 @@ function renderRepoAccount(): void {
 		return;
 	}
 	chip.classList.remove("hidden");
-	const cached =
-		repoAccountCache && repoAccountCache.root === state.root
-			? repoAccountCache.choice
-			: null;
+	const cached = repoAccountChoices.get(state.root) ?? null;
 	if (!cached) {
 		chip.textContent = "account…";
 		chip.classList.remove("is-guess");
-		chip.disabled = true;
+		// resta cliccabile: il menu è anche l'unica porta verso «Gestisci account…»
+		chip.disabled = false;
 		chip.title = t("Sto leggendo il remoto…");
 		return;
 	}
@@ -1048,10 +1046,7 @@ function renderRepoAccount(): void {
 }
 
 function openRepoAccountMenu(x: number, y: number): void {
-	const cached =
-		repoAccountCache && repoAccountCache.root === state.root
-			? repoAccountCache.choice
-			: null;
+	const cached = repoAccountChoices.get(state.root) ?? null;
 	const entries: Array<MenuEntry | "separator"> = [];
 	if (!cached) {
 		entries.push({
@@ -1100,7 +1095,7 @@ async function chooseRepoAccount(id: string | null): Promise<void> {
 		api.setRepoAccount(id)
 	);
 	if (!choice) return;
-	repoAccountCache = { root: state.root, choice };
+	repoAccountChoices.set(state.root, choice);
 	renderRepoAccount();
 	toast(
 		choice.account
@@ -1168,6 +1163,8 @@ function renderSession(): void {
 	}
 	void reloadOpenDiff();
 	void updateWatchChip();
+	// la scheda attiva può essere cambiata senza un aggiornamento del repository
+	void refreshRepoAccount();
 	publishPanel();
 }
 
@@ -3642,6 +3639,7 @@ async function useSession(root: string): Promise<void> {
 
 async function closeSession(root: string): Promise<void> {
 	sessions.delete(root);
+	repoAccountChoices.delete(root);
 	try {
 		// il main dimentica il backend e ferma il watcher: niente eventi per una scheda che non c'è
 		await api.closeRepo(root);
