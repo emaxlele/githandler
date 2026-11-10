@@ -11,7 +11,8 @@ Stato al 2026-11-09 (v0.10.0). Le voci spuntate sono in `CHANGELOG.md`.
 -   [x] Undo generale (journal in `.git/githandler/undo.json`, `refs/githandler/snapshots/*`): commit,
         checkout e scarto, con pulsante e `Ctrl+Z`
 -   [x] Ricerca nella storia: testo letterale, `author:`, `file:`; usata da UI e API
--   [x] Refresh automatico su `fs.watch` con debounce, filtro e chip Live (`--watch`)
+-   [x] Refresh automatico su `fs.watch` con debounce, filtro e chip Live, **acceso di default**
+        (`--no-watch` per spegnerlo)
 -   [x] Parser di blame (`git blame --line-porcelain`) e `formatDiff` nel core
 -   [x] Server MCP (`npm run mcp`): `repo_status`, `history`, `show_commit`, `worktree_diff`,
         `blame`; configurazione in `docs/mcp.md`
@@ -139,6 +140,15 @@ minmax(0, 1fr)`), non più contenuto tagliato
 -   [x] **Progetto pubblicabile**: licenza **GPL-3.0-or-later**, CI GitHub Actions (typecheck, test,
         build, smoke del benchmark), `SECURITY.md`, `CONTRIBUTING.md`, `ROADMAP.md`, moduli per le issue,
         `AGENTS.md`, badge nel README
+-   [x] **Changes come si lavora**: le modifiche fuori dallo stage sopra, quelle in stage sotto, doppio
+        clic che sposta il file tra i due lati (con il diff che segue), pulsante `⇩` per lo stash del
+        solo file e menu contestuale del file con stage, scarto, stash del file, «Stash di tutti i
+        file…», apri, mostra, salva una copia e copia percorso
+-   [x] **Allineamento del ramo attuale all'upstream**: `alignToUpstream` legge il ramo da HEAD, fa
+        `fetch --prune` del solo remoto, conta con `rev-list --left-right --count` e avanza con
+        `merge --ff-only`; con i due lati divergenti non tocca niente e propone il rebase dei commit
+        locali, lasciando i conflitti alla finestra dei conflitti. Voce nel menu del ramo, disabilitata
+        sugli altri rami e sui rami senza upstream
 
 ## Aperto
 

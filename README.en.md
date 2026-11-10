@@ -79,7 +79,7 @@ Italiano: [README.md](README.md)
 | **Signed commits** (GPG or SSH with the Git key)                                     | ✅             |
 | **Network progress** (clone, fetch, pull, push)                                      | ✅             |
 | **Themes** light / dark / OLED, density and text size                                | ✅             |
-| **Automatic refresh** (`--watch`)                                                    | ✅             |
+| **Automatic refresh** (on by default)                                                | ✅             |
 | **Blame in the UI** (virtualized panel)                                              | ✅             |
 | **Resizable, collapsible, detachable panel**                                         | ✅             |
 | **MCP server with configurable permissions**                                         | ✅             |
@@ -106,6 +106,10 @@ settings:
     in the same order, and returns to the active one (`localStorage["githandler.sessions"]`). A path
     that no longer exists is skipped without stopping the others. `--repo <path>` opens that
     repository as well and makes it active.
+-   **The repository re-reads itself**: edit a file in an editor, save, switch branches from a
+    terminal — the changes view follows the disk. Watching is on by default (recursive `fs.watch`,
+    400 ms of debounce to group saves, events only for files that matter) and the **Live** chip says
+    it is active; `--no-watch` turns it off for those who work in a terminal and want no re-reads.
 -   **Welcome without a repository**: with no saved tabs the window opens no system dialog, it shows
     the four choices and the base folder from which dialogs and clones start. Closing the last tab
     returns there.
@@ -152,13 +156,19 @@ settings:
     whether each remote answers and how many branches it has, waiting at most 8 seconds per remote.
     It changes nothing: it says what to look at.
 -   **A single view for changes**: the _Changes_ entry in the sidebar brings them to the whole area,
-    without history or lower panel: Staged and Unstaged lists, the diff and the commit box.
-    _All Commits_ goes back to history.
+    without history or lower panel: **unstaged** changes first, **staged** ones below, then the diff
+    and the commit box. A double click moves a file to the other side; every row has stage/unstage,
+    discard and a **single-file stash** button (`⇩`), and the right button opens the same actions
+    plus "Stash all files…". _All Commits_ goes back to history.
 -   **History** in five columns: swimlane graph, message with ref badges, author with initials avatar,
     short SHA, date. Click a branch or tag: the cursor moves to its commit. Right click a branch:
-    checkout, merge, rebase, rename, delete, copy; on a commit: new branch from that point, merge,
-    rebase, reset soft / mixed / hard, cherry-pick, copy SHA and message. "Interactive rebase from
-    here…" lists the commits up to HEAD: each row can be moved, combined (squash or fixup), renamed
+    checkout, merge, rebase, rename, delete, copy, and "Align with its upstream" on the current
+    branch (fetch, count, fast-forward; when both sides have their own commits it asks whether to
+    reapply the local ones, and conflicts are resolved in the conflicts window); on a commit: new
+    branch from that point, merge, rebase, reset soft / mixed / hard, cherry-pick, copy SHA and
+    message.
+    "Interactive rebase from here…" lists the commits up to HEAD: each row can be moved, combined
+    (squash or fixup), renamed
     (reword, with the full message) or removed (drop). Nothing is sent to the remote and the
     operation stays undoable.
 -   **Lower panel** with four tabs: `Commit` (a card with author — and committer, when different —
@@ -242,7 +252,7 @@ The full picture — rules, contracts between the three layers, measured costs a
 ```bash
 npm install
 npm start                              # build + start
-npm start -- --repo ~/Projects/AI_Knowledge --watch   # rereads the repo when it changes
+npm start -- --repo ~/Projects/AI_Knowledge   # rereads the repo when it changes
 
 npm test                  # parsers, graph and integration with real git
 npm run typecheck
@@ -252,8 +262,8 @@ npm run bench             # backend measurements (log, parsing, graph, status)
 npm run mcp -- --repo .   # MCP server on stdio, read and write (see docs/mcp.md)
 ```
 
-Start flags: `--repo <path>`, `--watch` (repository watching, or `GITHANDLER_WATCH=1`), `--no-watch`
-to turn it off when enabled through the environment.
+Start flags: `--repo <path>` and `--no-watch`, which turns repository watching off (it is on by
+default; `GITHANDLER_WATCH=0` does the same). `--watch` is still accepted and does nothing.
 
 ## Install (Linux)
 

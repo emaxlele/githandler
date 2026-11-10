@@ -5,6 +5,34 @@
 
 ## 2026-11-10
 
+### Changes più vicina al lavoro: il repository si aggiorna da solo, ordine, doppio clic, stash per file
+
+-   **Cosa**: nella schermata delle modifiche le voci sono ora ordinate per ciò che serve decidere —
+    prima quello che non è ancora pronto per il commit, sotto quello che lo è — un doppio clic sposta
+    un file dall'una all'altra parte, ogni riga ha un pulsante per mettere da parte **solo quel file**,
+    il tasto destro apre le stesse azioni, e il menu di un ramo ha «Allinea al suo upstream», che
+    porta il ramo all'ultimo commit del server.
+-   **Perché**: era stato segnalato che una modifica fatta in un editor compariva solo chiudendo e
+    riaprendo il progetto. Il motivo era che l'app rileggeva il repository solo se avviata con
+    un'opzione esplicita. Le altre quattro richieste sono scorciatoie per il lavoro di ogni giorno:
+    meno clic per preparare un commit, e un modo per aggiornare un ramo senza passare dal terminale.
+-   **Come**: la rilettura automatica ora è accesa di default (`--no-watch` la spegne per chi lavora in
+    terminale); l'ordine è solo una diversa disposizione dei due elenchi; il doppio clic fa la stessa
+    cosa dei pulsanti `+` e `−`; lo stash di un file usa lo stesso comando dello stash normale con un
+    solo percorso; l'allineamento scarica il remoto, conta i commit delle due parti e avanza solo se è
+    possibile senza riscrivere niente. Se le due parti hanno commit diversi l'app lo dice e chiede se
+    riapplicare quelli locali sopra il remoto: se un conflitto si presenta, si risolve nella finestra
+    dei conflitti che c'era già. Nessuna operazione distruttiva automatica.
+-   **Verifica**: typecheck, 290 test (sei nuovi: quattro con un remoto vero — ramo già allineato,
+    aggiornamento veloce, ramo divergente con rebase, ramo senza upstream — e due sui conteggi e
+    sugli argomenti), build e screenshot in inglese con il nuovo ordine, il pulsante dello stash e la
+    voce di menu del ramo. Provato anche sull'app in funzione: un file modificato da fuori compare da
+    solo, il doppio clic sposta la riga, il menu del file ha le voci dello stash, «Allinea all'upstream»
+    porta nel ramo un commit pubblicato da un altro clone e il pulsante `⇩` mette da parte il solo
+    file.
+-   **Stato**: fatto.
+-   **Riferimento**: commit di questa sessione.
+
 ### Aggiornamenti firmati: il controllo c'è, l'installazione resta in mano all'utente
 
 -   **Cosa**: l'applicazione ora può accorgersi che esiste una versione nuova e scaricarla, ma solo

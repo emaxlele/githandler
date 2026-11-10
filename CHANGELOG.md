@@ -2,6 +2,34 @@
 
 ## [Non rilasciato]
 
+### Changes: aggiornamento automatico, ordine, doppio clic, stash per file, allineamento del ramo
+
+-   **La sorveglianza del repository è accesa di default**: il watcher parte senza flag, spento da
+    `--no-watch` o `GITHANDLER_WATCH=0` e in modalità screenshot (che deve restare deterministica);
+    `--watch` resta accettato come no-op. Era opt-in, ed è per questo che una modifica fatta in un
+    editor compariva solo chiudendo e riaprendo il progetto.
+-   **Fuori dallo stage sopra, in stage sotto**: i due blocchi si scambiano nel markup e la griglia di
+    `#panel-changes .files` dà la maggior parte dell'altezza alla lista delle modifiche; l'albero dei
+    file tiene la sua disposizione.
+-   **Doppio clic = cambio lato**: un file in stage si toglie, uno fuori si aggiunge (un file non
+    tracciato si aggiunge e basta). Il lato del diff si aggiorna prima di ridisegnare, così la riga
+    resta selezionata e la patch mostrata è quella del lato nuovo.
+-   **Stash di un solo file**: un pulsante `⇩` su ogni riga e le voci corrispondenti nel menu
+    contestuale, che riusano `stashSave(message, [path])` con messaggio «Modifiche a <path>»; il resto
+    del working tree resta com'è.
+-   **Menu del file in Changes**: le azioni sul contenuto che esistevano già (apri, mostra, salva una
+    copia, copia percorso) più stage/unstage, scarto, stash del file e «Stash di tutti i file…».
+-   **Allineamento del ramo all'upstream**: voce nel menu del ramo, abilitata solo sul ramo attuale e
+    solo se ha un upstream. `alignToUpstream` (canale `git:alignToUpstream`) legge il ramo da HEAD in
+    quel momento, fa `fetch --prune` del solo remoto interessato, conta con
+    `rev-list --left-right --count` e avanza con `merge --ff-only`. Tre esiti dichiarati: già
+    allineato, fast-forward, divergente; nel terzo caso non tocca niente, chiede conferma e riapplica i
+    commit locali con un rebase — mai `reset --hard` — lasciando i conflitti alla finestra che l'app
+    usa già.
+-   Test: `tests/upstream.test.mts` con un remoto vero (allineato, fast-forward, divergente con
+    rebase, ramo senza upstream) e i nuovi casi in `tests/ops.test.mts` (conteggi, ref di tracking,
+    argomenti con e senza `--`).
+
 ### Aggiornamenti firmati: feed, verifica, apertura del pacchetto
 
 -   **Un feed `https` nelle impostazioni** (sezione _Aggiornamenti_): vuoto significa spento, e

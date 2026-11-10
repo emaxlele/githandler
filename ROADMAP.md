@@ -38,6 +38,10 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 
 ## 4. Daily quality
 
+-   ✅ Watching the repository is on by default (`--no-watch` turns it off), so a file edited outside
+    the app shows up in _Changes_ without reopening the project.
+-   ✅ Changes ordered by what needs a decision: unstaged above, staged below, a double click to move
+    a file between the two sides, and a single-file stash button and context menu on every row.
 -   ✅ User interface in Italian **and** English (`i18n`), language switchable in settings.
 -   ✅ Command palette (`Ctrl+K`) with a single command registry, and `?` for the shortcut list.
 -   ✅ Stronger search: `regex:` on the message, `change:` (`-S`), `diff:` (`-G`) and `lines:`
@@ -45,6 +49,9 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 -   ✅ Content search across the working tree (`git grep`), as a separate tool.
 -   ✅ Reflog panel and "go to commit by SHA"; the undo history is visible instead of implicit.
 -   ✅ Network progress from `git` stderr during clone, fetch, pull and push.
+-   ✅ Align the current branch with its upstream from the branch menu: fetch, count, fast-forward,
+    and on diverged histories an explicit rebase instead of any `reset --hard`, with conflicts going
+    to the conflicts window.
 -   ✅ Partial stash with a file checklist.
 -   ✅ Drag a file out of the window.
 -   ✅ Lazy tree in the file view: "All files" reads one folder at a time, the working-tree mode keeps

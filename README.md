@@ -79,7 +79,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Commit firmati** (GPG o SSH con la chiave di Git)                                         | ✅             |
 | **Avanzamento di rete** (clone, fetch, pull, push)                                          | ✅             |
 | **Temi** chiaro / scuro / OLED, densità e dimensione del testo                              | ✅             |
-| **Aggiornamento automatico** (`--watch`)                                                    | ✅             |
+| **Aggiornamento automatico** (acceso di default)                                            | ✅             |
 | **Blame nella UI** (pannello virtualizzato)                                                 | ✅             |
 | **Pannello ridimensionabile, a icona, in finestra**                                         | ✅             |
 | **Server MCP con permessi configurabili**                                                   | ✅             |
@@ -106,6 +106,11 @@ impostazioni:
     nello stesso ordine, e torna su quello che era attivo (`localStorage["githandler.sessions"]`). Un
     percorso sparito viene saltato senza fermare gli altri. `--repo <path>` apre quel repository in più e
     lo rende attivo.
+-   **Il repository si rilegge da solo**: modificare un file in un editor, salvare, cambiare ramo da un
+    terminale — la vista delle modifiche segue il disco. La sorveglianza è accesa di default
+    (`fs.watch` ricorsivo, 400 ms di attesa per raggruppare i salvataggi, eventi sui soli file che
+    contano) e il chip **Live** dice che è attiva; `--no-watch` la spegne per chi lavora in terminale
+    e non vuole riletture.
 -   **Benvenuto senza repository**: senza schede salvate la finestra non apre nessun dialog di sistema,
     mostra le quattro scelte e la cartella di base da cui partono i dialog e i cloni. Chiudendo l'ultima
     scheda si torna lì.
@@ -154,13 +159,17 @@ impostazioni:
     se ogni remoto risponde e quanti rami ha, con 8 secondi di attesa per ciascuno. Non cambia
     niente: dice cosa guardare.
 -   **Una vista sola per le modifiche**: la voce _Changes_ della barra laterale le porta a tutta area,
-    senza storia né pannello inferiore: le liste Staged e Unstaged, il diff e il riquadro del commit.
-    _All Commits_ riporta la storia.
+    senza storia né pannello inferiore: prima le modifiche **fuori dallo stage**, sotto quelle **in
+    stage**, poi il diff e il riquadro del commit. Il doppio clic su un file lo sposta dall'altra
+    parte; ogni riga ha i pulsanti stage/unstage, scarto e **stash del solo file** (`⇩`), e il tasto
+    destro apre le stesse azioni più «Stash di tutti i file…». _All Commits_ riporta la storia.
 -   **Storia** in cinque colonne: grafo a corsie, messaggio con i badge dei ref, autore con avatar a
     iniziali, SHA breve, data. Clic su un ramo o tag: il cursore va al suo commit. Tasto destro su un
-    ramo: checkout, merge, rebase, rinomina, elimina, copia; su un commit: ramo nuovo da quel punto,
-    merge, rebase, reset soft / mixed / hard, cherry-pick, copia di SHA e messaggio. «Rebase
-    interattivo da qui…» apre una lista dei commit fino a HEAD: ogni riga si sposta, si unisce
+    ramo: checkout, merge, rebase, rinomina, elimina, copia, e **«Allinea all'upstream»** sul ramo
+    attuale (fetch, conteggio e fast-forward; se i due lati hanno commit propri chiede se riapplicare
+    quelli locali, e i conflitti si risolvono nella finestra dei conflitti); su un commit: ramo nuovo
+    da quel punto, merge, rebase, reset soft / mixed / hard, cherry-pick, copia di SHA e messaggio.
+    «Rebase interattivo da qui…» apre una lista dei commit fino a HEAD: ogni riga si sposta, si unisce
     (squash o fixup), si rinomina (reword, con il messaggio completo) o si toglie (drop). Niente
     viene inviato al remoto e l'operazione resta annullabile.
 -   **Pannello inferiore** con quattro schede: `Commit` (una scheda con autore — e committer, quando è
@@ -244,7 +253,7 @@ Il quadro completo — regole, contratti fra i tre livelli, costi misurati e tra
 ```bash
 npm install
 npm start                              # build + avvio
-npm start -- --repo ~/Projects/AI_Knowledge --watch   # rilegge il repo quando cambia
+npm start -- --repo ~/Projects/AI_Knowledge   # rilegge il repo quando cambia
 
 npm test                  # parser, grafo e integrazione con git vero
 npm run typecheck
@@ -254,8 +263,8 @@ npm run bench             # misure del backend (log, parsing, grafo, status)
 npm run mcp -- --repo .   # server MCP su stdio, lettura e scrittura (vedi docs/mcp.md)
 ```
 
-Flag di avvio: `--repo <path>`, `--watch` (sorveglianza del repository, o `GITHANDLER_WATCH=1`),
-`--no-watch` per spegnerla quando è attiva per ambiente.
+Flag di avvio: `--repo <path>` e `--no-watch`, che spegne la sorveglianza del repository (accesa di
+default; anche `GITHANDLER_WATCH=0`). `--watch` resta accettato e non cambia niente.
 
 ## Installazione (Linux)
 
