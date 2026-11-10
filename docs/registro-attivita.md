@@ -145,9 +145,13 @@
     privilegi; il programma parte da `/usr/bin/githandler` con il sandbox normale (senza
     `--no-sandbox`), apre la finestra e produce 36 schermate della propria interfaccia; la rimozione
     con `apt purge` non lascia file in `/opt`, `/usr/bin`, `/etc/apparmor.d` e `/usr/share/applications`.
-    Un `git` già presente non viene toccato. Resta da fare sul nostro computer l'ultimo passo:
-    l'installazione vera, che richiede la password di amministratore.
--   **Stato**: pacchetto verificato; installazione sul computer dell'utente in attesa della password.
+    Un `git` già presente non viene toccato.
+-   **Sul nostro computer** (la prova che conta): installato con `sudo apt install` il pacchetto
+    0.12.0, il launcher sta in `/usr/bin/githandler`, la voce nel menu c'è e `aa-status` elenca il
+    profilo `githandler`. Avviata l'app da lì su un repository di prova: otto processi, **nessuno con
+    `--no-sandbox`**, etichetta AppArmor `githandler (unconfined)` su ognuno, finestra aperta. È il
+    percorso con il sandbox vero, che l'installazione da sorgenti aggirava sempre con `--no-sandbox`.
+-   **Stato**: fatto e verificato.
 -   **Riferimento**: commit di questa sessione.
 
 ## 2026-11-09

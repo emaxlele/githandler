@@ -30,10 +30,11 @@ sandbox attivo.
         `git` non era fra le dipendenze e le righe unite perdevano lo spazio dopo la virgola.
 -   [x] Rimozione dell'installazione utente (launcher, `desktop`, icona): fatta, `githandler` non è
         più nel `PATH`.
--   [ ] `sudo apt install ./release/githandler_0.12.0_amd64.deb` (passo dell'utente: la shell
-        dell'agente gira con `no_new_privs`, `sudo` risponde «flag is set»).
--   [ ] Verifica: `command -v githandler` → `/usr/bin/githandler`, `aa-status` con il profilo
-        `githandler`, avvio senza `--no-sandbox`, voce nel menu.
+-   [x] `sudo apt install ./release/githandler_0.12.0_amd64.deb`, eseguito dall'utente (la shell
+        dell'agente gira con `no_new_privs`, `sudo` risponde «flag is set»). Installata la 0.12.0.
+-   [x] Verifica: `/usr/bin/githandler`, `aa-status` con il profilo `githandler`, voce nel menu,
+        `chrome-sandbox` a 4755. Avvio su `/tmp/gitdemo`: otto processi, **nessuno** con
+        `--no-sandbox`, etichetta `githandler (unconfined)` su ciascuno.
 -   [x] Registro attività aggiornato con l'esito (sezione 2026-11-10).
 
 ## Rischi
@@ -67,6 +68,18 @@ display virtuale):
     `--no-sandbox`, apre la finestra e produce **36 screenshot** (`shot-changes.png` 52 KB), uscita 0.
 -   `apt-get purge githandler` non lascia niente: `/opt/githandler`, `/usr/bin/githandler`,
     `/etc/apparmor.d/githandler` e la voce nel menu spariscono.
+
+**Sul sistema vero** (Ubuntu 24.04, Wayland, `apparmor_restrict_unprivileged_userns=1`), dopo
+l'installazione fatta dall'utente:
+
+-   `dpkg-query` dice `0.12.0 install ok installed`; `/usr/bin/githandler` è il launcher del
+    pacchetto; `chrome-sandbox` è `4755 root:root`; la voce in `/usr/share/applications` c'è.
+-   `sudo aa-status` elenca `githandler`: il profilo è caricato dal `postinst`.
+-   Avvio da `/usr/bin/githandler --repo /tmp/gitdemo`: **otto processi, nessuno con
+    `--no-sandbox`**, e `cat /proc/<pid>/attr/current` risponde `githandler (unconfined)` su tutti.
+    L'app ha letto il repository (lo dice la riga delle notifiche CI nel log) ed è rimasta viva.
+-   L'avviso `_apt non ha accesso al file …` è cosmetico: `apt` è passato a leggere il pacchetto come
+    root, l'installazione è riuscita.
 
 Due cose imparate, da tenere presenti:
 
