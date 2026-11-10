@@ -140,16 +140,20 @@ chmod 755 "$pkg/DEBIAN/prerm"
 	sed 's/^/ /' LICENSE
 } >"$pkg/usr/share/doc/githandler/copyright"
 
+# `git` è una dipendenza vera: l'app è solo un'interfaccia sopra il comando. 2.23 è il primo con
+# `git switch` e `git restore`, che il backend usa.
+#
 # Librerie condivise richieste da Electron, con i nomi t64 di Ubuntu 24.04+ e gli
 # equivalenti precedenti come alternativa: il pacchetto resta installabile da 22.04 a 26.04.
-deps="libasound2t64 | libasound2, libatk1.0-0t64 | libatk1.0-0,
+deps="git (>= 2.23), libasound2t64 | libasound2, libatk1.0-0t64 | libatk1.0-0,
 libatk-bridge2.0-0t64 | libatk-bridge2.0-0, libatspi2.0-0t64 | libatspi2.0-0,
 libc6, libcairo2, libcups2t64 | libcups2, libdbus-1-3, libdrm2, libexpat1,
 libfontconfig1, libfreetype6, libgbm1, libgcc-s1, libgdk-pixbuf-2.0-0,
 libglib2.0-0t64 | libglib2.0-0, libgtk-3-0t64 | libgtk-3-0, libnspr4, libnss3,
 libpango-1.0-0, libpangocairo-1.0-0, libx11-6, libxcb1, libxcomposite1,
 libxdamage1, libxext6, libxfixes3, libxkbcommon0, libxrandr2"
-deps="$(printf '%s' "$deps" | tr -d '\n')"
+# Le righe vanno unite con uno spazio: `,` senza spazio è tollerato da dpkg ma è un errore di stile.
+deps="$(printf '%s' "$deps" | tr '\n' ' ' | sed 's/  */ /g; s/ $//')"
 
 installed_kb="$(du -sk "$pkg" | cut -f1)"
 
