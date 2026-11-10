@@ -2240,9 +2240,28 @@ async function selectChange(path: string, staged?: boolean): Promise<void> {
 	// Il lato conta: lo stesso file può stare in "Staged" e in "Unstaged" con diff diversi.
 	state.changeStaged =
 		staged ?? (entry.index !== "." && entry.worktree === ".");
-	if (state.snapshot) renderChanges(state.snapshot);
+	markSelectedChange();
 	await loadChangeDiff();
 	publishPanel();
+}
+
+/**
+ * La selezione cambia classi, non righe: ricostruire le liste a ogni clic cambierebbe il nodo
+ * sotto il puntatore e il doppio clic non arriverebbe mai (due clic su due nodi diversi).
+ */
+function markSelectedChange(): void {
+	for (const [list, staged] of [
+		[ui.changesListStaged, true],
+		[ui.changesListUnstaged, false],
+	] as const) {
+		for (const item of list.querySelectorAll<HTMLElement>("li[data-path]")) {
+			item.classList.toggle(
+				"is-selected",
+				item.dataset.path === state.changePath &&
+					staged === state.changeStaged
+			);
+		}
+	}
 }
 
 /** Il diff del working tree si ridisegna da `state.changeDiff`, senza tornare a Git. */
@@ -2263,10 +2282,12 @@ async function loadChangeDiff(): Promise<void> {
 		return;
 	}
 	const root = state.root;
-	const file = await guard("Diff", () =>
-		api.worktreePatch(path, state.changeStaged)
-	);
+	// il lato fa parte della richiesta: dopo uno stage il file può cambiare lato mentre la
+	// lettura è in volo, e una risposta vecchia non deve disegnare la patch del lato sbagliato
+	const staged = state.changeStaged;
+	const file = await guard("Diff", () => api.worktreePatch(path, staged));
 	if (!file || !isActive(root)) return;
+	if (state.changePath !== path || state.changeStaged !== staged) return;
 	state.changeDiff = file;
 	renderChangeDiff();
 }
