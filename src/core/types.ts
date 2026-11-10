@@ -211,6 +211,23 @@ export interface StashEntry {
 	timestamp: number;
 }
 
+/** Esito dell'allineamento del ramo attuale al suo upstream. */
+export interface AlignOutcome {
+	/**
+	 * `up-to-date`: niente da fare; `fast-forward`: il ramo è stato aggiornato;
+	 * `diverged`: i due lati hanno commit propri e serve riapplicare quelli locali.
+	 */
+	status: "up-to-date" | "fast-forward" | "diverged";
+	/** ref di tracking usato (`origin/main`) */
+	upstream: string;
+	/** commit locali non presenti nell'upstream */
+	ahead: number;
+	/** commit dell'upstream non presenti in locale */
+	behind: number;
+	/** stato riletto dopo il fast-forward; null quando il repository non si è mosso */
+	snapshot: Snapshot | null;
+}
+
 /** Modello del messaggio di commit letto da `commit.template`. */
 export interface CommitTemplate {
 	text: string;

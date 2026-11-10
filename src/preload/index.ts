@@ -62,6 +62,7 @@ const api: GitApi = {
 	fetch: () => invokeRepo("git:fetch"),
 	pull: () => invokeRepo("git:pull"),
 	push: () => invokeRepo("git:push"),
+	alignToUpstream: () => invokeRepo("git:alignToUpstream"),
 	stashList: () => invokeRepo("git:stashList"),
 	stashSave: (message, paths) => invokeRepo("git:stashSave", message, paths),
 	stashApply: (index, drop) => invokeRepo("git:stashApply", index, drop),

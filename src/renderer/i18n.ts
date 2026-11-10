@@ -423,6 +423,38 @@ const EN: Record<string, string> = {
 	"Togli dallo stage": "Remove from stage",
 	"Aggiungi allo stage": "Add to stage",
 	"Scarta le modifiche": "Discard the changes",
+	"Metti nello stash solo questo file": "Stash this file only",
+	"Modifiche a {0}": "Changes to {0}",
+	"Stash di {0}": "Stash of {0}",
+	"Modifiche di {0} nello stash.": "Changes to {0} are in the stash.",
+	"Riporta il file fuori dallo stage, senza perdere le modifiche.":
+		"Takes the file out of the stage without losing the changes.",
+	"Prepara il file per il prossimo commit.":
+		"Prepares the file for the next commit.",
+	"Riporta il file all'ultimo commit; le modifiche tracciate restano annullabili.":
+		"Restores the file to the last commit; tracked changes can still be undone.",
+	"Stash di questo file": "Stash this file",
+	"Salva in uno stash solo le modifiche di questo file; il resto resta nel working tree.":
+		"Saves only this file's changes into a stash; the rest stays in the working tree.",
+	"Stash di tutti i file…": "Stash all files…",
+	"Apre la finestra dello stash, dove si scelgono i file e il messaggio.":
+		"Opens the stash window, where you pick the files and the message.",
+	"Allinea {0} all'upstream": "Align {0} with its upstream",
+	"Allinea {0}": "Align {0}",
+	"Si allinea solo il ramo attuale: fai checkout di questo ramo per allinearlo.":
+		"Only the current branch is aligned: check out this branch to align it.",
+	"Scarica {0} e porta il ramo avanti finché basta un fast-forward.":
+		"Fetches {0} and moves the branch forward as long as a fast-forward is enough.",
+	"Questo ramo non ha un upstream: pubblica il ramo prima di allinearlo.":
+		"This branch has no upstream: publish the branch before aligning it.",
+	"{0} aggiornato a {1}: {2} commit scaricati.":
+		"{0} updated to {1}: {2} commits fetched.",
+	"{0} è già allineato a {1}: {2} commit locali non sono ancora pubblicati.":
+		"{0} is already aligned with {1}: {2} local commits are not published yet.",
+	"{0} è già allineato a {1}.": "{0} is already aligned with {1}.",
+	"{0} e {1} hanno commit diversi: {2} locali e {3} remoti. Riapplicare i commit locali sopra {1}? Se un commit tocca le stesse righe l'operazione si ferma e si risolve dai conflitti.":
+		"{0} and {1} have different commits: {2} local and {3} remote. Reapply the local commits on top of {1}? If a commit touches the same lines the operation stops and is resolved from the conflicts.",
+	"Ramo allineato a {0}.": "Branch aligned with {0}.",
 	"File tree · commit": "File tree · commit",
 	"File tree · working tree": "File tree · working tree",
 	"Nessun file.": "No files.",

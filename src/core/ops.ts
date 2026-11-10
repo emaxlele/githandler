@@ -63,6 +63,59 @@ export function rebaseArgs(onto: string): string[] {
 	return ["rebase", "--", onto];
 }
 
+/**
+ * Riferimento al ramo di tracking: `main@{upstream}`. Il nome passa dal controllo dei ref, così
+ * non può diventare un'opzione della riga di comando.
+ */
+export function upstreamRef(branch: string): string {
+	assertRefName(branch);
+	return `${branch}@{upstream}`;
+}
+
+/** Il remoto di un ref di tracking (`origin/main` → `origin`); `.` quando il tracking è locale. */
+export function trackingRemote(upstream: string): string {
+	const slash = upstream.indexOf("/");
+	return slash <= 0 ? "." : upstream.slice(0, slash);
+}
+
+/** Esito che un allineamento può avere, deciso dai conteggi e non dal comando. */
+export type UpstreamState = "up-to-date" | "fast-forward" | "diverged";
+
+/**
+ * Cosa si può fare per allineare un ramo al suo upstream. Con commit locali e remoti entrambi
+ * nuovi il fast-forward è impossibile: i commit locali vanno riapplicati sopra l'upstream.
+ */
+export function upstreamState(ahead: number, behind: number): UpstreamState {
+	if (behind <= 0) return "up-to-date";
+	return ahead > 0 ? "diverged" : "fast-forward";
+}
+
+/** `git rev-list --left-right --count locale...upstream`: prima i locali, poi i remoti. */
+export function parseAheadBehind(raw: string): {
+	ahead: number;
+	behind: number;
+} {
+	const [ahead, behind] = raw.trim().split(/\s+/);
+	return {
+		ahead: Math.max(0, Math.trunc(Number(ahead) || 0)),
+		behind: Math.max(0, Math.trunc(Number(behind) || 0)),
+	};
+}
+
+/** Fast-forward al solo upstream: un ramo divergente si ferma invece di creare un merge. */
+export function fastForwardArgs(upstream: string): string[] {
+	if (!upstream || upstream.startsWith("-") || /\s/.test(upstream))
+		throw new Error(`Ref remoto non valido: ${upstream}`);
+	return ["merge", "--ff-only", "--no-edit", "--", upstream];
+}
+
+/** Fetch del solo remoto che serve all'allineamento, con la potatura dei ref spariti. */
+export function fetchRemoteArgs(remote: string): string[] {
+	if (!remote || remote.startsWith("-") || /\s/.test(remote))
+		throw new Error(`Remoto non valido: ${remote}`);
+	return ["fetch", "--prune", "--progress", remote];
+}
+
 export function cherryPickArgs(sha: string): string[] {
 	assertSha(sha);
 	return ["cherry-pick", "--", sha];

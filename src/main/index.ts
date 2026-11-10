@@ -452,6 +452,11 @@ function registerIpc(): void {
 			broadcast(NETWORK_CHANNEL, { root, scope: "push", ...progress })
 		)
 	);
+	handle("git:alignToUpstream", (root: string) =>
+		backendFor(root).alignToUpstream((progress) =>
+			broadcast(NETWORK_CHANNEL, { root, scope: "fetch", ...progress })
+		)
+	);
 	handle("git:stashList", (root: string) => backendFor(root).stashList());
 	handle("git:stashSave", (root: string, message: string, paths?: string[]) =>
 		backendFor(root).stashSave(message, paths)

@@ -82,7 +82,10 @@ import {
 	checkoutTrackingArgs,
 	createBranchAtArgs,
 	deleteBranchArgs,
+	fastForwardArgs,
+	fetchRemoteArgs,
 	mergeArgs,
+	parseAheadBehind,
 	parseStashList,
 	parseSubmodules,
 	pullArgs,
@@ -95,6 +98,9 @@ import {
 	stashDropArgs,
 	stashListArgs,
 	stashSaveArgs,
+	trackingRemote,
+	upstreamRef,
+	upstreamState,
 	type ResetMode,
 } from "../core/ops.ts";
 import {
@@ -111,6 +117,7 @@ import {
 	type UndoKind,
 } from "../core/undo.ts";
 import type {
+	AlignOutcome,
 	Commit,
 	CommitDetails,
 	CommitFile,
@@ -183,6 +190,8 @@ export interface GitBackend {
 	pull(onProgress?: ProgressListener): Promise<Snapshot>;
 	/** Push senza forza; senza upstream crea il tracking su `origin`. */
 	push(onProgress?: ProgressListener): Promise<Snapshot>;
+	/** Allinea il ramo attuale all'upstream: fetch, conteggi, fast-forward quando basta. */
+	alignToUpstream(onProgress?: ProgressListener): Promise<AlignOutcome>;
 	stashList(): Promise<StashEntry[]>;
 	/** Con `paths` salva solo quei file e lascia gli altri nel working tree. */
 	stashSave(message: string, paths?: string[]): Promise<Snapshot>;
@@ -738,6 +747,80 @@ export class CliGitBackend implements GitBackend {
 			onProgress
 		);
 		return this.refresh();
+	}
+
+	/**
+	 * Porta il ramo attuale all'ultimo commit dell'upstream: fetch del remoto, conteggio dei due
+	 * lati e fast-forward quando i commit locali non si sovrappongono. Con i lati divergenti non
+	 * tocca niente e lo dice: riapplicare i commit locali è una scelta dell'utente.
+	 */
+	async alignToUpstream(
+		onProgress?: ProgressListener
+	): Promise<AlignOutcome> {
+		const info = this.#requireInfo();
+		// il ramo si legge adesso: un cambio di ramo fatto fuori dall'app non deve allineare
+		// quello che il backend ricorda dall'ultimo refresh
+		const head = await runGit(info.root, [
+			"rev-parse",
+			"--abbrev-ref",
+			"HEAD",
+		]);
+		const branch = head.stdout.trim();
+		if (!branch || branch === "HEAD")
+			throw new Error(
+				"HEAD staccato: passa a un ramo prima di allinearlo all'upstream."
+			);
+
+		const tracking = await runGit(
+			info.root,
+			[
+				"rev-parse",
+				"--abbrev-ref",
+				"--symbolic-full-name",
+				upstreamRef(branch),
+			],
+			{ allowFailure: true }
+		);
+		const upstream = tracking.code === 0 ? tracking.stdout.trim() : "";
+		if (!upstream)
+			throw new Error(
+				`Il ramo ${branch} non ha un upstream: pubblica il ramo o imposta il tracking.`
+			);
+
+		const remote = trackingRemote(upstream);
+		if (remote !== ".") {
+			await runGitStreaming(
+				info.root,
+				fetchRemoteArgs(remote),
+				{
+					timeoutMs: 120_000,
+					env: await this.#networkEnv(info),
+				},
+				onProgress
+			);
+		}
+
+		const counts = await runGit(info.root, [
+			"rev-list",
+			"--left-right",
+			"--count",
+			`${branch}...${upstream}`,
+		]);
+		const { ahead, behind } = parseAheadBehind(counts.stdout);
+		const status = upstreamState(ahead, behind);
+		if (status !== "fast-forward")
+			return { status, upstream, ahead, behind, snapshot: null };
+
+		await runGit(info.root, fastForwardArgs(upstream), {
+			timeoutMs: 120_000,
+		});
+		return {
+			status,
+			upstream,
+			ahead,
+			behind,
+			snapshot: await this.refresh(),
+		};
 	}
 
 	async stashList(): Promise<StashEntry[]> {

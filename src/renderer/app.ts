@@ -1557,6 +1557,11 @@ function fillChangeList(
 			item.title = t("Trascina fuori per copiare il file.");
 
 		const acts = el("span", "acts");
+		const stash = el("button", "icon-btn", "⇩");
+		stash.dataset.act = "stash";
+		stash.title = t("Metti nello stash solo questo file");
+		acts.appendChild(stash);
+
 		const toggle = el("button", "icon-btn", staged ? "−" : "+");
 		toggle.dataset.act = staged ? "unstage" : "stage";
 		toggle.title = t(staged ? "Togli dallo stage" : "Aggiungi allo stage");
@@ -2659,6 +2664,65 @@ function fileMenuEntries(path: string): Array<MenuEntry | "separator"> {
 	];
 }
 
+/**
+ * Menu di un file in Changes: le stesse azioni sul contenuto del menu dell'albero, più quelle
+ * sullo stato della riga (stage, scarto, stash). Lo stash di un solo file chiude il giro senza
+ * aprire la finestra: chi ha già scelto il file non deve sceglierlo una seconda volta.
+ */
+function changeFileMenuEntries(
+	path: string,
+	staged: boolean
+): Array<MenuEntry | "separator"> {
+	return [
+		{
+			label: "Apri con l'applicazione associata",
+			hint: "Apre il file dal disco con il programma predefinito del sistema.",
+			action: () => openFileWithSystem(path),
+		},
+		{
+			label: "Mostra nella cartella",
+			hint: "Apre la cartella che contiene il file e lo seleziona.",
+			action: () => revealFile(path),
+		},
+		{
+			label: "Salva una copia…",
+			hint: "Copia il file in una cartella scelta da te, fuori dal repository.",
+			action: () => void saveFileCopy(path, null),
+		},
+		"separator",
+		{
+			label: staged ? "Togli dallo stage" : "Aggiungi allo stage",
+			hint: staged
+				? "Riporta il file fuori dallo stage, senza perdere le modifiche."
+				: "Prepara il file per il prossimo commit.",
+			action: () => void (staged ? unstage([path]) : stage([path])),
+		},
+		{
+			label: "Scarta le modifiche",
+			danger: true,
+			hint: "Riporta il file all'ultimo commit; le modifiche tracciate restano annullabili.",
+			action: () => void discard([path]),
+		},
+		"separator",
+		{
+			label: "Stash di questo file",
+			hint: "Salva in uno stash solo le modifiche di questo file; il resto resta nel working tree.",
+			action: () => void stashFile(path),
+		},
+		{
+			label: "Stash di tutti i file…",
+			hint: "Apre la finestra dello stash, dove si scelgono i file e il messaggio.",
+			action: () => void openStash(),
+		},
+		"separator",
+		{
+			label: "Copia percorso",
+			hint: "Copia negli appunti il percorso del file dentro il repository.",
+			action: () => void copyText(path),
+		},
+	];
+}
+
 // ── ref: navigazione e operazioni ────────────────────────────────────────────
 
 /**
@@ -2719,6 +2783,17 @@ function openRefMenu(ref: RefInfo, x: number, y: number): void {
 				disabled: ref.current,
 				hint: "Riapplica i commit del ramo attuale sopra questo ramo.",
 				action: () => void rebaseOnto(ref.short),
+			},
+			"separator",
+			{
+				label: `Allinea ${ref.short} all'upstream`,
+				disabled: !ref.current || !ref.upstream,
+				hint: !ref.current
+					? "Si allinea solo il ramo attuale: fai checkout di questo ramo per allinearlo."
+					: ref.upstream
+					? `Scarica ${ref.upstream} e porta il ramo avanti finché basta un fast-forward.`
+					: "Questo ramo non ha un upstream: pubblica il ramo prima di allinearlo.",
+				action: () => void alignToUpstream(ref),
 			},
 			"separator",
 			{
@@ -2793,6 +2868,49 @@ async function rebaseOnto(branch: string): Promise<void> {
 	if (!snapshot) return;
 	applySnapshot(snapshot);
 	toast("Rebase completato.", "ok");
+}
+
+/**
+ * Allineamento del ramo attuale al suo upstream. Il backend fa il fetch e conta i due lati, poi
+ * avanza solo con un fast-forward; se i lati hanno commit propri non tocca niente e chiede se
+ * riapplicare quelli locali. I conflitti di quel rebase finiscono nella finestra che l'app usa già.
+ */
+async function alignToUpstream(ref: RefInfo): Promise<void> {
+	const outcome = await guard(`Allinea ${ref.short}`, () =>
+		api.alignToUpstream()
+	);
+	if (!outcome) return;
+	if (outcome.snapshot) applySnapshot(outcome.snapshot);
+
+	if (outcome.status === "fast-forward") {
+		toast(
+			`${ref.short} aggiornato a ${outcome.upstream}: ${outcome.behind} commit scaricati.`,
+			"ok"
+		);
+		return;
+	}
+	if (outcome.status === "up-to-date") {
+		toast(
+			outcome.ahead > 0
+				? `${ref.short} è già allineato a ${outcome.upstream}: ${outcome.ahead} commit locali non sono ancora pubblicati.`
+				: `${ref.short} è già allineato a ${outcome.upstream}.`,
+			"ok"
+		);
+		return;
+	}
+
+	if (
+		!askConfirm(
+			`${ref.short} e ${outcome.upstream} hanno commit diversi: ${outcome.ahead} locali e ${outcome.behind} remoti. Riapplicare i commit locali sopra ${outcome.upstream}? Se un commit tocca le stesse righe l'operazione si ferma e si risolve dai conflitti.`
+		)
+	)
+		return;
+	const snapshot = await guardRepo(`Rebase su ${outcome.upstream}`, () =>
+		api.rebase(outcome.upstream)
+	);
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast(`Ramo allineato a ${outcome.upstream}.`, "ok");
 }
 
 async function renameBranch(branch: string): Promise<void> {
@@ -3328,6 +3446,19 @@ async function loadStashList(): Promise<void> {
 		item.appendChild(actions);
 		ui.stashList.appendChild(item);
 	}
+}
+
+/**
+ * Stash di un solo file: `git stash push -- <path>` salva quel percorso e lascia il resto del
+ * working tree dov'è. Il messaggio predefinito dice quale file è stato messo da parte.
+ */
+async function stashFile(path: string): Promise<void> {
+	const snapshot = await guard(`Stash di ${path}`, () =>
+		api.stashSave(t(`Modifiche a ${path}`), [path])
+	);
+	if (!snapshot) return;
+	applySnapshot(snapshot);
+	toast(`Modifiche di ${path} nello stash.`, "ok");
 }
 
 async function stashAction(
@@ -6767,11 +6898,41 @@ function changeListClick(event: Event): void {
 	if (action === "stage") void stage([path]);
 	else if (action === "unstage") void unstage([path]);
 	else if (action === "discard") void discard([path]);
+	else if (action === "stash") void stashFile(path);
 	else void selectChange(path, staged);
+}
+
+/**
+ * Doppio clic: il file cambia lato. Nella lista in stage si toglie, in quella fuori si aggiunge;
+ * un file non tracciato non ha un lato "in stage" da cui tornare, quindi si aggiunge e basta.
+ */
+function changeListDoubleClick(event: Event): void {
+	const target = event.target as HTMLElement;
+	// i pulsanti della riga hanno già la loro azione: il doppio clic non deve raddoppiarla
+	if (target.closest(".icon-btn")) return;
+	const item = target.closest<HTMLElement>("li");
+	const path = item?.dataset.path;
+	if (!path) return;
+	void toggleChangeSide(path, item?.dataset.side === "staged");
+}
+
+/**
+ * Sposta il file dall'altra parte. Il lato del diff si aggiorna prima di ridisegnare: la riga
+ * resta selezionata nella lista nuova e il pannello legge la patch giusta una volta sola.
+ */
+async function toggleChangeSide(path: string, staged: boolean): Promise<void> {
+	const snapshot = await guard(staged ? "Unstage" : "Stage", () =>
+		staged ? api.unstage([path]) : api.stage([path])
+	);
+	if (!snapshot) return;
+	if (state.changePath === path) state.changeStaged = !staged;
+	applySnapshot(snapshot);
 }
 
 ui.changesListStaged.addEventListener("click", changeListClick);
 ui.changesListUnstaged.addEventListener("click", changeListClick);
+ui.changesListStaged.addEventListener("dblclick", changeListDoubleClick);
+ui.changesListUnstaged.addEventListener("dblclick", changeListDoubleClick);
 
 /** Il trascinamento è della finestra, non del DOM: il file esce come se venisse da un gestore file. */
 function startFileDrag(event: DragEvent): void {
@@ -6789,6 +6950,19 @@ function startFileDrag(event: DragEvent): void {
 
 for (const list of [ui.changesListStaged, ui.changesListUnstaged]) {
 	list.addEventListener("dragstart", startFileDrag);
+	list.addEventListener("contextmenu", (event) => {
+		const item = (event.target as HTMLElement).closest<HTMLElement>(
+			"li[data-path]"
+		);
+		const path = item?.dataset.path;
+		if (!item || !path) return;
+		event.preventDefault();
+		openMenu(
+			event.clientX,
+			event.clientY,
+			changeFileMenuEntries(path, item.dataset.side === "staged")
+		);
+	});
 }
 ui.treeList.addEventListener("dragstart", startFileDrag);
 

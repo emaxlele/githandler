@@ -1121,6 +1121,11 @@ body {
 	overflow: hidden;
 }
 
+/* In Changes prima le modifiche fuori dallo stage (la lista lunga), poi quelle in stage. */
+#panel-changes .files {
+	grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 40%);
+}
+
 .files-head {
 	display: flex;
 	align-items: center;

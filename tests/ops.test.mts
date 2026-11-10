@@ -8,8 +8,11 @@ import {
 	cherryPickArgs,
 	createBranchAtArgs,
 	deleteBranchArgs,
+	fastForwardArgs,
+	fetchRemoteArgs,
 	localNameForRemote,
 	mergeArgs,
+	parseAheadBehind,
 	parseStashList,
 	parseSubmodules,
 	pullArgs,
@@ -21,6 +24,9 @@ import {
 	stashDropArgs,
 	stashListArgs,
 	stashSaveArgs,
+	trackingRemote,
+	upstreamRef,
+	upstreamState,
 } from "../src/core/ops.ts";
 
 test("assertRefName rifiuta opzioni, spazi e sequenze riservate", () => {
@@ -223,4 +229,46 @@ test("ramo da un commit e reset non si trasformano in opzioni", () => {
 		/Modo di reset non valido/
 	);
 	assert.throws(() => resetArgs("--hard", "hard"), /SHA non valido/);
+});
+
+test("allineamento: i conteggi decidono, il comando non indovina", () => {
+	// niente da scaricare: anche con commit locali da pubblicare il ramo è già allineato
+	assert.equal(upstreamState(0, 0), "up-to-date");
+	assert.equal(upstreamState(3, 0), "up-to-date");
+	// solo il remoto è avanti: fast-forward senza riscrivere niente
+	assert.equal(upstreamState(0, 2), "fast-forward");
+	// entrambi avanti: un fast-forward non esiste, i commit locali vanno riapplicati
+	assert.equal(upstreamState(1, 1), "diverged");
+
+	assert.deepEqual(parseAheadBehind("2\t5\n"), { ahead: 2, behind: 5 });
+	assert.deepEqual(parseAheadBehind("0 0"), { ahead: 0, behind: 0 });
+	assert.deepEqual(parseAheadBehind(""), { ahead: 0, behind: 0 });
+	assert.deepEqual(parseAheadBehind("x y"), { ahead: 0, behind: 0 });
+});
+
+test("il ref di tracking e il suo remoto non diventano opzioni", () => {
+	assert.equal(upstreamRef("main"), "main@{upstream}");
+	assert.equal(upstreamRef("feature/grafo"), "feature/grafo@{upstream}");
+	assert.throws(() => upstreamRef("--upload-pack=evil"), /Nome di ref non valido/);
+
+	assert.equal(trackingRemote("origin/main"), "origin");
+	assert.equal(trackingRemote("upstream/feature/x"), "upstream");
+	// tracking locale: nessun fetch da fare
+	assert.equal(trackingRemote("main"), ".");
+
+	assert.deepEqual(fastForwardArgs("origin/main"), [
+		"merge",
+		"--ff-only",
+		"--no-edit",
+		"--",
+		"origin/main",
+	]);
+	assert.throws(() => fastForwardArgs("--upload-pack=evil"), /non valido/);
+	assert.deepEqual(fetchRemoteArgs("origin"), [
+		"fetch",
+		"--prune",
+		"--progress",
+		"origin",
+	]);
+	assert.throws(() => fetchRemoteArgs("-o"), /non valido/);
 });

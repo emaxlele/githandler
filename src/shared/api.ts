@@ -22,6 +22,7 @@ import type { ResetMode } from "../core/ops.ts";
 import type { ReflogEntry } from "../core/reflog.ts";
 import type { Settings, TrashUsage } from "../core/settings.ts";
 import type {
+	AlignOutcome,
 	Commit,
 	CommitDetails,
 	CommitFile,
@@ -77,6 +78,8 @@ export interface GitApi {
 	pull(): Promise<Snapshot>;
 	/** Push senza forza; il primo push crea il tracking su origin. */
 	push(): Promise<Snapshot>;
+	/** Porta il ramo attuale all'ultimo commit dell'upstream; diverge se i due lati hanno commit. */
+	alignToUpstream(): Promise<AlignOutcome>;
 	stashList(): Promise<StashEntry[]>;
 	stashSave(message: string, paths?: string[]): Promise<Snapshot>;
 	stashApply(index: number, drop: boolean): Promise<Snapshot>;
@@ -249,7 +252,7 @@ export interface GitApi {
 	saveSettings(settings: Settings): Promise<Settings>;
 	/** Byte e file conservati dalle copie di sicurezza ancora annullabili. */
 	trashUsage(): Promise<TrashUsage>;
-	/** La sorveglianza del repository è attiva (`--watch`). */
+	/** La sorveglianza del repository è attiva (accesa di default, spenta con `--no-watch`). */
 	watching(): Promise<boolean>;
 	/** Si iscrive agli aggiornamenti spontanei; restituisce la funzione per disiscriversi. */
 	onChanged(listener: (event: RepoChangeEvent) => void): () => void;
@@ -353,6 +356,7 @@ export type IpcChannel =
 	| "git:fetch"
 	| "git:pull"
 	| "git:push"
+	| "git:alignToUpstream"
 	| "git:stashList"
 	| "git:stashSave"
 	| "git:stashApply"
