@@ -162,9 +162,10 @@ settings:
     plus "Stash all files…". _All Commits_ goes back to history.
 -   **History** in five columns: swimlane graph, message with ref badges, author with initials avatar,
     short SHA, date. Click a branch or tag: the cursor moves to its commit. Right click a branch:
-    checkout, merge, rebase, rename, delete, copy, and "Align with its upstream" on the current
-    branch (fetch, count, fast-forward; when both sides have their own commits it asks whether to
-    reapply the local ones, and conflicts are resolved in the conflicts window); on a commit: new
+    checkout, merge, rebase, rename, delete, copy, and "Align main with origin/main" on the current
+    branch (the remote branch the local one tracks; fetch, count, fast-forward; when both sides have
+    their own commits it asks whether to reapply the local ones, and conflicts are resolved in the
+    conflicts window); on a commit: new
     branch from that point, merge, rebase, reset soft / mixed / hard, cherry-pick, copy SHA and
     message.
     "Interactive rebase from here…" lists the commits up to HEAD: each row can be moved, combined

@@ -10,7 +10,7 @@
 -   **Cosa**: nella schermata delle modifiche le voci sono ora ordinate per ciò che serve decidere —
     prima quello che non è ancora pronto per il commit, sotto quello che lo è — un doppio clic sposta
     un file dall'una all'altra parte, ogni riga ha un pulsante per mettere da parte **solo quel file**,
-    il tasto destro apre le stesse azioni, e il menu di un ramo ha «Allinea al suo upstream», che
+    il tasto destro apre le stesse azioni, e il menu di un ramo ha «Allinea main a origin/main», che
     porta il ramo all'ultimo commit del server.
 -   **Perché**: era stato segnalato che una modifica fatta in un editor compariva solo chiudendo e
     riaprendo il progetto. Il motivo era che l'app rileggeva il repository solo se avviata con
@@ -28,9 +28,9 @@
     aggiornamento veloce, ramo divergente con rebase, ramo senza upstream — e due sui conteggi e
     sugli argomenti), build e screenshot in inglese con il nuovo ordine, il pulsante dello stash e la
     voce di menu del ramo. Provato anche sull'app in funzione: un file modificato da fuori compare da
-    solo, il doppio clic sposta la riga, il menu del file ha le voci dello stash, «Allinea all'upstream»
-    porta nel ramo un commit pubblicato da un altro clone e il pulsante `⇩` mette da parte il solo
-    file.
+    solo, il doppio clic sposta la riga, il menu del file ha le voci dello stash, «Allinea main a
+    origin/main» porta nel ramo un commit pubblicato da un altro clone e il pulsante `⇩` mette da
+    parte il solo file.
 -   **Stato**: fatto.
 -   **Riferimento**: commit di questa sessione.
 

@@ -40,13 +40,13 @@
     del working tree resta com'è.
 -   **Menu del file in Changes**: le azioni sul contenuto che esistevano già (apri, mostra, salva una
     copia, copia percorso) più stage/unstage, scarto, stash del file e «Stash di tutti i file…».
--   **Allineamento del ramo all'upstream**: voce nel menu del ramo, abilitata solo sul ramo attuale e
-    solo se ha un upstream. `alignToUpstream` (canale `git:alignToUpstream`) legge il ramo da HEAD in
-    quel momento, fa `fetch --prune` del solo remoto interessato, conta con
-    `rev-list --left-right --count` e avanza con `merge --ff-only`. Tre esiti dichiarati: già
-    allineato, fast-forward, divergente; nel terzo caso non tocca niente, chiede conferma e riapplica i
-    commit locali con un rebase — mai `reset --hard` — lasciando i conflitti alla finestra che l'app
-    usa già.
+-   **Allineamento del ramo al suo ramo remoto** (la voce dice quale: `Allinea main a origin/main`):
+    abilitata sul solo ramo attuale, e solo se ha un ramo remoto tracciato. `alignToUpstream` (canale
+    `git:alignToUpstream`) legge il ramo da HEAD in quel momento, fa `fetch --prune` del solo remoto
+    interessato, conta con `rev-list --left-right --count` e avanza con `merge --ff-only`. Tre esiti
+    dichiarati: già allineato, fast-forward, divergente; nel terzo caso non tocca niente, chiede
+    conferma e riapplica i commit locali con un rebase — mai `reset --hard` — lasciando i conflitti
+    alla finestra che l'app usa già.
 -   Test: `tests/upstream.test.mts` con un remoto vero (allineato, fast-forward, divergente con
     rebase, ramo senza upstream) e i nuovi casi in `tests/ops.test.mts` (conteggi, ref di tracking,
     argomenti con e senza `--`).

@@ -165,9 +165,10 @@ impostazioni:
     destro apre le stesse azioni più «Stash di tutti i file…». _All Commits_ riporta la storia.
 -   **Storia** in cinque colonne: grafo a corsie, messaggio con i badge dei ref, autore con avatar a
     iniziali, SHA breve, data. Clic su un ramo o tag: il cursore va al suo commit. Tasto destro su un
-    ramo: checkout, merge, rebase, rinomina, elimina, copia, e **«Allinea all'upstream»** sul ramo
-    attuale (fetch, conteggio e fast-forward; se i due lati hanno commit propri chiede se riapplicare
-    quelli locali, e i conflitti si risolvono nella finestra dei conflitti); su un commit: ramo nuovo
+    ramo: checkout, merge, rebase, rinomina, elimina, copia, e **«Allinea main a origin/main»** sul
+    ramo attuale (il ramo remoto che il ramo locale traccia; fetch, conteggio e fast-forward; se i due
+    lati hanno commit propri chiede se riapplicare quelli locali, e i conflitti si risolvono nella
+    finestra dei conflitti); su un commit: ramo nuovo
     da quel punto, merge, rebase, reset soft / mixed / hard, cherry-pick, copia di SHA e messaggio.
     «Rebase interattivo da qui…» apre una lista dei commit fino a HEAD: ogni riga si sposta, si unisce
     (squash o fixup), si rinomina (reword, con il messaggio completo) o si toglie (drop). Niente

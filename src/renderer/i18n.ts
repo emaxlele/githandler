@@ -439,7 +439,8 @@ const EN: Record<string, string> = {
 	"Stash di tutti i file…": "Stash all files…",
 	"Apre la finestra dello stash, dove si scelgono i file e il messaggio.":
 		"Opens the stash window, where you pick the files and the message.",
-	"Allinea {0} all'upstream": "Align {0} with its upstream",
+	"Allinea {0} a {1}": "Align {0} with {1}",
+	"Allinea {0} al ramo remoto": "Align {0} with its remote branch",
 	"Allinea {0}": "Align {0}",
 	"Si allinea solo il ramo attuale: fai checkout di questo ramo per allinearlo.":
 		"Only the current branch is aligned: check out this branch to align it.",

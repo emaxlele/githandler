@@ -2807,7 +2807,11 @@ function openRefMenu(ref: RefInfo, x: number, y: number): void {
 			},
 			"separator",
 			{
-				label: `Allinea ${ref.short} all'upstream`,
+				// `upstream` è il termine di Git per il ramo che questo traccia, ma nella voce si
+				// scrive il ref vero: `origin/main` è quello che l'utente ha davanti.
+				label: ref.upstream
+					? `Allinea ${ref.short} a ${ref.upstream}`
+					: `Allinea ${ref.short} al ramo remoto`,
 				disabled: !ref.current || !ref.upstream,
 				hint: !ref.current
 					? "Si allinea solo il ramo attuale: fai checkout di questo ramo per allinearlo."
