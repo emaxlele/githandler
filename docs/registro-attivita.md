@@ -18,7 +18,8 @@
     meno clic per preparare un commit, e un modo per aggiornare un ramo senza passare dal terminale.
 -   **Come**: la rilettura automatica ora è accesa di default (`--no-watch` la spegne per chi lavora in
     terminale); l'ordine è solo una diversa disposizione dei due elenchi; il doppio clic fa la stessa
-    cosa dei pulsanti `+` e `−`; lo stash di un file usa lo stesso comando dello stash normale con un
+    cosa dei pulsanti `+` e `−` (la selezione non ricostruisce più le liste, altrimenti il browser non
+    riconoscerebbe il doppio clic); lo stash di un file usa lo stesso comando dello stash normale con un
     solo percorso; l'allineamento scarica il remoto, conta i commit delle due parti e avanza solo se è
     possibile senza riscrivere niente. Se le due parti hanno commit diversi l'app lo dice e chiede se
     riapplicare quelli locali sopra il remoto: se un conflitto si presenta, si risolve nella finestra

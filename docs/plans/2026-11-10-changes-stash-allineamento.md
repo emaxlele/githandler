@@ -82,8 +82,10 @@ Provato anche contro l'app vera, pilotando il renderer con il protocollo CDP di 
 (`--remote-debugging-port`) su `/tmp/gitdemo`: un file scritto da fuori compare in _Changes_ da solo;
 il doppio clic sposta la riga e la lascia selezionata; il menu del file mostra stage, scarto e stash;
 «Allinea all'upstream» porta nel ramo un commit pubblicato da un secondo clone; il pulsante `⇩` salva
-nello stash il solo file. Il caso divergente è coperto dai test del backend (rebase esplicito, nessun
-`reset --hard`); la conferma `window.confirm` non è stata pilotata.
+nello stash il solo file. Il doppio clic è stato provato con eventi di input veri: con le liste
+ricostruite alla selezione il browser non emette `dblclick`, quindi `selectChange` ora tocca solo la
+classe `is-selected` (`markSelectedChange`). Il caso divergente è coperto dai test del backend (rebase
+esplicito, nessun `reset --hard`); la conferma `window.confirm` non è stata pilotata.
 
 ## Resume prompt
 
