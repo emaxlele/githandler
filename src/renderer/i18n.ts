@@ -254,8 +254,8 @@ const EN: Record<string, string> = {
 		"Commits ahead (↑) and behind (↓) the remote branch",
 	"Account usato per questo repository: clic per cambiarlo":
 		"Account used for this repository: click to change it",
-	"Il repository viene riletto quando cambia sul disco (--watch)":
-		"The repository is re-read when it changes on disk (--watch)",
+	"Il repository viene riletto quando cambia sul disco (si spegne con --no-watch)":
+		"The repository is re-read when it changes on disk (disable it with --no-watch)",
 	"Repository aperti": "Open repositories",
 	"Apri un altro repository": "Open another repository",
 	"Permessi delle API e copia dei file non tracciati":

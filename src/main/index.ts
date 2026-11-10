@@ -127,12 +127,14 @@ const localeOverride =
 let pendingRepo = argValue("--repo");
 
 /**
- * Sorveglianza del repository: opt-in (`--watch` o `GITHANDLER_WATCH=1`), spenta con `--no-watch`.
- * Un client che si aggiorna da solo mentre si lavora in terminale è utile solo se lo si vuole.
+ * Sorveglianza del repository: accesa di default, spenta con `--no-watch` o `GITHANDLER_WATCH=0`.
+ * Modificare un file in un editor deve comparire in Changes senza riaprire il progetto; chi lavora
+ * in terminale e non vuole riletture può spegnerla.
  */
-const watchEnabled = argv.includes("--no-watch")
-	? false
-	: argv.includes("--watch") || process.env.GITHANDLER_WATCH === "1";
+const watchEnabled =
+	!shotsMode &&
+	!argv.includes("--no-watch") &&
+	process.env.GITHANDLER_WATCH !== "0";
 
 /**
  * Su questa macchina il processo GPU di Chromium non parte (vedi `clevo-control`).
