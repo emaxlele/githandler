@@ -29,7 +29,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 
 ![Modifiche: staging, diff e riquadro del commit](docs/screenshots/modifiche.png)
 
-## Stato (v0.10)
+## Stato (v0.12)
 
 | Funzione                                                                                    | Stato          |
 | ------------------------------------------------------------------------------------------- | -------------- |
@@ -275,11 +275,11 @@ compreso) compilate dentro il pacchetto: nessuna dipendenza npm da installare:
 
 ```bash
 npm run deb
-sudo apt install ./release/githandler_0.10.0_amd64.deb
+sudo apt install ./release/githandler_0.12.0_amd64.deb
 ```
 
 Installa l'app in `/opt/githandler`, il launcher in `/usr/bin/githandler`, la voce nel menu e
-l'icona. Il pacchetto include `chrome-sandbox` con il bit setuid e il profilo AppArmor in
+l'icona. Dichiara `git` (≥ 2.23) e le librerie GTK fra le dipendenze: `apt` le installa se mancano. Il pacchetto include `chrome-sandbox` con il bit setuid e il profilo AppArmor in
 `/etc/apparmor.d/githandler`, che `postinst` carica: su Ubuntu 24.04+ il sandbox di Chromium resta
 attivo. Il launcher ripiega su `--no-sandbox` solo se il bit setuid è stato perso e i namespace
 utente sono limitati.
@@ -288,7 +288,7 @@ utente sono limitati.
 
 ```bash
 npm run appimage
-./release/GitHandler-0.10.0-x86_64.AppImage
+./release/GitHandler-0.12.0-x86_64.AppImage
 ```
 
 Serve `appimagetool` per costruirla: se non è nel `PATH`, indicarlo con
@@ -300,7 +300,7 @@ sui sistemi che limitano i namespace utente il launcher passa `--no-sandbox`.
 ```bash
 sudo apt install rpm   # solo per costruire il pacchetto su Ubuntu
 npm run rpm
-sudo dnf install ./release/githandler-0.10.0-1.x86_64.rpm
+sudo dnf install ./release/githandler-0.12.0-1.x86_64.rpm
 ```
 
 Il layout è lo stesso del `.deb` e le dipendenze sono ricavate dai soname degli eseguibili, quindi i
@@ -311,7 +311,7 @@ nomi dei pacchetti restano corretti sulla distribuzione che lo installa.
 ```bash
 flatpak install flathub org.freedesktop.Sdk//24.08 org.electronjs.Electron2.BaseApp//24.08
 npm run flatpak
-flatpak install --user ./release/GitHandler-0.10.0-x86_64.flatpak
+flatpak install --user ./release/GitHandler-0.12.0-x86_64.flatpak
 ```
 
 Serve `flatpak-builder` per costruirlo. Dentro il sandbox il runtime Electron porta `zypak`,

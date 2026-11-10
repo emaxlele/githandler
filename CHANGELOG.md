@@ -1,6 +1,22 @@
 # Changelog
 
-## [Non rilasciato]
+## [0.12.0] — 2026-11-10
+
+### Il pacchetto `.deb` dichiara `git` e si installa su una Ubuntu pulita
+
+-   **`git` è una dipendenza dichiarata**: prima il pacchetto non lo chiedeva, e su una Ubuntu minima
+    (o in un container) l'app partiva senza niente da mostrare. Il minimo richiesto è **2.23**, il
+    primo con `git switch` e `git restore`, che il backend usa.
+-   **Le dipendenze non perdono più lo spazio dopo la virgola**: le righe dello script si uniscono con
+    uno spazio invece che cancellando l'a-capo (`libatk1.0-0,libatk-bridge…` era tollerato da dpkg ma
+    sbagliato).
+-   **Versione allineata**: `package.json` passa a **0.12.0** con la sezione di rilascio datata, così
+    il nome del file, il campo `Version` del pacchetto e il controllo aggiornamenti dicono la stessa
+    cosa.
+-   **Provato dove conta**: `apt-get install ./githandler_0.12.0_amd64.deb` su `ubuntu:24.04` pulita,
+    con utente non privilegiato, avvio da `/usr/bin/githandler` senza `--no-sandbox` e 36 screenshot
+    prodotti dall'app installata; `apt-get purge` non lascia niente in `/opt`, `/usr/bin`,
+    `/etc/apparmor.d` e `/usr/share/applications`.
 
 ### Changes: aggiornamento automatico, ordine, doppio clic, stash per file, allineamento del ramo
 

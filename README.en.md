@@ -274,11 +274,12 @@ included) compiled into the package: no npm dependencies to install:
 
 ```bash
 npm run deb
-sudo apt install ./release/githandler_0.10.0_amd64.deb
+sudo apt install ./release/githandler_0.12.0_amd64.deb
 ```
 
 It installs the app in `/opt/githandler`, the launcher in `/usr/bin/githandler`, the menu entry and
-the icon. The package also carries `chrome-sandbox` with the setuid bit and the AppArmor profile in
+the icon. It declares `git` (>= 2.23) and the GTK libraries as dependencies, so `apt` installs them
+when they are missing. The package also carries `chrome-sandbox` with the setuid bit and the AppArmor profile in
 `/etc/apparmor.d/githandler`, which `postinst` loads, so the Chromium sandbox stays on under Ubuntu
 24.04+. The launcher falls back to `--no-sandbox` only when the setuid bit was lost and user
 namespaces are restricted.
@@ -287,7 +288,7 @@ namespaces are restricted.
 
 ```bash
 npm run appimage
-./release/GitHandler-0.10.0-x86_64.AppImage
+./release/GitHandler-0.12.0-x86_64.AppImage
 ```
 
 Building it needs `appimagetool`: if it is not in `PATH`, set
@@ -299,7 +300,7 @@ systems that restrict user namespaces the launcher passes `--no-sandbox`.
 ```bash
 sudo apt install rpm   # only to build the package on Ubuntu
 npm run rpm
-sudo dnf install ./release/githandler-0.10.0-1.x86_64.rpm
+sudo dnf install ./release/githandler-0.12.0-1.x86_64.rpm
 ```
 
 The layout matches the `.deb`, and dependencies are generated from the executable sonames, so the
@@ -310,7 +311,7 @@ package names stay correct on the distribution that installs it.
 ```bash
 flatpak install flathub org.freedesktop.Sdk//24.08 org.electronjs.Electron2.BaseApp//24.08
 npm run flatpak
-flatpak install --user ./release/GitHandler-0.10.0-x86_64.flatpak
+flatpak install --user ./release/GitHandler-0.12.0-x86_64.flatpak
 ```
 
 Building it needs `flatpak-builder`. Inside the sandbox the Electron runtime ships `zypak`,
