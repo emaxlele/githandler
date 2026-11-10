@@ -170,6 +170,9 @@
     profilo `githandler`. Avviata l'app da lì su un repository di prova: otto processi, **nessuno con
     `--no-sandbox`**, etichetta AppArmor `githandler (unconfined)` su ognuno, finestra aperta. È il
     percorso con il sandbox vero, che l'installazione da sorgenti aggirava sempre con `--no-sandbox`.
+-   **Ritorno allo sviluppo**: finita la prova, il pacchetto è stato rimosso (`sudo apt purge githandler`) e
+    reinstallato il launcher dei sorgenti (`build/install-local.sh`), che ricompila e apre l'ultimo
+    codice. Così le modifiche successive si vedono subito, senza ricostruire un pacchetto ogni volta.
 -   **Icona mancante, e perché**: nella griglia delle applicazioni GitHandler compariva come una tile
     vuota. Non era il pacchetto: l'installazione da sorgenti aveva lasciato nella home un indice delle
     icone che puntava al file appena rimosso, e quel nome copriva l'icona buona. Tolto l'indice, lo
