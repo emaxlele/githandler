@@ -126,6 +126,28 @@
     pacchetto RPM non è stato installato su una distribuzione RPM, e il sandbox va riprovato su una
     macchina appena installata.
 -   **Stato**: completato, con le due prove esterne ancora consigliate.
+
+### La versione 0.12.0 e il pacchetto `.deb` provato come un utente vero
+
+-   **Cosa**: il progetto si chiama adesso 0.12.0 anche nel file delle impostazioni del prodotto e nel
+    changelog, e il pacchetto `.deb` per Ubuntu è stato installato e avviato su una Ubuntu pulita, non
+    solo costruito. Sul nostro computer l'app era installata dalla cartella dei sorgenti (un avvio che
+    ricompila a ogni partenza), quindi il pacchetto non era mai stato provato davvero.
+-   **Perché**: era stato chiesto di riprodurre l'installazione di un utente normale. Costruire un
+    pacchetto non dimostra che si installi: serve installarlo su un sistema senza niente dentro.
+-   **Come**: la versione era rimasta 0.10.0 mentre le funzioni arrivate dopo non avevano ancora un
+    numero, quindi il pacchetto sarebbe uscito con un'etichetta sbagliata; ora è 0.12.0 e la sezione
+    del changelog è datata. Il pacchetto dichiara anche **git** come dipendenza (prima non lo faceva:
+    su una Ubuntu minima l'app si sarebbe aperta senza poter leggere nessun repository) e le
+    dipendenze non perdono più lo spazio dopo la virgola. Infine è stato rimosso l'avvio installato
+    dalla cartella dei sorgenti, che sul nostro computer avrebbe coperto il pacchetto.
+-   **Verifica**: installazione con `apt` su Ubuntu 24.04 in un ambiente isolato, con un utente senza
+    privilegi; il programma parte da `/usr/bin/githandler` con il sandbox normale (senza
+    `--no-sandbox`), apre la finestra e produce 36 schermate della propria interfaccia; la rimozione
+    con `apt purge` non lascia file in `/opt`, `/usr/bin`, `/etc/apparmor.d` e `/usr/share/applications`.
+    Un `git` già presente non viene toccato. Resta da fare sul nostro computer l'ultimo passo:
+    l'installazione vera, che richiede la password di amministratore.
+-   **Stato**: pacchetto verificato; installazione sul computer dell'utente in attesa della password.
 -   **Riferimento**: commit di questa sessione.
 
 ## 2026-11-09
