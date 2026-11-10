@@ -3044,6 +3044,13 @@ body.is-empty .workspace {
 	color: var(--text-faint);
 }
 
+/* Nel dialog del remoto lo stato è una frase intera, non una coppia nome/valore. */
+.upstream-state {
+	font-size: 12px;
+	color: var(--text-faint);
+	line-height: 1.4;
+}
+
 .actions-status.is-ok {
 	color: var(--add-fg);
 }

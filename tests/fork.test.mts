@@ -2,9 +2,14 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+	checkRemoteUrl,
+	describeUpstream,
 	parseForkParent,
 	parseRemoteBranches,
+	parseRemotes,
+	remoteUrlKey,
 	repoApiUrl,
+	type ForkParent,
 } from "../src/core/fork.ts";
 import type { Account } from "../src/core/providers.ts";
 
@@ -153,4 +158,120 @@ test("i rami dell'originale si leggono da ls-remote, senza duplicati", () => {
 		"main",
 	]);
 	assert.deepEqual(parseRemoteBranches(""), []);
+});
+
+const original: ForkParent = {
+	fullName: "upstream/progetto",
+	cloneUrl: "https://github.com/upstream/progetto.git",
+	webUrl: "https://github.com/upstream/progetto",
+	defaultBranch: "main",
+};
+
+test("i remoti si leggono da git remote -v, solo il lato fetch", () => {
+	const output = [
+		"origin\thttps://github.com/me/fork.git (fetch)",
+		"origin\thttps://github.com/me/fork.git (push)",
+		"upstream\tgit@github.com:upstream/progetto.git (fetch)",
+		"upstream\tgit@github.com:upstream/progetto.git (push)",
+		"locale\t/tmp/cartella con spazi/repo.git (fetch)",
+		"riga senza tab",
+	].join("\n");
+	assert.deepEqual(parseRemotes(output), [
+		{ name: "origin", url: "https://github.com/me/fork.git" },
+		{ name: "upstream", url: "git@github.com:upstream/progetto.git" },
+		{ name: "locale", url: "/tmp/cartella con spazi/repo.git" },
+	]);
+	assert.deepEqual(parseRemotes(""), []);
+});
+
+test("l'indirizzo del remoto si accetta solo se può stare in un argomento", () => {
+	assert.equal(
+		checkRemoteUrl("  https://github.com/upstream/progetto.git  "),
+		"https://github.com/upstream/progetto.git"
+	);
+	assert.equal(
+		checkRemoteUrl("git@github.com:upstream/progetto.git"),
+		"git@github.com:upstream/progetto.git"
+	);
+	// un percorso locale può contenere spazi: è un argomento solo, non una riga di comando
+	assert.equal(
+		checkRemoteUrl("/tmp/cartella con spazi/repo.git"),
+		"/tmp/cartella con spazi/repo.git"
+	);
+	assert.throws(() => checkRemoteUrl("   "), /Scrivi l'indirizzo/);
+	assert.throws(() => checkRemoteUrl("--upload-pack=evil"), /cominciare con «-»/);
+	assert.throws(() => checkRemoteUrl("https://x/y\nrm -rf /"), /caratteri di controllo/);
+	assert.throws(
+		() => checkRemoteUrl("https://github.com/upstream/pro getto.git"),
+		/contiene spazi/
+	);
+});
+
+test("due forme dello stesso indirizzo si riconoscono", () => {
+	const key = "github.com/upstream/progetto";
+	assert.equal(remoteUrlKey("https://github.com/upstream/progetto.git"), key);
+	assert.equal(remoteUrlKey("https://github.com/upstream/progetto/"), key);
+	assert.equal(remoteUrlKey("https://www.github.com/upstream/progetto"), key);
+	assert.equal(remoteUrlKey("git@github.com:upstream/progetto.git"), key);
+	assert.equal(remoteUrlKey("ssh://git@github.com/upstream/progetto.git"), key);
+	assert.notEqual(
+		remoteUrlKey("https://github.com/io/progetto.git"),
+		key
+	);
+});
+
+test("lo stato del remoto dice se manca, combacia o punta altrove", () => {
+	const remotes = [
+		{ name: "origin", url: "https://github.com/io/progetto.git" },
+	];
+
+	// niente remoto, e senza API non si sa nemmeno qual è l'originale
+	assert.deepEqual(describeUpstream({ url: null, remotes: [] }, null), {
+		url: null,
+		parent: null,
+		parentError: null,
+		state: "missing",
+		sameAsOther: null,
+		suggestion: null,
+	});
+
+	// niente remoto, ma l'originale si conosce: si può consigliare l'indirizzo
+	const missing = describeUpstream({ url: null, remotes }, original);
+	assert.equal(missing.state, "missing");
+	assert.equal(missing.suggestion, original.cloneUrl);
+	assert.equal(missing.sameAsOther, null);
+
+	// `origin` è già l'originale: non serve un secondo remoto
+	const same = describeUpstream(
+		{ url: null, remotes: [{ name: "origin", url: original.cloneUrl }] },
+		original
+	);
+	assert.equal(same.sameAsOther, "origin");
+
+	// stessa forma scritta in modo diverso: allineato
+	assert.equal(
+		describeUpstream(
+			{ url: "git@github.com:upstream/progetto.git", remotes },
+			original
+		).state,
+		"aligned"
+	);
+
+	// indirizzo diverso: non è un errore, è un fatto da mostrare
+	assert.equal(
+		describeUpstream(
+			{ url: "https://github.com/altro/progetto.git", remotes },
+			original
+		).state,
+		"different"
+	);
+
+	// senza originale la configurazione resta valida, solo non verificabile
+	const configured = describeUpstream(
+		{ url: original.cloneUrl, remotes },
+		null,
+		"GitHub non raggiungibile"
+	);
+	assert.equal(configured.state, "configured");
+	assert.equal(configured.parentError, "GitHub non raggiungibile");
 });

@@ -41,7 +41,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 | **Accesso dal browser (device flow OAuth)**                                                 | ✅             |
 | **«Accedi» con il token già presente** (`gh`, credential helper)                            | ✅             |
 | **Account scelto per repository** (chip nell'header)                                        | ✅             |
-| **Fork: ramo scelto e anteprima dei commit, poi sync con l'originale**                      | ✅             |
+| **Fork**: ramo scelto, anteprima, sync con l'originale, remoto `upstream` gestito           | ✅             |
 | **GitHub Actions**: esecuzioni, riprova i falliti, ri-esecuzione, annulla, avvio            | ✅             |
 | **File del repository** (elenco filtrabile, browser)                                        | ✅             |
 | **Esporta HEAD in uno zip**                                                                 | ✅             |
@@ -414,6 +414,11 @@ destinazione predefinita dei cloni; non è un limite, dalla finestra di scelta s
 
 Dal menu del tasto destro sulla scheda del repository:
 
+-   **Remoto dell'originale…**: mostra il repository originale del fork, l'indirizzo del remoto
+    `upstream` e una frase che dice se i due coincidono. Da qui lo si crea, lo si cambia (per
+    esempio da HTTPS a SSH) o lo si toglie; tocca solo la configurazione dei remoti, quindi commit e
+    rami restano. La finestra si apre subito con quello che il repository dice da solo e completa
+    l'originale quando il servizio risponde; senza rete o account lo dichiara e resta usabile.
 -   **Sincronizza con l'originale (merge/rebase)**: l'app chiede al provider qual è il repository
     originale, crea il remoto `upstream` la prima volta e propone i suoi rami (il predefinito come
     valore iniziale). Prima di toccare la storia mostra quanti commit arriverebbero e quanti locali

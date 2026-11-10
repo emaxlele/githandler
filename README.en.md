@@ -41,7 +41,7 @@ Italiano: [README.md](README.md)
 | **Browser sign-in (OAuth device flow)**                                              | ✅             |
 | **“Sign in” with the token already on the machine** (`gh`, credential helper)        | ✅             |
 | **Account chosen per repository** (header chip)                                      | ✅             |
-| **Fork: choose the branch, preview the commits, then sync**                          | ✅             |
+| **Fork**: branch, preview, sync with the original, manage `upstream`                 | ✅             |
 | **GitHub Actions**: runs, retry failed jobs, re-run, cancel, start                   | ✅             |
 | **Repository files** (filterable list, browser)                                      | ✅             |
 | **Export HEAD as a zip**                                                             | ✅             |
@@ -415,6 +415,11 @@ destination of clones; it is not a limit, from the chooser you can navigate anyw
 
 From the right-click menu on the repository tab:
 
+-   **Remote of the original…**: shows the fork's original repository, the address of the
+    `upstream` remote and whether the two match. From here it can be created, changed (for example
+    from HTTPS to SSH) or removed; only the remote configuration is touched, so commits and branches
+    stay. The window opens at once with what the repository says by itself and fills in the original
+    when the service answers; without a network or an account it says so and stays usable.
 -   **Sync with the original (merge/rebase)**: the app asks the provider which the original repository
     is, creates the `upstream` remote the first time and offers its branches (the default as the
     initial value). Before touching the history it shows how many commits would arrive and how many

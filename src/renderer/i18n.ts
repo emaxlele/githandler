@@ -767,6 +767,50 @@ const EN: Record<string, string> = {
 	Rilettura: "Re-reading",
 	"Remoto «upstream» aggiunto ({0}). {1} è {2} commit avanti a {3}.":
 		"«upstream» remote added ({0}). {1} is {2} commits ahead of {3}.",
+	"Remoto dell'originale…": "Remote of the original…",
+	"Remoto dell'originale": "Remote of the original",
+	"Imposta, cambia o toglie il remoto «upstream» che punta al repository originale del fork.":
+		"Sets, changes or removes the «upstream» remote that points to the fork's original repository.",
+	"Nei fork l'app legge i commit del repository originale dal remoto «upstream». Qui lo vedi e lo cambi: nessun commit e nessun ramo viene toccato.":
+		"In a fork the app reads the commits of the original repository from the «upstream» remote. Here you can see it and change it: no commit and no branch is touched.",
+	"Leggo i remoti…": "Reading the remotes…",
+	"Indirizzo del remoto": "Remote address",
+	"Toglie il remoto upstream; commit e rami restano":
+		"Removes the upstream remote; commits and branches stay",
+	"Chiude senza cambiare niente": "Closes without changing anything",
+	"Crea il remoto upstream o ne cambia l'indirizzo":
+		"Creates the upstream remote or changes its address",
+	Originale: "Original",
+	"Remoto upstream": "Upstream remote",
+	"Indirizzo consigliato": "Suggested address",
+	"non configurato": "not configured",
+	"non riconosciuto": "not recognised",
+	"lo chiedo al servizio…": "asking the service…",
+	"il repository non risulta un fork":
+		"the repository does not look like a fork",
+	"Allineato all'originale.": "Matches the original.",
+	"Punta a un indirizzo diverso da quello dell'originale.":
+		"Points to a different address from the original.",
+	"Configurato; non posso confrontarlo con l'originale.":
+		"Configured; I cannot compare it with the original.",
+	"Configurato; sto chiedendo al servizio qual è l'originale.":
+		"Configured; asking the service which the original is.",
+	"Nessun remoto «upstream»; l'originale è già raggiungibile da «{0}».":
+		"No «upstream» remote; the original is already reachable through «{0}».",
+	"Nessun remoto «upstream».": "No «upstream» remote.",
+	"Scrivo il remoto…": "Writing the remote…",
+	"Scrivi l'indirizzo del remoto.": "Type the remote address.",
+	"Remoto «upstream» impostato su {0}.": "«upstream» remote set to {0}.",
+	"Remoto «upstream» rimosso.": "«upstream» remote removed.",
+	"Togliere il remoto «upstream»? I rami e i commit locali restano, e il remoto si può aggiungere di nuovo; i riferimenti già scaricati da lì vengono rimossi.":
+		"Remove the «upstream» remote? Local branches and commits stay, and the remote can be added again; the refs already fetched from it are removed.",
+	"Nessun remoto «upstream» da togliere.": "No «upstream» remote to remove.",
+	"Indirizzo non valido: non può cominciare con «-».":
+		"Invalid address: it cannot start with «-».",
+	"Indirizzo non valido: contiene caratteri di controllo.":
+		"Invalid address: it contains control characters.",
+	"Indirizzo non valido: contiene spazi. Per un percorso locale usa /, ./ o ../.":
+		"Invalid address: it contains spaces. For a local path use /, ./ or ../.",
 	"{0} è {1} commit avanti a {2}.": "{0} is {1} commits ahead of {2}.",
 	"Esporta zip": "Export zip",
 	"Archivio salvato in {0}.": "Archive saved to {0}.",

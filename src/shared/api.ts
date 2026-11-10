@@ -12,7 +12,12 @@ import type {
 	WorkflowInfo,
 	WorkflowRun,
 } from "../core/actions.ts";
-import type { ForkInfo, ForkPending, ForkSyncResult } from "../core/fork.ts";
+import type {
+	ForkInfo,
+	ForkPending,
+	ForkSyncResult,
+	UpstreamLocal,
+} from "../core/fork.ts";
 import type { Account, AccountChoice, RemoteRepo } from "../core/providers.ts";
 import type { PullComment } from "../core/comments.ts";
 import type { ReviewSummary } from "../core/reviews.ts";
@@ -125,6 +130,12 @@ export interface GitApi {
 		mode: "merge" | "rebase",
 		branch?: string
 	): Promise<ForkSyncResult>;
+	/** Remoto `upstream` e tutti i remoti, letti dal repository senza usare la rete. */
+	upstreamRemotes(): Promise<UpstreamLocal>;
+	/** Crea il remoto `upstream` o ne cambia l'indirizzo. */
+	setUpstream(url: string): Promise<UpstreamLocal>;
+	/** Toglie il remoto `upstream`: la storia e i rami restano. */
+	removeUpstream(): Promise<UpstreamLocal>;
 	/** Ultime esecuzioni delle GitHub Actions del repository. */
 	workflowRuns(): Promise<WorkflowRun[]>;
 	/** Ri-esegue tutti o solo i job falliti, oppure annulla un'esecuzione. */
@@ -414,6 +425,9 @@ export type IpcChannel =
 	| "repo:forkBranches"
 	| "repo:forkPreview"
 	| "repo:syncFork"
+	| "repo:upstreamRemotes"
+	| "repo:setUpstream"
+	| "repo:removeUpstream"
 	| "actions:runs"
 	| "actions:run"
 	| "actions:workflows"

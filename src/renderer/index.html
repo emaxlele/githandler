@@ -989,6 +989,55 @@
 			</form>
 		</dialog>
 
+		<dialog class="dialog" id="upstream-dialog">
+			<form id="upstream-form">
+				<h2>Remoto dell'originale</h2>
+				<p class="hint">
+					Nei fork l'app legge i commit del repository originale dal
+					remoto «upstream». Qui lo vedi e lo cambi: nessun commit e
+					nessun ramo viene toccato.
+				</p>
+				<ul class="repo-list actions-list" id="upstream-facts">
+					<li class="muted">Leggo i remoti…</li>
+				</ul>
+				<label class="field">
+					<span>Indirizzo del remoto</span>
+					<input
+						id="upstream-url"
+						placeholder="https://github.com/proprietario/repository.git"
+						autocomplete="off"
+						spellcheck="false"
+					/>
+				</label>
+				<div class="dialog-actions">
+					<span class="account-status" id="upstream-status"></span>
+					<button
+						type="button"
+						class="btn"
+						id="upstream-remove"
+						title="Toglie il remoto upstream; commit e rami restano"
+					>
+						Rimuovi
+					</button>
+					<button
+						type="button"
+						class="btn"
+						id="upstream-close"
+						title="Chiude senza cambiare niente"
+					>
+						Chiudi
+					</button>
+					<button
+						type="submit"
+						class="btn btn-primary"
+						title="Crea il remoto upstream o ne cambia l'indirizzo"
+					>
+						Salva
+					</button>
+				</div>
+			</form>
+		</dialog>
+
 		<dialog class="dialog" id="create-dialog">
 			<form id="create-form">
 				<h2>Crea un repository</h2>

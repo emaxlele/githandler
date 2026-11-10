@@ -1,10 +1,12 @@
 import {
+	checkRemoteUrl,
 	parseForkParent,
 	parseRemoteBranches,
 	repoApiUrl,
 	type ForkInfo,
 	type ForkPending,
 	type ForkSyncResult,
+	type UpstreamLocal,
 } from "../core/fork.ts";
 import { assertRefName, mergeArgs, rebaseArgs } from "../core/ops.ts";
 import {
@@ -14,7 +16,7 @@ import {
 } from "../core/providers.ts";
 import { credentialEnvFor, repoAccountChoice, tokenFor } from "./accounts.ts";
 import { runGit } from "./git.ts";
-import { originRemote, remoteUrl } from "./remote.ts";
+import { listRemotes, originRemote, remoteUrl } from "./remote.ts";
 
 /**
  * Fork: riconoscere l'originale e sincronizzarsi con lui.
@@ -107,6 +109,49 @@ async function ensureUpstream(
 	if (info.upstreamUrl) return { url: info.upstreamUrl, created: false };
 	await runGit(root, ["remote", "add", "upstream", info.parent.cloneUrl]);
 	return { url: info.parent.cloneUrl, created: true };
+}
+
+/**
+ * Il remoto `upstream` come sta sul disco. Niente rete: la finestra mostra subito questo, e
+ * l'originale arriva dopo dall'API.
+ */
+export async function upstreamRemotes(root: string): Promise<UpstreamLocal> {
+	const [url, remotes] = await Promise.all([
+		remoteUrl(root, "upstream"),
+		listRemotes(root),
+	]);
+	return { url, remotes };
+}
+
+/**
+ * Crea il remoto `upstream` o ne cambia l'indirizzo. Nessun commit, nessun ramo, nessun altro
+ * remoto viene toccato: è solo la configurazione di dove sta l'originale.
+ */
+export async function setUpstream(
+	root: string,
+	url: string
+): Promise<UpstreamLocal> {
+	const value = checkRemoteUrl(url);
+	const existing = await remoteUrl(root, "upstream");
+	await runGit(
+		root,
+		existing
+			? ["remote", "set-url", "upstream", value]
+			: ["remote", "add", "upstream", value]
+	);
+	return upstreamRemotes(root);
+}
+
+/**
+ * Toglie il remoto `upstream`. Se ne vanno la configurazione e i ref già scaricati da lì
+ * (`refs/remotes/upstream/*`); rami locali e commit restano, e basta riaggiungerlo e fare `fetch`
+ * per riavere gli stessi riferimenti.
+ */
+export async function removeUpstream(root: string): Promise<UpstreamLocal> {
+	if (!(await remoteUrl(root, "upstream")))
+		throw new Error("Nessun remoto «upstream» da togliere.");
+	await runGit(root, ["remote", "remove", "upstream"]);
+	return upstreamRemotes(root);
 }
 
 /** Rami disponibili sull'originale: `ls-remote` non scarica gli oggetti e non tocca la storia. */

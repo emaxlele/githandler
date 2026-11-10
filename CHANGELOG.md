@@ -1,5 +1,25 @@
 # Changelog
 
+## [Non rilasciato]
+
+### Il remoto `upstream` dei fork si vede e si cambia dall'app
+
+-   **«Remoto dell'originale…»** nel menu della scheda: mostra l'originale letto dal provider,
+    l'indirizzo del remoto `upstream` e se corrisponde; da qui si crea, si cambia (per esempio da
+    HTTPS a SSH) o si toglie. Gli altri remoti non vengono toccati.
+-   **Due tempi, nessuna attesa**: il repository si legge subito con `git remote -v`, l'originale
+    arriva dall'API dopo e la finestra si aggiorna; senza rete o account la riga dice «non
+    riconosciuto» e il motivo tecnico resta nel tooltip.
+-   **Validazione nel core**: `checkRemoteUrl` rifiuta un valore vuoto, uno che comincia con `-`
+    (diventerebbe un'opzione di Git) e i caratteri di controllo; un percorso locale può contenere
+    spazi, un URL no.
+-   **Confronto fra forme**: `https://…`, `ssh://…` e `git@host:…` dello stesso repository risultano
+    lo stesso indirizzo (`remoteUrlKey`), quindi lo stato dice «allineato» anche dopo un cambio di
+    protocollo.
+-   **Niente viene perso**: `set-url` cambia solo la configurazione; `remote remove` porta via il
+    remoto e i ref scaricati da lì, mentre rami locali e commit restano. Lo stesso indirizzo si può
+    riaggiungere e con un `fetch` tornano gli stessi riferimenti.
+
 ## [0.12.0] — 2026-11-10
 
 ### Il pacchetto `.deb` dichiara `git` e si installa su una Ubuntu pulita

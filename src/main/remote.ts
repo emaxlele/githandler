@@ -1,3 +1,4 @@
+import { parseRemotes, type RemoteRef } from "../core/fork.ts";
 import { runGit } from "./git.ts";
 
 /**
@@ -15,6 +16,12 @@ export async function remoteUrl(
 	});
 	if (result.code !== 0) return null;
 	return result.stdout.trim() || null;
+}
+
+/** Tutti i remoti configurati, con l'indirizzo di fetch. */
+export async function listRemotes(root: string): Promise<RemoteRef[]> {
+	const result = await runGit(root, ["remote", "-v"], { allowFailure: true });
+	return parseRemotes(result.stdout);
 }
 
 /** URL del remoto `origin`: serve ai link nel browser e alla scelta dell'account. */

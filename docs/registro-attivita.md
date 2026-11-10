@@ -5,6 +5,25 @@
 
 ## 2026-11-10
 
+### Anche il remoto che punta al repository originale si gestisce dall'app
+
+-   **Cosa**: nel menu della scheda c'è «Remoto dell'originale…»: apre una finestra con il repository
+    originale, l'indirizzo del remoto `upstream` e una frase che dice se i due coincidono. Da lì
+    l'indirizzo si crea, si cambia o si toglie, senza toccare commit e rami.
+-   **Perché**: era stato chiesto di poter gestire anche l'upstream dei repository clonati da un fork.
+    Prima l'app lo creava da sola al primo sync e per cambiarlo serviva il terminale: chi sbagliava
+    indirizzo restava fermo.
+-   **Come**: la finestra si apre subito con quello che il repository dice da solo, poi chiede al
+    servizio qual è l'originale; se la risposta non arriva lo dichiara e resta usabile. L'indirizzo
+    viene controllato prima di arrivare a Git (niente valori che sembrano opzioni e niente caratteri
+    di controllo). Il confronto riconosce che `https://…` e `git@…:…` sono lo stesso repository, così
+    il cambio da HTTPS a SSH risulta «allineato».
+-   **Verifica**: 297 test (4 nuovi sul core, 3 sul backend con git vero) e la finestra provata
+    sull'app in funzione in inglese: apertura, aggiunta, cambio, rifiuto di `--upload-pack=…`,
+    rimozione e chiusura, sette controlli superati.
+-   **Stato**: fatto.
+-   **Riferimento**: commit di questa sessione.
+
 ### Changes più vicina al lavoro: il repository si aggiorna da solo, ordine, doppio clic, stash per file
 
 -   **Cosa**: nella schermata delle modifiche le voci sono ora ordinate per ciò che serve decidere —

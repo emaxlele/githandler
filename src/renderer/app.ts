@@ -53,6 +53,12 @@ import {
 	type WorkflowRun,
 } from "../core/actions.ts";
 import type { HealthReport } from "../core/health.ts";
+import { describeUpstream } from "../core/fork.ts";
+import type {
+	ForkParent,
+	UpstreamLocal,
+	UpstreamStatus,
+} from "../core/fork.ts";
 import type { RemoteCheck } from "../core/remotes.ts";
 import {
 	subjectOf,
@@ -566,6 +572,13 @@ const ui = {
 	submoduleList: byId("submodule-list"),
 	btnSubmoduleUpdate: byId<HTMLButtonElement>("btn-submodule-update"),
 	submoduleClose: byId<HTMLButtonElement>("submodule-close"),
+	upstreamDialog: byId<HTMLDialogElement>("upstream-dialog"),
+	upstreamForm: byId<HTMLFormElement>("upstream-form"),
+	upstreamFacts: byId("upstream-facts"),
+	upstreamUrl: byId<HTMLInputElement>("upstream-url"),
+	upstreamRemove: byId<HTMLButtonElement>("upstream-remove"),
+	upstreamClose: byId<HTMLButtonElement>("upstream-close"),
+	upstreamStatus: byId("upstream-status"),
 	inputDialog: byId<HTMLDialogElement>("input-dialog"),
 	inputForm: byId<HTMLFormElement>("input-form"),
 	inputTitle: byId("input-title"),
@@ -2254,7 +2267,9 @@ function markSelectedChange(): void {
 		[ui.changesListStaged, true],
 		[ui.changesListUnstaged, false],
 	] as const) {
-		for (const item of list.querySelectorAll<HTMLElement>("li[data-path]")) {
+		for (const item of list.querySelectorAll<HTMLElement>(
+			"li[data-path]"
+		)) {
 			item.classList.toggle(
 				"is-selected",
 				item.dataset.path === state.changePath &&
@@ -3726,6 +3741,15 @@ ui.stashList.addEventListener("click", (event) => {
 });
 
 ui.submoduleClose.addEventListener("click", () => ui.submoduleDialog.close());
+ui.upstreamForm.addEventListener("submit", (event) => {
+	event.preventDefault();
+	void saveUpstream();
+});
+ui.upstreamUrl.addEventListener("input", () => {
+	upstreamTouched = true;
+});
+ui.upstreamRemove.addEventListener("click", () => void removeUpstreamRemote());
+ui.upstreamClose.addEventListener("click", () => ui.upstreamDialog.close());
 ui.btnSubmoduleUpdate.addEventListener("click", () => {
 	void (async () => {
 		toast("Aggiornamento dei submodule…", "ok");
@@ -3838,6 +3862,11 @@ ui.repoTabs.addEventListener("contextmenu", (event) => {
 			label: "Apri un file del repository…",
 			hint: "Mostra l'elenco dei file tracciati e apre quello scelto dal disco.",
 			action: onRepo(openFilePicker),
+		},
+		{
+			label: "Remoto dell'originale…",
+			hint: "Imposta, cambia o toglie il remoto «upstream» che punta al repository originale del fork.",
+			action: onRepo(openUpstream),
 		},
 		{
 			label: "Sincronizza con l'originale (merge)…",
@@ -4702,6 +4731,177 @@ async function cloneRemoteRepo(repo: RemoteRepo): Promise<void> {
 }
 
 // ── fork, archivio, file del repository e Actions ───────────────────────────
+
+/** Ultimo originale noto e ultimo stato locale: l'API arriva dopo e la finestra si ridisegna. */
+let upstreamParent: ForkParent | null = null;
+let upstreamParentError: string | null = null;
+/** L'API sta rispondendo: senza questo la riga direbbe «non è un fork» prima di saperlo. */
+let upstreamParentPending = false;
+let upstreamLocal: UpstreamLocal | null = null;
+/** L'utente ha già scritto nel campo: l'originale che arriva dopo non deve sovrascriverlo. */
+let upstreamTouched = false;
+
+/**
+ * Il remoto `upstream`: prima quello che dice il repository (veloce, nessuna rete), poi
+ * l'originale dall'API. Se l'API non risponde la finestra resta usabile e dice perché.
+ */
+async function openUpstream(): Promise<void> {
+	upstreamParent = null;
+	upstreamParentError = null;
+	upstreamParentPending = true;
+	upstreamLocal = null;
+	upstreamTouched = false;
+	ui.upstreamUrl.value = "";
+	ui.upstreamRemove.disabled = true;
+	ui.upstreamStatus.textContent = "";
+	ui.upstreamStatus.classList.remove("is-error");
+	clear(ui.upstreamFacts);
+	ui.upstreamFacts.appendChild(el("li", "muted", t("Leggo i remoti…")));
+	if (!ui.upstreamDialog.open) ui.upstreamDialog.showModal();
+
+	const local = await guard("Remoto dell'originale", () =>
+		api.upstreamRemotes()
+	);
+	if (!local) {
+		upstreamParentPending = false;
+		return;
+	}
+	upstreamLocal = local;
+	fillUpstreamInput(local, false);
+	renderUpstream();
+
+	try {
+		const info = await api.forkInfo();
+		upstreamParent = info.parent;
+	} catch (error) {
+		upstreamParentError = readableError(error);
+	} finally {
+		upstreamParentPending = false;
+	}
+	if (!ui.upstreamDialog.open || upstreamLocal !== local) return;
+	fillUpstreamInput(local, true);
+	renderUpstream();
+}
+
+/** L'indirizzo attuale, o quello consigliato quando non ce n'è uno e l'utente non ha ancora scritto. */
+function fillUpstreamInput(local: UpstreamLocal, useSuggestion: boolean): void {
+	const suggestion = upstreamParent?.cloneUrl ?? null;
+	if (local.url) {
+		ui.upstreamUrl.value = local.url;
+		return;
+	}
+	if (useSuggestion && !upstreamTouched && suggestion)
+		ui.upstreamUrl.value = suggestion;
+}
+
+function renderUpstream(): void {
+	const status = describeUpstream(
+		upstreamLocal ?? { url: null, remotes: [] },
+		upstreamParent,
+		upstreamParentError
+	);
+	clear(ui.upstreamFacts);
+	const original = status.parent
+		? status.parent.webUrl
+			? `${status.parent.fullName} · ${status.parent.webUrl}`
+			: status.parent.fullName
+		: status.parentError
+		? t("non riconosciuto")
+		: upstreamParentPending
+		? t("lo chiedo al servizio…")
+		: t("il repository non risulta un fork");
+	ui.upstreamFacts.appendChild(
+		upstreamFact("Originale", original, status.parentError ?? undefined)
+	);
+	ui.upstreamFacts.appendChild(
+		upstreamFact("Remoto upstream", status.url ?? t("non configurato"))
+	);
+	if (!status.url && status.suggestion)
+		ui.upstreamFacts.appendChild(
+			upstreamFact("Indirizzo consigliato", status.suggestion)
+		);
+	// il motivo tecnico (token, rete, servizio sconosciuto) resta nel tooltip: la frase è tradotta
+	const state = el("li", "upstream-state", upstreamStateText(status));
+	if (status.parentError) state.title = status.parentError;
+	ui.upstreamFacts.appendChild(state);
+	ui.upstreamRemove.disabled = !status.url;
+}
+
+function upstreamFact(
+	label: string,
+	value: string,
+	title?: string
+): HTMLLIElement {
+	const item = el("li");
+	if (title) item.title = title;
+	const text = el("div", "actions-text");
+	text.appendChild(el("span", "actions-name", t(label)));
+	text.appendChild(el("span", "actions-meta", value));
+	item.appendChild(text);
+	return item;
+}
+
+function upstreamStateText(status: UpstreamStatus): string {
+	if (status.state === "aligned") return t("Allineato all'originale.");
+	if (status.state === "different")
+		return t("Punta a un indirizzo diverso da quello dell'originale.");
+	if (status.state === "configured")
+		return upstreamParentPending
+			? t("Configurato; sto chiedendo al servizio qual è l'originale.")
+			: t("Configurato; non posso confrontarlo con l'originale.");
+	return status.sameAsOther
+		? t(
+				`Nessun remoto «upstream»; l'originale è già raggiungibile da «${status.sameAsOther}».`
+		  )
+		: t("Nessun remoto «upstream».");
+}
+
+/** Scrittura del remoto: l'errore resta nella finestra, così si corregge l'indirizzo e si riprova. */
+async function changeUpstream(
+	task: () => Promise<UpstreamLocal>,
+	done: string
+): Promise<void> {
+	ui.upstreamStatus.classList.remove("is-error");
+	ui.upstreamStatus.textContent = t("Scrivo il remoto…");
+	try {
+		const local = await task();
+		upstreamLocal = local;
+		upstreamTouched = false;
+		fillUpstreamInput(local, true);
+		renderUpstream();
+		ui.upstreamStatus.textContent = "";
+		toast(done, "ok");
+	} catch (error) {
+		ui.upstreamStatus.textContent = t(readableError(error));
+		ui.upstreamStatus.classList.add("is-error");
+	}
+}
+
+async function saveUpstream(): Promise<void> {
+	const url = ui.upstreamUrl.value.trim();
+	if (!url) {
+		ui.upstreamStatus.textContent = t("Scrivi l'indirizzo del remoto.");
+		ui.upstreamStatus.classList.add("is-error");
+		return;
+	}
+	await changeUpstream(
+		() => api.setUpstream(url),
+		t(`Remoto «upstream» impostato su ${url}.`)
+	);
+}
+
+async function removeUpstreamRemote(): Promise<void> {
+	if (
+		!askConfirm(
+			"Togliere il remoto «upstream»? I rami e i commit locali restano, e il remoto si può aggiungere di nuovo; i riferimenti già scaricati da lì vengono rimossi."
+		)
+	)
+		return;
+	await changeUpstream(
+		() => api.removeUpstream(),
+		t("Remoto «upstream» rimosso.")
+	);
+}
 
 /**
  * Sync con l'originale di un fork. Il `fetch` e il `merge`/`rebase` li fa il main; qui si chiede

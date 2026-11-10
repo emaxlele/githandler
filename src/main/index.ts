@@ -71,7 +71,15 @@ import {
 	withdrawPullApproval,
 } from "./pulls.ts";
 import { exportArchive } from "./export.ts";
-import { forkBranches, forkInfo, forkPreview, syncFork } from "./fork.ts";
+import {
+	forkBranches,
+	forkInfo,
+	forkPreview,
+	removeUpstream,
+	setUpstream,
+	syncFork,
+	upstreamRemotes,
+} from "./fork.ts";
 import { CliGitBackend } from "./backend.ts";
 import {
 	listRepoFiles,
@@ -652,6 +660,11 @@ function registerIpc(): void {
 		(root: string, mode: "merge" | "rebase", branch?: string) =>
 			syncFork(root, mode, branch)
 	);
+	handle("repo:upstreamRemotes", (root: string) => upstreamRemotes(root));
+	handle("repo:setUpstream", (root: string, url: string) =>
+		setUpstream(root, url)
+	);
+	handle("repo:removeUpstream", (root: string) => removeUpstream(root));
 	handle("actions:runs", (root: string) => listWorkflowRuns(root));
 	handle("actions:workflows", (root: string) => listWorkflows(root));
 	handle(

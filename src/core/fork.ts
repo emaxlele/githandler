@@ -135,6 +135,66 @@ export interface ForkPending {
 	ahead: number;
 }
 
+/** Un remoto configurato: il nome che Git conosce e l'indirizzo di fetch. */
+export interface RemoteRef {
+	name: string;
+	url: string;
+}
+
+/**
+ * Righe di `git remote -v`: `nome\tindirizzo (fetch)`. Il lato push si scarta, perché può avere un
+ * indirizzo diverso e qui serve solo sapere dove si legge l'originale.
+ */
+export function parseRemotes(output: string): RemoteRef[] {
+	const seen = new Map<string, string>();
+	for (const line of output.split("\n")) {
+		const match = /^(\S+)\t(.+?)\s+\(fetch\)$/.exec(line.trim());
+		if (!match) continue;
+		seen.set(match[1], match[2]);
+	}
+	return [...seen].map(([name, url]) => ({ name, url }));
+}
+
+/**
+ * Indirizzo da dare a `git remote add/set-url`. Git accetta URL e percorsi locali; qui si rifiuta
+ * solo quello che sarebbe pericoloso o quasi certamente un errore di copia: un valore che comincia
+ * con `-` diventerebbe un'opzione, i caratteri di controllo spezzerebbero la riga, e uno spazio in un
+ * URL non esiste (in un percorso locale sì, quindi lì è consentito).
+ */
+export function checkRemoteUrl(value: string): string {
+	const url = value.trim();
+	if (!url) throw new Error("Scrivi l'indirizzo del remoto.");
+	if (url.startsWith("-"))
+		throw new Error("Indirizzo non valido: non può cominciare con «-».");
+	if (/[\u0000-\u001f\u007f]/.test(url))
+		throw new Error(
+			"Indirizzo non valido: contiene caratteri di controllo."
+		);
+	const localPath = /^(\/|\.{1,2}\/|~\/)/.test(url);
+	if (!localPath && /\s/.test(url))
+		throw new Error(
+			"Indirizzo non valido: contiene spazi. Per un percorso locale usa /, ./ o ../."
+		);
+	return url;
+}
+
+/**
+ * Forma confrontabile di due indirizzi dello stesso repository: schema, utente, `.git` finale e
+ * `www.` non contano, la parte `host/proprietario/repository` sì.
+ */
+export function remoteUrlKey(url: string): string {
+	let value = url
+		.trim()
+		.replace(/\/+$/, "")
+		.replace(/\.git$/i, "");
+	const scp = /^[^\s/@]+@([^\s/:]+):(.+)$/.exec(value);
+	if (scp) value = `${scp[1]}/${scp[2]}`;
+	value = value.replace(/^[a-zA-Z][\w+.-]*:\/\//, "");
+	value = value.replace(/^[^\s/@]+@/, "");
+	value = value.replace(/^www\./i, "");
+	return value.toLowerCase();
+}
+
 /** Righe di `git ls-remote --heads`: `sha\trefs/heads/nome`, senza duplicati e in ordine. */
 export function parseRemoteBranches(output: string): string[] {
 	const names = new Set<string>();
@@ -161,4 +221,66 @@ export interface ForkSyncResult {
 	behind: number;
 	ahead: number;
 	created: boolean;
+}
+
+/** Quello che il repository dice del remoto `upstream`: solo Git, nessuna rete. */
+export interface UpstreamLocal {
+	/** URL del remoto `upstream`, `null` se non è configurato */
+	url: string | null;
+	/** tutti i remoti, per sapere se l'originale è già raggiungibile con un altro nome */
+	remotes: RemoteRef[];
+}
+
+/** Come sta il remoto `upstream`: assente, uguale all'originale, diverso, o non verificabile. */
+export type UpstreamRelation =
+	| "missing"
+	| "aligned"
+	| "different"
+	| "configured";
+
+/** Quadro completo del remoto `upstream`, con l'originale letto dal provider quando si può. */
+export interface UpstreamStatus {
+	url: string | null;
+	/** `null` se il repository non è un fork o se l'API non ha risposto */
+	parent: ForkParent | null;
+	/** perché l'originale manca: rete, account, oppure «non è un fork» */
+	parentError: string | null;
+	state: UpstreamRelation;
+	/** altro remoto che punta già all'originale: di solito `origin` */
+	sameAsOther: string | null;
+	/** indirizzo consigliato, quando l'originale è noto */
+	suggestion: string | null;
+}
+
+/**
+ * Unisce il lato locale e quello del provider. Il confronto dice se i due indirizzi sembrano lo
+ * stesso repository, non lo dimostra: forme esotiche restano `different` senza bloccare niente.
+ */
+export function describeUpstream(
+	local: UpstreamLocal,
+	parent: ForkParent | null,
+	parentError: string | null = null
+): UpstreamStatus {
+	const sameAsOther = parent
+		? local.remotes.find(
+				(remote) =>
+					remote.name !== "upstream" &&
+					remoteUrlKey(remote.url) === remoteUrlKey(parent.cloneUrl)
+		  )?.name ?? null
+		: null;
+	const state: UpstreamRelation = !local.url
+		? "missing"
+		: !parent
+		? "configured"
+		: remoteUrlKey(local.url) === remoteUrlKey(parent.cloneUrl)
+		? "aligned"
+		: "different";
+	return {
+		url: local.url,
+		parent,
+		parentError,
+		state,
+		sameAsOther,
+		suggestion: parent?.cloneUrl ?? null,
+	};
 }

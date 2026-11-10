@@ -52,6 +52,9 @@ Ordered by what makes the app usable every day. Status is honest: ✅ shipped, �
 -   ✅ Align the current branch with its upstream from the branch menu: fetch, count, fast-forward,
     and on diverged histories an explicit rebase instead of any `reset --hard`, with conflicts going
     to the conflicts window.
+-   ✅ The fork's `upstream` remote is visible and editable from the app: the provider names the
+    original, the dialog shows the current address and whether it matches, and setting, changing or
+    removing it never touches commits or branches.
 -   ✅ Partial stash with a file checklist.
 -   ✅ Drag a file out of the window.
 -   ✅ Lazy tree in the file view: "All files" reads one folder at a time, the working-tree mode keeps

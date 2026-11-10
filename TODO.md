@@ -1,6 +1,6 @@
 # TODO
 
-Stato al 2026-11-09 (v0.10.0). Le voci spuntate sono in `CHANGELOG.md`.
+Stato al 2026-11-10 (v0.12.0). Le voci spuntate sono in `CHANGELOG.md`.
 
 ## Fatto
 
@@ -14,6 +14,8 @@ Stato al 2026-11-09 (v0.10.0). Le voci spuntate sono in `CHANGELOG.md`.
 -   [x] Refresh automatico su `fs.watch` con debounce, filtro e chip Live, **acceso di default**
         (`--no-watch` per spegnerlo)
 -   [x] Parser di blame (`git blame --line-porcelain`) e `formatDiff` nel core
+-   [x] **Remoto `upstream` dei fork gestito dall'app**: originale letto dal provider, indirizzo
+        attuale e stato del confronto; creazione, cambio e rimozione senza toccare la storia
 -   [x] Server MCP (`npm run mcp`): `repo_status`, `history`, `show_commit`, `worktree_diff`,
         `blame`; configurazione in `docs/mcp.md`
 -   [x] **MCP in scrittura**: `stage`, `unstage`, `commit`, `create_branch`, `checkout_branch`,
