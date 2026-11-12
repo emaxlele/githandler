@@ -56,14 +56,19 @@ project, no right to its name or marks, and no say over the roadmap.
 
 ## 6. How you accept
 
-On your first pull request the maintainer asks you to sign. You accept by posting this comment on the
-pull request:
+When the project starts merging external code, the signature is collected by
+[cla-assistant.io](https://cla-assistant.io), the free GitHub App the project uses: it asks you once
+on your first pull request, you sign with your GitHub account, and a required status check keeps the
+pull request blocked until the signature exists. One signature covers every contribution you submit
+afterwards.
+
+Until then there is nothing to sign: the project takes issues only, and this agreement sleeps. If the
+service is ever unavailable, the maintainer asks for a comment on the pull request with the sentence
+below and records it in the repository.
 
 > I have read the CLA Document and I hereby sign the CLA
 
-The link to that comment is recorded in [`docs/cla-signatures.md`](docs/cla-signatures.md) and covers
-every contribution you submit afterwards. If the pull request is rejected or you withdraw it, the
-contribution stays yours and this agreement grants nothing.
+A rejected or withdrawn contribution stays yours and this agreement grants nothing over it.
 
 ## 7. Law
 

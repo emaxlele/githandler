@@ -37,6 +37,13 @@ relicense the contribution, so the project can change licence later without hunt
 One signature covers all your future contributions. Merged contributions are published under
 GPL-3.0-or-later, like the rest of the code.
 
+**The signature is collected automatically, not by hand.** When pull requests open the project uses
+[cla-assistant.io](https://cla-assistant.io), a free GitHub App: it asks once on the first pull
+request, the contributor signs with the GitHub account, and a required status check keeps the merge
+blocked until the signature exists. No manual check of the diff, no signature file in this repository.
+Until then there is nothing to sign and nothing to install: the project takes issues only and the
+agreement sleeps.
+
 ## Setup
 
 Requirements: Node.js 24, npm, and a `git` recent enough for `status --porcelain=v2` (2.11+, but the

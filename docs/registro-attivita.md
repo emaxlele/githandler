@@ -5,6 +5,25 @@
 
 ## 2026-11-13
 
+### La firma del CLA si raccoglie da sola, quando servirà
+
+-   **Cosa**: la regola è fissata: licenza GPL-3.0-or-later, CLA per i contributi esterni, firma
+    raccolta in automatico da `cla-assistant.io` il giorno in cui il progetto riaprirà alle pull
+    request. Finché si accettano solo segnalazioni non c'è niente da firmare e niente da installare:
+    l'accordo resta nel repository e dorme.
+-   **Perché**: non si vuole gestire le firme a mano, ma nemmeno dipendere da un'automazione che
+    scade. L'azione GitHub usata da molti per i CLA è archiviata dal 23 marzo 2026 e smetterà di
+    funzionare con il ritiro del runtime Node 20 nell'autunno 2026, senza nessuno che la ripari.
+-   **Come**: `cla-assistant.io` è un'app GitHub gratuita: si installa una volta, il testo da firmare è
+    `CLA.md` già nel repository, le firme finiscono in un gist del manutentore e un controllo
+    obbligatorio tiene la pull request bloccata finché la firma manca. Non c'è nessun file di workflow
+    da mantenere e nessun registro manuale da aggiornare. Scartate: il fork `ribtoks/cla-github-action`
+    (runtime aggiornato, ma resta un'azione da sorvegliare) ed EasyCLA della Linux Foundation
+    (pensata per le fondazioni, sproporzionata qui).
+-   **Verifica**: typecheck, 309 test e build verdi; solo documentazione, nessun codice toccato.
+-   **Stato**: deciso. Si attiva il giorno in cui si riaprono le pull request.
+-   **Riferimento**: commit di questa sessione.
+
 ### Per ora si accettano segnalazioni, non codice
 
 -   **Cosa**: le regole per chi vuole contribuire ora dicono in chiaro che il progetto prende
@@ -28,9 +47,9 @@
 
 -   **Cosa**: chi vuole aiutare può farlo, ma prima del primo contributo firma un accordo breve
     (`CLA.md`): resta autore e titolare di quello che scrive e dà al manutentore il permesso di usarlo
-    e di cambiare la licenza del progetto anche in futuro. La firma è un commento nella pull request,
-    e il collegamento viene registrato in `docs/cla-signatures.md`; le regole per chi contribuisce sono
-    scritte anche in `CONTRIBUTING.md`.
+    e di cambiare la licenza del progetto anche in futuro. La firma la raccoglie `cla-assistant.io`
+    quando le pull request riapriranno; le regole per chi contribuisce sono scritte anche in
+    `CONTRIBUTING.md`.
 -   **Perché**: si vuole restare l'unico proprietario del progetto, cioè l'unica persona che decide
     licenza, direzione e cosa entra. Senza un accordo, ogni riga arrivata da fuori avrebbe un secondo
     titolare, e il giorno in cui la licenza dovesse cambiare bisognerebbe rintracciare e convincere
