@@ -9,19 +9,19 @@
 
 -   **Cosa**: controllo completo del repository prima della pubblicazione — segreti in tutti i commit,
     nomi di altri client, percorsi personali, email, file di chiavi, file grandi, branch e tag. Sistemato
-    quello che è emerso: gli esempi di `docs/mcp.md` non contengono più `/home/emaxlele/…` ma
-    `/percorso/al/repository`, i README non citano più un repository privato come esempio, nei piani il
-    nome del repository della knowledge base è diventato `knowledge-base`, una riga vecchia del registro
-    non nomina più quel repository, e `.gitignore` ignora `.env`.
+    quello che è emerso: gli esempi di `docs/mcp.md` non contengono più percorsi assoluti con il nome
+    utente ma un segnaposto, i README non citano più un repository privato come esempio, nei piani il
+    nome del repository personale della knowledge base è diventato un nome generico, una riga vecchia
+    del registro non nomina più quel repository, e `.gitignore` ignora `.env`.
 -   **Perché**: il repository sta per diventare pubblico e la storia resta visibile per sempre. Un
     percorso personale o il nome di un repository privato in un documento pubblico sono dettagli
     inutili da regalare.
 -   **Esito dei controlli**: nessun token, chiave o password in nessun commit; nessun nome di un altro
     client Git in nessun commit; nessun file oltre 300 KB nella storia; un solo branch (`main`) e un tag
     (`v0.10.0`, già pubblicato con la sua release).
--   **Cosa resta**: nelle revisioni vecchie i percorsi `/home/emaxlele/…` e il nome `AI_Knowledge`
-    esistono ancora. Riscriverle richiederebbe un force push che cambierebbe tutti gli SHA citati nei
-    documenti e nel registro: costo alto, rischio nullo, quindi si lascia com'è.
+-   **Cosa resta**: nelle revisioni vecchie della storia quei riferimenti esistono ancora. Riscriverle
+    richiederebbe un force push che cambierebbe tutti gli SHA citati nei documenti e nel registro:
+    costo alto, rischio nullo, quindi si lascia com'è.
 -   **Verifica**: typecheck, 309 test e build verdi.
 -   **Stato**: fatto.
 -   **Riferimento**: commit di questa sessione.
