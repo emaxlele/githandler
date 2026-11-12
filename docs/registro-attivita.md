@@ -19,8 +19,14 @@
     `git`, quindi la protezione sarà stretta: ferma il segno identico, non l'uso descrittivo. Meglio
     depositare **prima** di pubblicare, perché vince chi deposita prima.
 -   **Alternativa a quasi zero**: registrare il dominio del nome e gli handle, e usare **™** da subito.
+-   **Ricerca di anteriorità, fatta**: **nessun marchio «GitHandler»** nei registri (TMview, che
+    raccoglie gli uffici europei fra cui UIBM ed EUIPO) e zero risultati anche nei marchi statunitensi.
+    Il nome è libero anche su npm, PyPI, Packagist e Docker Hub. Su GitHub esistono 15 repository
+    omonimi, il più noto dei quali è una libreria PHP di terzi: nomi uguali in progetti diversi, non
+    marchi.
 -   **Verifica**: nessuna modifica al codice; documentazione e `TODO.md` soltanto.
--   **Stato**: da decidere, non bloccante per la pubblicazione del codice.
+-   **Stato**: ricerca fatta, il nome è libero; resta **da decidere** se depositare (~101 € la prima
+    classe). Non bloccante per la pubblicazione del codice.
 -   **Riferimento**: commit di questa sessione.
 
 ### Prima di aprire: controlli su tutta la storia e documenti senza percorsi personali
