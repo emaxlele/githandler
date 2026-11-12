@@ -146,6 +146,18 @@ minmax(0, 1fr)`), non più contenuto tagliato
         clic che sposta il file tra i due lati (con il diff che segue), pulsante `⇩` per lo stash del
         solo file e menu contestuale del file con stage, scarto, stash del file, «Stash di tutti i
         file…», apri, mostra, salva una copia e copia percorso
+-   [x] **Stash nella barra laterale**: sezione richiudibile sopra i rami, aperta di default, con il
+        contatore; clic e tasto destro aprono applica, pop ed elimina, e lo stack si rilegge a ogni
+        aggiornamento e al cambio scheda (i dati sono per repository). La lista esce dalla finestra
+        dello stash, che ora serve solo a creare una voce
+-   [x] **Scelta multipla in Changes**: clic singolo, Ctrl per aggiungere o togliere, Shift per
+        l'intervallo; pulsanti di riga e menu contestuale agiscono su tutta la scelta con le voci che
+        dicono quanti file toccano. La scelta è per lato e si pota quando un file esce da quella lista
+-   [x] **Stash e scarto di una parte del diff**: menu `⋯` nell'hunk con stage/unstage, «Metti nello
+        stash» e «Scarta…», sulle righe selezionate o sull'hunk intero. Lo stash parziale usa un
+        indice temporaneo, due `commit-tree` e `git stash store` (niente `--staged`, che esiste da Git
+        2.35); lo scarto parziale si appoggia a `revertPatch`, che tratta come contesto le modifiche
+        non scelte, e lascia una voce di annullamento come lo scarto intero
 -   [x] **Allineamento del ramo attuale all'upstream**: `alignToUpstream` legge il ramo da HEAD, fa
         `fetch --prune` del solo remoto, conta con `rev-list --left-right --count` e avanza con
         `merge --ff-only`; con i due lati divergenti non tocca niente e propone il rebase dei commit

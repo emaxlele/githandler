@@ -1177,6 +1177,16 @@ body {
 	background: var(--surface-3);
 }
 
+/* File scelti con Ctrl o Shift: restano evidenziati, ma il bordo dice di quale si vede il diff. */
+.file-list li.is-chosen {
+	background: var(--surface-2);
+	box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.file-list li.is-selected.is-chosen {
+	background: var(--surface-3);
+}
+
 .file-list .st {
 	font-family: var(--mono);
 	font-size: 10.5px;
@@ -2444,7 +2454,6 @@ html[data-syntax="off"] .tx :is([class^="tok-"], [class*=" tok-"]) {
 	min-width: 0;
 }
 
-.stash-list,
 .submodule-list {
 	list-style: none;
 	margin: 0;
@@ -2456,7 +2465,6 @@ html[data-syntax="off"] .tx :is([class^="tok-"], [class*=" tok-"]) {
 	gap: 4px;
 }
 
-.stash-list li,
 .submodule-list li {
 	display: flex;
 	align-items: center;
@@ -2468,7 +2476,6 @@ html[data-syntax="off"] .tx :is([class^="tok-"], [class*=" tok-"]) {
 	background: var(--panel-2);
 }
 
-.stash-list li.muted,
 .submodule-list li.muted {
 	border-style: dashed;
 	color: var(--text-faint);
@@ -2495,10 +2502,43 @@ html[data-syntax="off"] .tx :is([class^="tok-"], [class*=" tok-"]) {
 	color: var(--text-faint);
 }
 
-.stash-actions {
-	display: flex;
-	gap: 4px;
-	flex: none;
+/* Sezione «Stash» della barra laterale: messaggio su una riga, riferimento e data sotto. */
+.stash-list {
+	max-height: 28vh;
+	overflow: auto;
+}
+
+/* due righe invece di una: nella colonna stretta un messaggio e una data sullo stesso rigo
+   lascerebbero al messaggio lo spazio di una lettera */
+.stash-list li {
+	display: block;
+	padding: 4px 10px 5px 20px;
+}
+
+.stash-list .name {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.stash-list li:hover .name {
+	color: var(--text);
+}
+
+.stash-list .meta {
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var(--mono);
+	font-size: 10.5px;
+	color: var(--text-faint);
+}
+
+.stash-list li.muted {
+	cursor: default;
+	color: var(--text-faint);
 }
 
 /* ── terminale integrato ────────────────────────────────────────────────── */

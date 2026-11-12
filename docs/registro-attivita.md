@@ -5,6 +5,36 @@
 
 ## 2026-11-12
 
+### Gli stash nella barra laterale, più file scelti in Changes, e il diff che sa fare una parte sola
+
+-   **Cosa**: tre richieste arrivate insieme. (1) Gli stash salvati ora si vedono in una sezione della
+    barra laterale, sopra i rami, con il numero accanto al titolo: clic o tasto destro su una voce
+    aprono lo stesso menu per applicarla, riprenderla o eliminarla. La finestra dello stash serve solo
+    a crearne uno. (2) In «Changes» si possono scegliere più file: clic per uno, Ctrl per aggiungerne
+    o toglierne uno, Shift per prendere un intervallo; i pulsanti della riga e il menu del tasto destro
+    agiscono su tutta la scelta e dicono quanti file toccano. (3) Nel diff, il menu `⋯` di ogni
+    riquadro permette di mettere nello stash o di scartare **solo le righe selezionate**, oppure il
+    riquadro intero.
+-   **Perché**: erano i tre passaggi che costringevano ancora a lasciare l'app. Gli stash si potevano
+    creare ma non vedere senza aprire una finestra; preparare un commit con dieci file richiedeva dieci
+    clic; e per mettere da parte due righe di un file bisognava salvare il file intero.
+-   **Come**: gli stash sono letti per repository e riletti a ogni aggiornamento e al cambio scheda,
+    così il numero non resta indietro. La scelta multipla è per lato (in stage o fuori): un file può
+    stare in entrambi gli elenchi con due diff diversi, e stage e unstage insieme non avrebbero senso.
+    Lo stash di una parte usa un indice temporaneo e due commit creati a mano, perché il comando di Git
+    che lo farebbe in un colpo esiste solo nelle versioni recenti mentre l'app funziona dalla 2.23; se
+    il file non torna indietro la voce appena creata viene tolta. Lo scarto di una parte usa una patch
+    costruita al contrario, che lascia al loro posto le righe non scelte, e lascia la solita voce
+    «Annulla». Un file con qualcosa già in stage non si mette nello stash a metà: la voce è spenta e
+    dice perché.
+-   **Verifica**: typecheck, 309 test e build. Sette test nuovi con `git` vero coprono stash e scarto
+    di una parte dentro lo stesso riquadro, il lato in stage, l'annullamento e il rifiuto di una patch
+    che nomina un altro file; tre test nuovi sul core controllano la patch di ripristino. Una prova
+    end-to-end sull'app (14 controlli) ha fatto il giro completo: contatore e menu degli stash, Ctrl e
+    Shift con stage di tre file, stash e scarto di una parte del diff, annullamento.
+-   **Stato**: fatto, da inviare.
+-   **Riferimento**: commit di questa sessione.
+
 ### La verifica automatica torna verde
 
 -   **Cosa**: il controllo automatico che gira a ogni invio sul repository era rosso per colpa di un

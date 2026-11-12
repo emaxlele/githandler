@@ -157,9 +157,16 @@ settings:
     It changes nothing: it says what to look at.
 -   **A single view for changes**: the _Changes_ entry in the sidebar brings them to the whole area,
     without history or lower panel: **unstaged** changes first, **staged** ones below, then the diff
-    and the commit box. A double click moves a file to the other side; every row has stage/unstage,
-    discard and a **single-file stash** button (`⇩`), and the right button opens the same actions
-    plus "Stash all files…". _All Commits_ goes back to history.
+    and the commit box. Clicking a file shows its diff, **Ctrl+click** adds or removes a file from
+    the selection, **Shift+click** takes the range: the row buttons (stage/unstage, discard, **stash
+    this file** `⇩`) and the right-click menu act on the whole selection and say how many files they
+    touch. A double click moves the selected files to the other side; the right button opens the same
+    actions plus "Stash all files…". In the diff every hunk has a `⋯` menu with **Put in the stash**
+    and **Discard…**, acting on the selected lines or on the whole hunk. _All Commits_ goes back to
+    history.
+-   **Stash in the sidebar**: the _Stash_ section, above the branches, shows the repository stack with
+    its counter and starts expanded. Click or right-click an entry to apply, pop or delete; the stash
+    window now only creates one, choosing the files to save.
 -   **History** in five columns: swimlane graph, message with ref badges, author with initials avatar,
     short SHA, date. Click a branch or tag: the cursor moves to its commit. Right click a branch:
     checkout, merge, rebase, rename, delete, copy, and "Align main with origin/main" on the current

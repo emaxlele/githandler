@@ -386,21 +386,31 @@ function renderHunkHeader(
 	} @@${hunk.header ? ` ${hunk.header}` : ""}`;
 
 	const pickedHere = countPicked(picked, hunkIndex);
-	const verb = mode === "unstage" ? "Unstage" : "Stage";
 	const actions = mode
 		? `<span class="hunk-actions">` +
 		  (pickedHere > 0
-				? `<button class="icon-btn" data-act="${mode}-lines" data-hunk="${hunkIndex}">${verb} ${pickedHere} ${
-						pickedHere === 1 ? "riga" : "righe"
-				  }</button>`
+				? `<button class="icon-btn" data-act="${mode}-lines" data-hunk="${hunkIndex}">${escapeHtml(
+						selectionLabel(mode, pickedHere)
+				  )}</button>`
 				: "") +
-		  `<button class="icon-btn" data-act="${mode}-hunk" data-hunk="${hunkIndex}">${verb} hunk</button>` +
+		  `<button class="icon-btn" data-act="${mode}-hunk" data-hunk="${hunkIndex}">${escapeHtml(
+				t(mode === "unstage" ? "Unstage hunk" : "Stage hunk")
+		  )}</button>` +
+		  `<button class="icon-btn" data-act="hunk-menu" data-hunk="${hunkIndex}" title="${escapeHtml(
+				t("Azioni sull'hunk")
+		  )}" aria-label="${escapeHtml(t("Azioni sull'hunk"))}">⋯</button>` +
 		  `</span>`
 		: "";
 
 	return `<div class="hunk-header"><span class="hunk-info">${escapeHtml(
 		header
 	)}</span>${actions}</div>`;
+}
+
+/** «Stage 3 righe»: il verbo resta in inglese come nelle scorciatoie, il resto segue la lingua. */
+function selectionLabel(mode: PatchMode, lines: number): string {
+	const verb = t(mode === "unstage" ? "Unstage" : "Stage");
+	return t(`${verb} ${lines} ${lines === 1 ? "riga" : "righe"}`);
 }
 
 function countPicked(picked: ReadonlySet<string>, hunk: number): number {

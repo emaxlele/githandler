@@ -435,6 +435,11 @@ function registerIpc(): void {
 		backendFor(root).discard(paths)
 	);
 	handle(
+		"git:discardPatch",
+		(root: string, path: string, patch: string, mode: "stage" | "unstage") =>
+			backendFor(root).discardPatch(path, patch, mode)
+	);
+	handle(
 		"git:commit",
 		(root: string, message: string, all: boolean, sign?: boolean) =>
 			backendFor(root).commit(message, all, sign === true)
@@ -468,6 +473,16 @@ function registerIpc(): void {
 	handle("git:stashList", (root: string) => backendFor(root).stashList());
 	handle("git:stashSave", (root: string, message: string, paths?: string[]) =>
 		backendFor(root).stashSave(message, paths)
+	);
+	handle(
+		"git:stashPatch",
+		(
+			root: string,
+			path: string,
+			message: string,
+			selected: string,
+			revert: string
+		) => backendFor(root).stashPatch(path, message, selected, revert)
 	);
 	handle("git:stashApply", (root: string, index: number, drop: boolean) =>
 		backendFor(root).stashApply(index, drop)

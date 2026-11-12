@@ -182,6 +182,12 @@ export interface GitBackend {
 	applyPatch(path: string, patch: string, mode: PatchMode): Promise<Snapshot>;
 	unstage(paths: string[]): Promise<Snapshot>;
 	discard(paths: string[]): Promise<Snapshot>;
+	/** Scarta solo le righe della patch, con una voce di annullamento come `discard`. */
+	discardPatch(
+		path: string,
+		patch: string,
+		mode: PatchMode
+	): Promise<Snapshot>;
 	commit(message: string, all: boolean, sign?: boolean): Promise<Snapshot>;
 	checkout(branch: string): Promise<Snapshot>;
 	createBranch(name: string): Promise<Snapshot>;
@@ -195,6 +201,16 @@ export interface GitBackend {
 	stashList(): Promise<StashEntry[]>;
 	/** Con `paths` salva solo quei file e lascia gli altri nel working tree. */
 	stashSave(message: string, paths?: string[]): Promise<Snapshot>;
+	/**
+	 * Mette nello stash la parte scelta (`selected`) e la toglie dal file con `revert`; il resto
+	 * delle modifiche resta com'è.
+	 */
+	stashPatch(
+		path: string,
+		message: string,
+		selected: string,
+		revert: string
+	): Promise<Snapshot>;
 	/** Applica (`pop` falso) o applica ed elimina (`pop` vero) lo stash indicato. */
 	stashApply(index: number, drop: boolean): Promise<Snapshot>;
 	stashDrop(index: number): Promise<Snapshot>;
@@ -496,6 +512,200 @@ export class CliGitBackend implements GitBackend {
 		args.push("-");
 
 		await runGit(info.root, args, { input: patch });
+		return this.refresh();
+	}
+
+	/**
+	 * Scarto parziale: riporta indietro solo le righe della patch, non tutto il file.
+	 *
+	 * La patch arriva da `revertPatch` (core): è descritta al contrario, cioè si applica con
+	 * `--reverse` al file com'è adesso. La voce di annullamento conserva il working tree com'era
+	 * (`git stash create`, lo stesso meccanismo di `discard`): «Annulla» rimette il file intero,
+	 * righe tenute comprese.
+	 *
+	 * Con `mode: "unstage"` la patch viene dal diff HEAD→indice: la parte scelta esce dall'indice e
+	 * dal disco. Il controllo `--check` sul disco viene prima di toccare l'indice, così un file con
+	 * altre modifiche sulle stesse righe non resta a metà.
+	 */
+	async discardPatch(
+		path: string,
+		patch: string,
+		mode: PatchMode
+	): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		assertSafePath(path);
+
+		if (!patch.trim()) throw new Error("Patch vuota.");
+		if (!patchTargetsOnly(patch, path)) {
+			throw new Error(`La patch non riguarda solo ${path}.`);
+		}
+
+		const created = await runGit(info.root, ["stash", "create"], {
+			allowFailure: true,
+		});
+		const stash = created.code === 0 ? created.stdout.trim() : "";
+		const entry = stash
+			? await this.#record(
+					"discard",
+					`Scarta una parte di ${path}`,
+					{ paths: [path], stash },
+					{ allowNoHead: true }
+			  )
+			: null;
+
+		try {
+			await runGit(
+				info.root,
+				["apply", "--check", "--reverse", "--whitespace=nowarn", "-"],
+				{ input: patch }
+			);
+			if (mode === "unstage") {
+				await runGit(
+					info.root,
+					[
+						"apply",
+						"--cached",
+						"--reverse",
+						"--whitespace=nowarn",
+						"-",
+					],
+					{ input: patch }
+				);
+			}
+			await runGit(
+				info.root,
+				["apply", "--reverse", "--whitespace=nowarn", "-"],
+				{ input: patch }
+			);
+		} catch (error) {
+			// niente è cambiato: la voce non deve restare a promettere un ripristino
+			if (entry) await this.#dropUndo(entry.id);
+			throw error;
+		}
+
+		return this.refresh();
+	}
+
+	/**
+	 * Stash parziale: nello stash finisce solo la parte scelta del file.
+	 *
+	 * `git stash push --staged` farebbe questo, ma esiste da Git 2.35 mentre l'app dichiara 2.23.
+	 * Si costruisce quindi la voce di stash con la stessa forma che produce `git stash create`:
+	 * l'albero della selezione si scrive in un **indice temporaneo** (`read-tree HEAD` +
+	 * `apply --cached`), poi due `commit-tree` (quello dell'indice e quello dello stash, che lo ha
+	 * come secondo genitore) e `git stash store` per metterlo in cima allo stack. L'indice vero non
+	 * viene mai toccato, quindi il resto del file resta dov'è.
+	 *
+	 * Il file deve essere pulito nello stage: il diff da cui arrivano le patch è quello di
+	 * HEAD→worktree e una parte in stage descriverebbe un'altra cosa. Il chiamante lo sa già, qui si
+	 * ricontrolla.
+	 *
+	 * Le due patch dicono cose diverse: `selected` porta le righe scelte dentro lo stash, `revert`
+	 * le toglie dal file (`revertPatch` nel core, perché le altre modifiche vanno lasciate lì).
+	 */
+	async stashPatch(
+		path: string,
+		message: string,
+		selected: string,
+		revert: string
+	): Promise<Snapshot> {
+		const info = this.#requireInfo();
+		assertSafePath(path);
+		if (!selected.trim())
+			throw new Error("Nessuna modifica da mettere nello stash.");
+		if (
+			!patchTargetsOnly(selected, path) ||
+			!patchTargetsOnly(revert, path)
+		) {
+			throw new Error(`La patch non riguarda solo ${path}.`);
+		}
+
+		const current = await this.refresh();
+		const file = current.status.entries.find((item) => item.path === path);
+		if (!file) throw new Error(`${path} non ha modifiche.`);
+		if (file.index !== ".") {
+			throw new Error(
+				`${path} ha già modifiche in stage: vanno nello stash solo insieme al file intero.`
+			);
+		}
+
+		const head = await runGit(
+			info.root,
+			["rev-parse", "--verify", "-q", "HEAD"],
+			{
+				allowFailure: true,
+			}
+		);
+		if (head.code !== 0) {
+			throw new Error("Serve almeno un commit prima di usare lo stash.");
+		}
+
+		// il file deve corrispondere alla patch di ritorno: meglio saperlo prima di creare la voce
+		await runGit(
+			info.root,
+			["apply", "--check", "--reverse", "--whitespace=nowarn", "-"],
+			{ input: revert }
+		);
+
+		const branch = info.branch ?? "HEAD";
+		const subject = `On ${branch}: ${message}`;
+		const directory = await mkdtemp(join(tmpdir(), "githandler-stash-"));
+		let sha = "";
+		try {
+			const env = { GIT_INDEX_FILE: join(directory, "index") };
+			await runGit(info.root, ["read-tree", "HEAD"], { env });
+			await runGit(
+				info.root,
+				["apply", "--cached", "--whitespace=nowarn", "-"],
+				{ env, input: selected }
+			);
+			const tree = (
+				await runGit(info.root, ["write-tree"], { env })
+			).stdout.trim();
+			const indexCommit = (
+				await runGit(info.root, [
+					"commit-tree",
+					tree,
+					"-p",
+					"HEAD",
+					"-m",
+					`index on ${branch}: ${head.stdout
+						.trim()
+						.slice(0, 7)} ${message}`,
+				])
+			).stdout.trim();
+			sha = (
+				await runGit(info.root, [
+					"commit-tree",
+					tree,
+					"-p",
+					"HEAD",
+					"-p",
+					indexCommit,
+					"-m",
+					subject,
+				])
+			).stdout.trim();
+			await runGit(info.root, ["stash", "store", "-m", subject, sha]);
+		} finally {
+			await rm(directory, { recursive: true, force: true });
+		}
+
+		// le righe scelte escono dal file: restano le altre, com'erano
+		try {
+			await runGit(
+				info.root,
+				["apply", "--reverse", "--whitespace=nowarn", "-"],
+				{ input: revert }
+			);
+		} catch (error) {
+			// la voce è appena entrata nello stack: se il file non torna indietro non deve restare
+			await runGit(info.root, ["stash", "drop", "--quiet", "stash@{0}"], {
+				allowFailure: true,
+			});
+			throw error;
+		}
+
 		return this.refresh();
 	}
 

@@ -74,6 +74,12 @@ export interface GitApi {
 	applyPatch(path: string, patch: string, mode: PatchMode): Promise<Snapshot>;
 	unstage(paths: string[]): Promise<Snapshot>;
 	discard(paths: string[]): Promise<Snapshot>;
+	/** Scarta solo le righe della patch; il contenuto di prima resta annullabile. */
+	discardPatch(
+		path: string,
+		patch: string,
+		mode: PatchMode
+	): Promise<Snapshot>;
 	/** Crea un commit; `all` include le modifiche tracciate (`-a`), `sign` firma (`-S`). */
 	commit(message: string, all: boolean, sign?: boolean): Promise<Snapshot>;
 	checkout(branch: string): Promise<Snapshot>;
@@ -87,6 +93,16 @@ export interface GitApi {
 	alignToUpstream(): Promise<AlignOutcome>;
 	stashList(): Promise<StashEntry[]>;
 	stashSave(message: string, paths?: string[]): Promise<Snapshot>;
+	/**
+	 * Mette nello stash la parte scelta (`selected`) e la toglie dal file con `revert`; il resto
+	 * delle modifiche resta com'è.
+	 */
+	stashPatch(
+		path: string,
+		message: string,
+		selected: string,
+		revert: string
+	): Promise<Snapshot>;
 	stashApply(index: number, drop: boolean): Promise<Snapshot>;
 	stashDrop(index: number): Promise<Snapshot>;
 	submodules(): Promise<SubmoduleInfo[]>;
@@ -361,6 +377,7 @@ export type IpcChannel =
 	| "git:applyPatch"
 	| "git:unstage"
 	| "git:discard"
+	| "git:discardPatch"
 	| "git:commit"
 	| "git:checkout"
 	| "git:createBranch"
@@ -370,6 +387,7 @@ export type IpcChannel =
 	| "git:alignToUpstream"
 	| "git:stashList"
 	| "git:stashSave"
+	| "git:stashPatch"
 	| "git:stashApply"
 	| "git:stashDrop"
 	| "git:submodules"

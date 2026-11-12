@@ -422,11 +422,27 @@ const EN: Record<string, string> = {
 	"Nessuna modifica.": "No changes.",
 	"Togli dallo stage": "Remove from stage",
 	"Aggiungi allo stage": "Add to stage",
+	"Togli {0} file dallo stage": "Unstage {0} files",
+	"Aggiungi {0} file allo stage": "Stage {0} files",
+	"Riporta i file fuori dallo stage, senza perdere le modifiche.":
+		"Takes the files out of the stage without losing the changes.",
+	"Prepara i file per il prossimo commit.":
+		"Prepares the files for the next commit.",
+	"Riporta i file all'ultimo commit; le modifiche tracciate restano annullabili.":
+		"Restores the files to the last commit; tracked changes can still be undone.",
 	"Scarta le modifiche": "Discard the changes",
 	"Metti nello stash solo questo file": "Stash this file only",
 	"Modifiche a {0}": "Changes to {0}",
+	"Modifiche a {0} file": "Changes to {0} files",
+	"Modifiche a {0} · {1} riga": "Changes to {0} · {1} line",
+	"Modifiche a {0} · {1} righe": "Changes to {0} · {1} lines",
 	"Stash di {0}": "Stash of {0}",
+	"Stash di {0} file": "Stash of {0} files",
+	"Salva in uno stash solo le modifiche di questi file; il resto resta nel working tree.":
+		"Saves only these files' changes into a stash; the rest stays in the working tree.",
 	"Modifiche di {0} nello stash.": "Changes to {0} are in the stash.",
+	"Modifiche di {0} file nello stash.":
+		"Changes to {0} files are in the stash.",
 	"Riporta il file fuori dallo stage, senza perdere le modifiche.":
 		"Takes the file out of the stage without losing the changes.",
 	"Prepara il file per il prossimo commit.":
@@ -491,6 +507,34 @@ const EN: Record<string, string> = {
 		"No change to apply to the selection.",
 	"Stage parziale": "Partial stage",
 	"Unstage parziale": "Partial unstage",
+	"Scarto parziale": "Partial discard",
+	"Stash parziale": "Partial stash",
+	"Azioni sull'hunk": "Actions on this hunk",
+	"Stage hunk": "Stage hunk",
+	"Unstage hunk": "Unstage hunk",
+	"Stage {0} riga": "Stage {0} line",
+	"Stage {0} righe": "Stage {0} lines",
+	"Unstage {0} riga": "Unstage {0} line",
+	"Unstage {0} righe": "Unstage {0} lines",
+	"Metti nello stash": "Put in the stash",
+	"Scarta…": "Discard…",
+	"Salva in uno stash la parte scelta; il resto resta nel file.":
+		"Saves the chosen part into a stash; the rest stays in the file.",
+	"Questo lato è già in stage: lo stash prenderebbe il file intero.":
+		"This side is already staged: the stash would take the whole file.",
+	"Il file ha già modifiche in stage: vanno nello stash solo insieme al file intero.":
+		"The file already has changes in the stage: they can only go into a stash together with the whole file.",
+	"Prepara per il commit la selezione di questo hunk.":
+		"Stages this hunk's selection for the next commit.",
+	"Toglie dallo stage la selezione di questo hunk.":
+		"Removes this hunk's selection from the stage.",
+	"Riporta indietro la parte scelta; si recupera con Annulla.":
+		"Reverts the chosen part; it can be restored with Undo.",
+	"Scartare la parte scelta? Esce dall'indice e dal file; si recupera con Annulla.":
+		"Discard the chosen part? It leaves the index and the file; it can be restored with Undo.",
+	"Scartare la parte scelta? Torna indietro solo nel file; si recupera con Annulla.":
+		"Discard the chosen part? It only goes back in the file; it can be restored with Undo.",
+	"Righe scelte salvate nello stash.": "Selected lines saved to the stash.",
 	"Seleziona un file da Modifiche o dal File Tree.":
 		"Select a file from Changes or from the File Tree.",
 	"Lettura del blame…": "Reading the blame…",
@@ -598,12 +642,27 @@ const EN: Record<string, string> = {
 		"Abort the running {0} and go back to the previous state?",
 	"Annulla operazione": "Abort operation",
 	"Nessuno stash.": "No stash.",
+	"1 stash salvato": "1 stash saved",
+	"{0} stash salvati": "{0} stashes saved",
+	"{0} · stash@{1} · clic per le operazioni":
+		"{0} · stash@{1} · click for the actions",
 	Applica: "Apply",
 	Elimina: "Delete",
 	"Applica stash": "Apply stash",
 	"Pop stash": "Pop stash",
 	"Elimina stash": "Delete stash",
+	"Elimina stash…": "Delete stash…",
+	"Rimette le modifiche salvate sul file e lascia lo stash nello stack.":
+		"Puts the saved changes back into the file and leaves the stash on the stack.",
+	"Applica le modifiche e toglie lo stash dallo stack.":
+		"Applies the changes and removes the stash from the stack.",
+	"Toglie lo stash senza applicarlo: il contenuto salvato lì non si recupera dall'app.":
+		"Removes the stash without applying it: what was saved there cannot be recovered from the app.",
 	"Eliminare stash@{{0}}?": "Delete stash@{0}?",
+	"Eliminare stash@{{0}}? Il contenuto salvato lì non si recupera dall'app.":
+		"Delete stash@{0}? What was saved there cannot be recovered from the app.",
+	"Gli stash salvati sono nella barra laterale, sotto «Stash»: da lì si applicano, si riprendono o si eliminano.":
+		"Saved stashes are in the sidebar under «Stash»: apply, pop or delete them from there.",
 	"Nessun submodule.": "No submodules.",
 	"comando in corso… Interrompi per fermarlo":
 		"command running… Stop to end it",

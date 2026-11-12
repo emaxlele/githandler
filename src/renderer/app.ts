@@ -1,5 +1,5 @@
 import type { HunkSelection, PatchMode } from "../core/patch.ts";
-import { buildPatch } from "../core/patch.ts";
+import { buildPatch, revertPatch } from "../core/patch.ts";
 import { layoutGraph } from "../core/graph.ts";
 import type {
 	ContentMatch,
@@ -30,6 +30,7 @@ import type {
 	ConflictDetail,
 	ConflictFile,
 	RepoOperation,
+	StashEntry,
 	StatusEntry,
 } from "../core/types.ts";
 import { describeUndo } from "../core/undo.ts";
@@ -216,6 +217,12 @@ interface State {
 	lazyLoading: Set<string>;
 	changePath: string | null;
 	changeStaged: boolean;
+	/** File scelti in Changes con Ctrl o Shift: le azioni di riga valgono per tutti. */
+	changeChosen: Set<string>;
+	/** Lato delle righe scelte: true = in stage, false = fuori. Un file può stare in entrambi. */
+	changeChosenSide: boolean;
+	/** Ultimo file toccato senza Shift: da lì parte l'intervallo. */
+	changeAnchor: string | null;
 	/** Diff attualmente disegnato per il working tree: serve a ricostruire le patch parziali. */
 	changeDiff: DiffFile | null;
 	/** Righe scelte per lo staging parziale, nella forma `hunk:line`. */
@@ -249,6 +256,9 @@ function emptyState(root = ""): State {
 		lazyLoading: new Set(),
 		changePath: null,
 		changeStaged: false,
+		changeChosen: new Set(),
+		changeChosenSide: false,
+		changeAnchor: null,
 		changeDiff: null,
 		picked: new Set(),
 		// il diff parte unito; affiancato resta una scelta della sessione, non una preferenza salvata
@@ -565,7 +575,8 @@ const ui = {
 	stashAll: byId<HTMLButtonElement>("stash-all"),
 	stashNone: byId<HTMLButtonElement>("stash-none"),
 	stashPartialHint: byId("stash-partial-hint"),
-	stashList: byId("stash-list"),
+	listStashes: byId("list-stashes"),
+	stashCount: byId("stash-count"),
 	btnStashSave: byId<HTMLButtonElement>("btn-stash-save"),
 	stashClose: byId<HTMLButtonElement>("stash-close"),
 	submoduleDialog: byId<HTMLDialogElement>("submodule-dialog"),
@@ -929,6 +940,7 @@ function applySnapshot(snapshot: Snapshot): void {
 	renderUndo();
 	void updateWatchChip();
 	void reloadOpenDiff();
+	void refreshStashes();
 	void refreshRepoAccount();
 	if (state.tab === "blame") void loadBlame();
 }
@@ -1164,6 +1176,7 @@ function renderSession(): void {
 	void reloadOpenDiff();
 	void updateWatchChip();
 	// la scheda attiva può essere cambiata senza un aggiornamento del repository
+	void refreshStashes();
 	void refreshRepoAccount();
 	publishPanel();
 }
@@ -1500,7 +1513,27 @@ function renderChanges(snapshot: Snapshot): void {
 	renderChangesBadge(entries.length, staged.length, unstaged.length);
 	fillChangeList(ui.changesListStaged, staged, true);
 	fillChangeList(ui.changesListUnstaged, unstaged, false);
+	pruneChangeChosen(staged, unstaged);
+	// le liste sono state ricostruite: la scelta multipla va ridisegnata sopra le righe nuove
+	markSelectedChange();
 	renderTree(snapshot);
+}
+
+/**
+ * I file scelti restano finché sono nel lato da cui sono stati presi: dopo uno stage o uno scarto
+ * la riga può essere sparita, e una voce che non c'è più non deve restare appesa.
+ */
+function pruneChangeChosen(
+	staged: StatusEntry[],
+	unstaged: StatusEntry[]
+): void {
+	const side = state.changeChosenSide ? staged : unstaged;
+	const present = new Set(side.map((entry) => entry.path));
+	for (const path of [...state.changeChosen]) {
+		if (!present.has(path)) state.changeChosen.delete(path);
+	}
+	if (state.changeAnchor && !present.has(state.changeAnchor))
+		state.changeAnchor = null;
 }
 
 /**
@@ -2240,7 +2273,15 @@ async function selectTreeFile(path: string): Promise<void> {
 	publishPanel();
 }
 
-async function selectChange(path: string, staged?: boolean): Promise<void> {
+/**
+ * Il file di cui si vede il diff. Da fuori (una scheda riaperta, la palette) la scelta multipla
+ * riparte da questo file; `keepChoice` la lascia com'è, perché è già stata costruita dal clic.
+ */
+async function selectChange(
+	path: string,
+	staged?: boolean,
+	keepChoice = false
+): Promise<void> {
 	const entry = state.snapshot?.status.entries.find(
 		(item) => item.path === path
 	);
@@ -2250,9 +2291,72 @@ async function selectChange(path: string, staged?: boolean): Promise<void> {
 	// Il lato conta: lo stesso file può stare in "Staged" e in "Unstaged" con diff diversi.
 	state.changeStaged =
 		staged ?? (entry.index !== "." && entry.worktree === ".");
+	if (!keepChoice) {
+		state.changeChosen.clear();
+		state.changeChosen.add(path);
+		state.changeChosenSide = state.changeStaged;
+		state.changeAnchor = path;
+	}
 	markSelectedChange();
 	await loadChangeDiff();
 	publishPanel();
+}
+
+/**
+ * Clic in Changes: da solo sceglie il file, con Ctrl aggiunge o toglie, con Shift prende
+ * l'intervallo dal file toccato prima nella stessa lista. Il diff resta quello del file cliccato;
+ * gli altri restano scelti per le azioni di gruppo.
+ */
+function chooseChange(path: string, staged: boolean, event: MouseEvent): void {
+	const list = staged ? ui.changesListStaged : ui.changesListUnstaged;
+	// la scelta è per lato: stage e unstage non hanno senso insieme
+	if (state.changeChosenSide !== staged) {
+		state.changeChosen.clear();
+		state.changeAnchor = null;
+	}
+	const additive = event.ctrlKey || event.metaKey;
+
+	if (event.shiftKey && state.changeAnchor) {
+		const paths = changeListPaths(list);
+		const from = paths.indexOf(state.changeAnchor);
+		const to = paths.indexOf(path);
+		if (from >= 0 && to >= 0) {
+			state.changeChosen.clear();
+			for (const item of paths.slice(
+				Math.min(from, to),
+				Math.max(from, to) + 1
+			))
+				state.changeChosen.add(item);
+		}
+	} else if (additive) {
+		if (state.changeChosen.has(path) && state.changeChosen.size > 1)
+			state.changeChosen.delete(path);
+		else state.changeChosen.add(path);
+	} else {
+		state.changeChosen.clear();
+		state.changeChosen.add(path);
+	}
+
+	state.changeChosenSide = staged;
+	if (!event.shiftKey) state.changeAnchor = path;
+	// se il file è appena uscito dalla scelta, il diff passa all'ultimo rimasto
+	const focus = state.changeChosen.has(path)
+		? path
+		: [...state.changeChosen].at(-1) ?? path;
+	void selectChange(focus, staged, true);
+}
+
+function changeListPaths(list: HTMLElement): string[] {
+	return [...list.querySelectorAll<HTMLElement>("li[data-path]")].map(
+		(item) => item.dataset.path ?? ""
+	);
+}
+
+/** I percorsi su cui agisce un pulsante di riga: tutta la scelta, se la riga ne fa parte. */
+function chosenChangePaths(path: string, staged: boolean): string[] {
+	if (state.changeChosenSide !== staged || !state.changeChosen.has(path))
+		return [path];
+	return [...state.changeChosen];
 }
 
 /**
@@ -2260,6 +2364,8 @@ async function selectChange(path: string, staged?: boolean): Promise<void> {
  * sotto il puntatore e il doppio clic non arriverebbe mai (due clic su due nodi diversi).
  */
 function markSelectedChange(): void {
+	// con un solo file scelto il bordo basta: «scelto» è una cosa che si vede quando sono più d'uno
+	const many = state.changeChosen.size > 1;
 	for (const [list, staged] of [
 		[ui.changesListStaged, true],
 		[ui.changesListUnstaged, false],
@@ -2267,10 +2373,16 @@ function markSelectedChange(): void {
 		for (const item of list.querySelectorAll<HTMLElement>(
 			"li[data-path]"
 		)) {
-			item.classList.toggle(
-				"is-selected",
+			const focused =
 				item.dataset.path === state.changePath &&
-					staged === state.changeStaged
+				staged === state.changeStaged;
+			item.classList.toggle("is-selected", focused);
+			item.classList.toggle(
+				"is-chosen",
+				many &&
+					!focused &&
+					state.changeChosenSide === staged &&
+					state.changeChosen.has(item.dataset.path ?? "")
 			);
 		}
 	}
@@ -2319,6 +2431,16 @@ function selectionForHunk(hunk: number, lines: number[]): HunkSelection[] {
 	return [{ hunk, lines }];
 }
 
+/** Le righe scelte in un hunk: la selezione vale solo per il riquadro in cui è stata fatta. */
+function pickedLines(hunk: number): number[] {
+	const lines: number[] = [];
+	for (const key of state.picked) {
+		const [h, l] = key.split(":").map(Number) as [number, number];
+		if (h === hunk) lines.push(l);
+	}
+	return lines;
+}
+
 /** Applica una patch parziale: stage se il diff mostrato è unstaged, unstage se è staged. */
 async function applyPartial(selection: HunkSelection[]): Promise<void> {
 	const file = state.changeDiff;
@@ -2335,6 +2457,114 @@ async function applyPartial(selection: HunkSelection[]): Promise<void> {
 	const snapshot = await guard(
 		mode === "stage" ? "Stage parziale" : "Unstage parziale",
 		() => api.applyPatch(path, patch, mode)
+	);
+	if (!snapshot) return;
+	clearPicked();
+	applySnapshot(snapshot);
+}
+
+/**
+ * Menu di un hunk: le azioni valgono per le righe scelte dentro quell'hunk, o per l'hunk intero
+ * quando non ce ne sono. Stage e Unstage duplicano i pulsanti; il motivo per cui esiste il menu è
+ * lo stash e lo scarto di una parte sola, che non hanno un pulsante proprio.
+ */
+function openHunkMenu(hunk: number, x: number, y: number): void {
+	const file = state.changeDiff;
+	const path = state.changePath;
+	if (!file || !path) return;
+
+	const staged = state.changeStaged;
+	const mode: PatchMode = staged ? "unstage" : "stage";
+	const lines = pickedLines(hunk);
+	const selection: HunkSelection[] =
+		lines.length > 0 ? [{ hunk, lines }] : [{ hunk }];
+	const verb = staged ? "Unstage" : "Stage";
+	const actionLabel =
+		lines.length > 0
+			? `${verb} ${lines.length} ${lines.length === 1 ? "riga" : "righe"}`
+			: `${verb} hunk`;
+	// lo stash parziale lavora sul diff HEAD→worktree: una parte in stage descriverebbe altro
+	const entry = state.snapshot?.status.entries.find(
+		(item) => item.path === path
+	);
+	const hasStaged = entry !== undefined && entry.index !== ".";
+
+	openMenu(x, y, [
+		{
+			label: actionLabel,
+			hint: staged
+				? "Toglie dallo stage la selezione di questo hunk."
+				: "Prepara per il commit la selezione di questo hunk.",
+			action: () => void applyPartial(selection),
+		},
+		{
+			label: "Metti nello stash",
+			disabled: staged || hasStaged,
+			hint: staged
+				? "Questo lato è già in stage: lo stash prenderebbe il file intero."
+				: hasStaged
+				? "Il file ha già modifiche in stage: vanno nello stash solo insieme al file intero."
+				: "Salva in uno stash la parte scelta; il resto resta nel file.",
+			action: () => void stashSelection(file, path, selection, lines),
+		},
+		{
+			label: "Scarta…",
+			danger: true,
+			hint: "Riporta indietro la parte scelta; si recupera con Annulla.",
+			action: () => void discardSelection(file, path, selection, mode),
+		},
+	]);
+}
+
+/** Stash della sola parte scelta: il resto del file resta com'è nel working tree. */
+async function stashSelection(
+	file: DiffFile,
+	path: string,
+	selection: HunkSelection[],
+	lines: number[]
+): Promise<void> {
+	// una patch porta le righe scelte dentro lo stash, l'altra le toglie dal file
+	const selected = buildPatch(file, selection, "stage");
+	const revert = revertPatch(file, selection);
+	if (!selected || !revert) {
+		toast("Nessuna modifica da applicare alla selezione.");
+		return;
+	}
+	const message =
+		lines.length > 0
+			? `Modifiche a ${path} · ${lines.length} ${
+					lines.length === 1 ? "riga" : "righe"
+			  }`
+			: `Modifiche a ${path}`;
+	const snapshot = await guard("Stash parziale", () =>
+		api.stashPatch(path, t(message), selected, revert)
+	);
+	if (!snapshot) return;
+	clearPicked();
+	applySnapshot(snapshot);
+	toast("Righe scelte salvate nello stash.", "ok");
+}
+
+/** Scarto della sola parte scelta, con la stessa voce di annullamento dello scarto intero. */
+async function discardSelection(
+	file: DiffFile,
+	path: string,
+	selection: HunkSelection[],
+	mode: PatchMode
+): Promise<void> {
+	const patch = revertPatch(file, selection);
+	if (!patch) {
+		toast("Nessuna modifica da applicare alla selezione.");
+		return;
+	}
+	const message =
+		mode === "unstage"
+			? "Scartare la parte scelta? Esce dall'indice e dal file; si recupera con Annulla."
+			: "Scartare la parte scelta? Torna indietro solo nel file; si recupera con Annulla.";
+	if (!askConfirm(message)) return;
+
+	const snapshot = await guard("Scarto parziale", () =>
+		api.discardPatch(path, patch, mode)
 	);
 	if (!snapshot) return;
 	clearPicked();
@@ -2701,11 +2931,16 @@ function fileMenuEntries(path: string): Array<MenuEntry | "separator"> {
  * Menu di un file in Changes: le stesse azioni sul contenuto del menu dell'albero, più quelle
  * sullo stato della riga (stage, scarto, stash). Lo stash di un solo file chiude il giro senza
  * aprire la finestra: chi ha già scelto il file non deve sceglierlo una seconda volta.
+ *
+ * `paths` è la scelta: uno o più file quando la riga fa parte di una scelta multipla. Le voci
+ * dicono quanti file toccano, così un clic non sorprende.
  */
 function changeFileMenuEntries(
-	path: string,
+	paths: string[],
 	staged: boolean
 ): Array<MenuEntry | "separator"> {
+	const path = paths[0]!;
+	const many = paths.length > 1;
 	return [
 		{
 			label: "Apri con l'applicazione associata",
@@ -2724,23 +2959,39 @@ function changeFileMenuEntries(
 		},
 		"separator",
 		{
-			label: staged ? "Togli dallo stage" : "Aggiungi allo stage",
-			hint: staged
+			label: staged
+				? many
+					? `Togli ${paths.length} file dallo stage`
+					: "Togli dallo stage"
+				: many
+				? `Aggiungi ${paths.length} file allo stage`
+				: "Aggiungi allo stage",
+			hint: many
+				? staged
+					? "Riporta i file fuori dallo stage, senza perdere le modifiche."
+					: "Prepara i file per il prossimo commit."
+				: staged
 				? "Riporta il file fuori dallo stage, senza perdere le modifiche."
 				: "Prepara il file per il prossimo commit.",
-			action: () => void (staged ? unstage([path]) : stage([path])),
+			action: () => void (staged ? unstage(paths) : stage(paths)),
 		},
 		{
 			label: "Scarta le modifiche",
 			danger: true,
-			hint: "Riporta il file all'ultimo commit; le modifiche tracciate restano annullabili.",
-			action: () => void discard([path]),
+			hint: many
+				? "Riporta i file all'ultimo commit; le modifiche tracciate restano annullabili."
+				: "Riporta il file all'ultimo commit; le modifiche tracciate restano annullabili.",
+			action: () => void discard(paths),
 		},
 		"separator",
 		{
-			label: "Stash di questo file",
-			hint: "Salva in uno stash solo le modifiche di questo file; il resto resta nel working tree.",
-			action: () => void stashFile(path),
+			label: many
+				? `Stash di ${paths.length} file`
+				: "Stash di questo file",
+			hint: many
+				? "Salva in uno stash solo le modifiche di questi file; il resto resta nel working tree."
+				: "Salva in uno stash solo le modifiche di questo file; il resto resta nel working tree.",
+			action: () => void stashFiles(paths),
 		},
 		{
 			label: "Stash di tutti i file…",
@@ -3437,65 +3688,129 @@ async function openStash(): Promise<void> {
 	ui.stashMessage.value = "";
 	renderStashPaths();
 	if (!ui.stashDialog.open) ui.stashDialog.showModal();
-	await loadStashList();
+	void refreshStashes();
 }
 
-async function loadStashList(): Promise<void> {
-	clear(ui.stashList);
-	const entries = await guard("Stash", () => api.stashList());
-	if (!entries) return;
+/**
+ * Gli stash del repository attivo, tenuti per root: la barra laterale si ridisegna anche quando
+ * cambia la scheda attiva, e una risposta arrivata per un'altra scheda non deve finire qui.
+ */
+const stashEntries = new Map<string, StashEntry[]>();
+
+async function refreshStashes(): Promise<void> {
+	const root = state.root;
+	if (!root) {
+		stashEntries.clear();
+		renderStashes();
+		return;
+	}
+	try {
+		stashEntries.set(root, await api.stashList());
+	} catch (error) {
+		// lo stack è un dettaglio: un errore non deve togliere la barra laterale
+		console.warn("stash:", readableError(error));
+	}
+	if (state.root === root) renderStashes();
+}
+
+/**
+ * Data compatta per la barra laterale: senza anno, perché uno stash è roba di giorni e nella
+ * colonna stretta il messaggio deve restare leggibile.
+ */
+function stashDate(timestampMs: number): string {
+	return new Date(timestampMs).toLocaleString(localeTag(), {
+		day: "numeric",
+		month: "short",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+}
+
+/** Sezione «Stash» della barra laterale: contatore, elenco e menu su clic o tasto destro. */
+function renderStashes(): void {
+	const entries = state.snapshot ? stashEntries.get(state.root) ?? [] : [];
+	ui.stashCount.textContent = String(entries.length);
+	ui.stashCount.classList.toggle("is-zero", entries.length === 0);
+	ui.stashCount.title = t(
+		entries.length === 1
+			? "1 stash salvato"
+			: `${entries.length} stash salvati`
+	);
+	clear(ui.listStashes);
 	if (entries.length === 0) {
-		ui.stashList.appendChild(el("li", "muted", "Nessuno stash."));
+		const empty = el("li", "muted", t("Nessuno stash."));
+		empty.style.cursor = "default";
+		ui.listStashes.appendChild(empty);
 		return;
 	}
 	for (const entry of entries) {
 		const item = el("li");
 		item.dataset.index = String(entry.index);
-		const text = el("div", "stash-text");
-		text.appendChild(el("span", "stash-message", entry.message));
-		text.appendChild(
+		item.appendChild(el("span", "name", entry.message));
+		item.appendChild(
 			el(
 				"span",
-				"stash-meta",
-				`stash@{${entry.index}} · ${shortDate(entry.timestamp * 1000)}${
-					entry.branch ? ` · ${entry.branch}` : ""
-				}`
+				"meta",
+				`stash@{${entry.index}} · ${stashDate(entry.timestamp * 1000)}`
 			)
 		);
-		item.appendChild(text);
-
-		const actions = el("div", "stash-actions");
-		const button = (
-			label: string,
-			act: string,
-			className = "btn btn-small"
-		): HTMLButtonElement => {
-			const node = el("button", className, label);
-			node.type = "button";
-			node.dataset.stash = act;
-			return node;
-		};
-		actions.append(
-			button("Applica", "apply"),
-			button("Pop", "pop", "btn btn-small btn-primary"),
-			button("Elimina", "drop")
+		item.title = t(
+			`${entry.message} · stash@{${entry.index}} · clic per le operazioni`
 		);
-		item.appendChild(actions);
-		ui.stashList.appendChild(item);
+		const open = (x: number, y: number): void => openStashMenu(entry, x, y);
+		item.addEventListener("click", (event) => {
+			event.stopPropagation();
+			const box = item.getBoundingClientRect();
+			open(box.left + 8, box.bottom + 2);
+		});
+		item.addEventListener("contextmenu", (event) => {
+			event.preventDefault();
+			open(event.clientX, event.clientY);
+		});
+		ui.listStashes.appendChild(item);
 	}
 }
 
+/** Le stesse operazioni per clic e tasto destro: uno stash si applica, si riprende o si elimina. */
+function openStashMenu(entry: StashEntry, x: number, y: number): void {
+	openMenu(x, y, [
+		{
+			label: "Applica stash",
+			hint: "Rimette le modifiche salvate sul file e lascia lo stash nello stack.",
+			action: () => void stashAction("apply", entry.index),
+		},
+		{
+			label: "Pop stash",
+			hint: "Applica le modifiche e toglie lo stash dallo stack.",
+			action: () => void stashAction("pop", entry.index),
+		},
+		"separator",
+		{
+			label: "Elimina stash…",
+			danger: true,
+			hint: "Toglie lo stash senza applicarlo: il contenuto salvato lì non si recupera dall'app.",
+			action: () => void stashAction("drop", entry.index),
+		},
+	]);
+}
+
 /**
- * Stash di un solo file: `git stash push -- <path>` salva quel percorso e lascia il resto del
- * working tree dov'è. Il messaggio predefinito dice quale file è stato messo da parte.
+ * Stash di alcuni file: `git stash push -- <paths>` salva quei percorsi e lascia il resto del
+ * working tree dov'è. Il messaggio predefinito dice quali file sono stati messi da parte.
  */
-async function stashFile(path: string): Promise<void> {
-	const snapshot = await guard(`Stash di ${path}`, () =>
-		api.stashSave(t(`Modifiche a ${path}`), [path])
+async function stashFiles(paths: string[]): Promise<void> {
+	if (paths.length === 0) return;
+	const name = paths.length === 1 ? paths[0]! : `${paths.length} file`;
+	const message =
+		paths.length === 1
+			? t(`Modifiche a ${paths[0]!}`)
+			: t(`Modifiche a ${paths.length} file`);
+	const snapshot = await guard(`Stash di ${name}`, () =>
+		api.stashSave(message, paths)
 	);
 	if (!snapshot) return;
 	applySnapshot(snapshot);
-	toast(`Modifiche di ${path} nello stash.`, "ok");
+	toast(`Modifiche di ${name} nello stash.`, "ok");
 }
 
 async function stashAction(
@@ -3507,7 +3822,13 @@ async function stashAction(
 		pop: "Pop stash",
 		drop: "Elimina stash",
 	};
-	if (action === "drop" && !askConfirm(`Eliminare stash@{${index}}?`)) return;
+	if (
+		action === "drop" &&
+		!askConfirm(
+			`Eliminare stash@{${index}}? Il contenuto salvato lì non si recupera dall'app.`
+		)
+	)
+		return;
 	const snapshot =
 		action === "drop"
 			? await guard(labels.drop, () => api.stashDrop(index))
@@ -3516,7 +3837,6 @@ async function stashAction(
 			  );
 	if (!snapshot) return;
 	applySnapshot(snapshot);
-	await loadStashList();
 }
 
 async function openSubmodules(): Promise<void> {
@@ -3714,7 +4034,6 @@ ui.btnStashSave.addEventListener("click", () => {
 		ui.stashMessage.value = "";
 		applySnapshot(snapshot);
 		renderStashPaths();
-		await loadStashList();
 		toast(
 			partial
 				? partial.length === 1
@@ -3725,19 +4044,6 @@ ui.btnStashSave.addEventListener("click", () => {
 		);
 	})();
 });
-ui.stashList.addEventListener("click", (event) => {
-	const button = (event.target as HTMLElement).closest<HTMLButtonElement>(
-		"[data-stash]"
-	);
-	const index = Number(
-		button?.closest<HTMLElement>("li")?.dataset.index ?? Number.NaN
-	);
-	const action = button?.dataset.stash;
-	if (!button || !Number.isInteger(index) || !action) return;
-	if (action !== "apply" && action !== "pop" && action !== "drop") return;
-	void stashAction(action, index);
-});
-
 ui.submoduleClose.addEventListener("click", () => ui.submoduleDialog.close());
 ui.upstreamForm.addEventListener("submit", (event) => {
 	event.preventDefault();
@@ -7110,7 +7416,7 @@ ui.btnSearchClear.addEventListener("click", () => {
 	void runSearch("");
 });
 
-function changeListClick(event: Event): void {
+function changeListClick(event: MouseEvent): void {
 	const target = event.target as HTMLElement;
 	const item = target.closest<HTMLElement>("li");
 	const path = item?.dataset.path;
@@ -7118,11 +7424,13 @@ function changeListClick(event: Event): void {
 	const action = target.closest<HTMLElement>(".icon-btn")?.dataset.act;
 	const staged = item?.dataset.side === "staged";
 
-	if (action === "stage") void stage([path]);
-	else if (action === "unstage") void unstage([path]);
-	else if (action === "discard") void discard([path]);
-	else if (action === "stash") void stashFile(path);
-	else void selectChange(path, staged);
+	// i pulsanti di riga valgono per tutta la scelta, se la riga ne fa parte
+	const paths = chosenChangePaths(path, staged);
+	if (action === "stage") void stage(paths);
+	else if (action === "unstage") void unstage(paths);
+	else if (action === "discard") void discard(paths);
+	else if (action === "stash") void stashFiles(paths);
+	else chooseChange(path, staged, event);
 }
 
 /**
@@ -7136,19 +7444,24 @@ function changeListDoubleClick(event: Event): void {
 	const item = target.closest<HTMLElement>("li");
 	const path = item?.dataset.path;
 	if (!path) return;
-	void toggleChangeSide(path, item?.dataset.side === "staged");
+	const staged = item?.dataset.side === "staged";
+	void toggleChangeSide(chosenChangePaths(path, staged), staged);
 }
 
 /**
- * Sposta il file dall'altra parte. Il lato del diff si aggiorna prima di ridisegnare: la riga
+ * Sposta i file dall'altra parte. Il lato del diff si aggiorna prima di ridisegnare: la riga
  * resta selezionata nella lista nuova e il pannello legge la patch giusta una volta sola.
  */
-async function toggleChangeSide(path: string, staged: boolean): Promise<void> {
+async function toggleChangeSide(
+	paths: string[],
+	staged: boolean
+): Promise<void> {
 	const snapshot = await guard(staged ? "Unstage" : "Stage", () =>
-		staged ? api.unstage([path]) : api.stage([path])
+		staged ? api.unstage(paths) : api.stage(paths)
 	);
 	if (!snapshot) return;
-	if (state.changePath === path) state.changeStaged = !staged;
+	if (state.changePath && paths.includes(state.changePath))
+		state.changeStaged = !staged;
 	applySnapshot(snapshot);
 }
 
@@ -7180,10 +7493,11 @@ for (const list of [ui.changesListStaged, ui.changesListUnstaged]) {
 		const path = item?.dataset.path;
 		if (!item || !path) return;
 		event.preventDefault();
+		const staged = item.dataset.side === "staged";
 		openMenu(
 			event.clientX,
 			event.clientY,
-			changeFileMenuEntries(path, item.dataset.side === "staged")
+			changeFileMenuEntries(chosenChangePaths(path, staged), staged)
 		);
 	});
 }
@@ -7265,14 +7579,14 @@ ui.changesDiff.addEventListener("click", (event) => {
 	if (button) {
 		const hunk = Number(button.dataset.hunk);
 		if (!Number.isInteger(hunk)) return;
-		if (button.dataset.act?.endsWith("-hunk")) {
+		if (button.dataset.act === "hunk-menu") {
+			// il clic che apre il menu non deve arrivare al documento, che lo chiuderebbe subito
+			event.stopPropagation();
+			openHunkMenu(hunk, event.clientX, event.clientY);
+		} else if (button.dataset.act?.endsWith("-hunk")) {
 			void applyPartial([{ hunk }]);
 		} else if (button.dataset.act?.endsWith("-lines")) {
-			const lines: number[] = [];
-			for (const key of state.picked) {
-				const [h, l] = key.split(":").map(Number) as [number, number];
-				if (h === hunk) lines.push(l);
-			}
+			const lines = pickedLines(hunk);
 			if (lines.length > 0)
 				void applyPartial(selectionForHunk(hunk, lines));
 		}

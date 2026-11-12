@@ -160,9 +160,16 @@ impostazioni:
     niente: dice cosa guardare.
 -   **Una vista sola per le modifiche**: la voce _Changes_ della barra laterale le porta a tutta area,
     senza storia né pannello inferiore: prima le modifiche **fuori dallo stage**, sotto quelle **in
-    stage**, poi il diff e il riquadro del commit. Il doppio clic su un file lo sposta dall'altra
-    parte; ogni riga ha i pulsanti stage/unstage, scarto e **stash del solo file** (`⇩`), e il tasto
-    destro apre le stesse azioni più «Stash di tutti i file…». _All Commits_ riporta la storia.
+    stage**, poi il diff e il riquadro del commit. Clic su un file mostra il suo diff, **Ctrl+clic**
+    aggiunge o toglie un file dalla scelta, **Shift+clic** prende l'intervallo: i pulsanti di riga
+    (stage/unstage, scarto, **stash del file** `⇩`) e il menu del tasto destro valgono per tutta la
+    scelta e dicono quanti file toccano. Il doppio clic sposta i file scelti dall'altra parte; il tasto
+    destro apre le stesse azioni più «Stash di tutti i file…». Nel diff ogni hunk ha il menu `⋯` con
+    **Metti nello stash** e **Scarta…**, che agiscono sulle righe selezionate o sull'hunk intero.
+    _All Commits_ riporta la storia.
+-   **Stash nella barra laterale**: la sezione _Stash_, sopra i rami, mostra lo stack del repository
+    con il contatore ed è aperta di default. Clic o tasto destro su una voce aprono applica, pop ed
+    elimina; la finestra dello stash serve solo a crearne uno, con i file da salvare.
 -   **Storia** in cinque colonne: grafo a corsie, messaggio con i badge dei ref, autore con avatar a
     iniziali, SHA breve, data. Clic su un ramo o tag: il cursore va al suo commit. Tasto destro su un
     ramo: checkout, merge, rebase, rinomina, elimina, copia, e **«Allinea main a origin/main»** sul

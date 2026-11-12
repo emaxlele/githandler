@@ -55,6 +55,8 @@ const api: GitApi = {
 		invokeRepo("git:applyPatch", path, patch, mode),
 	unstage: (paths) => invokeRepo("git:unstage", paths),
 	discard: (paths) => invokeRepo("git:discard", paths),
+	discardPatch: (path, patch, mode) =>
+		invokeRepo("git:discardPatch", path, patch, mode),
 	commit: (message, all, sign) =>
 		invokeRepo("git:commit", message, all, sign),
 	checkout: (branch) => invokeRepo("git:checkout", branch),
@@ -65,6 +67,8 @@ const api: GitApi = {
 	alignToUpstream: () => invokeRepo("git:alignToUpstream"),
 	stashList: () => invokeRepo("git:stashList"),
 	stashSave: (message, paths) => invokeRepo("git:stashSave", message, paths),
+	stashPatch: (path, message, selected, revert) =>
+		invokeRepo("git:stashPatch", path, message, selected, revert),
 	stashApply: (index, drop) => invokeRepo("git:stashApply", index, drop),
 	stashDrop: (index) => invokeRepo("git:stashDrop", index),
 	submodules: () => invokeRepo("git:submodules"),

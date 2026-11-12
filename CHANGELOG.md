@@ -2,6 +2,28 @@
 
 ## [Non rilasciato]
 
+### Stash nella barra laterale, più file scelti in Changes, stash e scarto di una parte del diff
+
+-   **Gli stash si vedono sempre**: una sezione _Stash_ nella barra laterale, sopra i rami e aperta
+    di default, con il contatore accanto al titolo. Clic o tasto destro su una voce aprono lo stesso
+    menu — applica, pop, elimina — e il contatore si aggiorna da solo dopo ogni operazione. La lista
+    esce dalla finestra dello stash, che resta il posto dove lo stash si crea.
+-   **Più file in un colpo**: in _Changes_ il clic sceglie un file, **Ctrl** aggiunge o toglie,
+    **Shift** prende l'intervallo dal file toccato prima. I pulsanti di riga e il menu del tasto
+    destro agiscono su tutta la scelta (stage, unstage, scarto, stash) e le voci dicono quanti file
+    toccano. La scelta è per lato: un file può stare sia in stage sia fuori, e le due liste non si
+    mescolano.
+-   **Stash e scarto di una parte sola**: il menu `⋯` dell'hunk agisce sulle righe selezionate o
+    sull'hunk intero. **Metti nello stash** salva solo quella parte e lascia il resto nel file;
+    **Scarta…** la riporta indietro con la conferma di sempre e la voce di annullamento.
+-   **Stash parziale portabile**: `git stash push --staged` esiste da Git 2.35, mentre l'app dichiara
+    2.23. La voce di stash si costruisce con un indice temporaneo, due `commit-tree` e `git stash
+store`, quindi nello stash finisce la sola parte scelta anche nelle versioni vecchie; se il file
+    non torna indietro la voce viene tolta dallo stack.
+-   **Lo scarto parziale non rovina il resto**: la patch di ripristino tratta come contesto le
+    modifiche non scelte, così scartare una riga non porta via le altre dello stesso hunk. Un file con
+    qualcosa in stage non entra nello stash parziale: la voce è disabilitata e dice perché.
+
 ### Il chip dell'account dice di nuovo quale account lavora sul repository
 
 -   **Una risposta per repository**: la scelta dell'account si legge per la scheda attiva. Riaprendo

@@ -285,6 +285,13 @@
 				</div>
 				<div class="search-info" id="search-info"></div>
 
+				<section class="side-section" id="section-stash">
+					<h2>
+						<span>Stash</span>
+						<span class="badge is-zero" id="stash-count">0</span>
+					</h2>
+					<ul class="ref-list stash-list" id="list-stashes"></ul>
+				</section>
 				<section class="side-section">
 					<h2><span>Branches</span></h2>
 					<ul class="ref-list" id="list-branches"></ul>
@@ -945,13 +952,16 @@
 						Salva stash
 					</button>
 				</div>
-				<ul class="stash-list" id="stash-list"></ul>
+				<p class="hint">
+					Gli stash salvati sono nella barra laterale, sotto «Stash»:
+					da lì si applicano, si riprendono o si eliminano.
+				</p>
 				<div class="dialog-actions">
 					<button
 						type="button"
 						class="btn"
 						id="stash-close"
-						title="Chiude l'elenco degli stash"
+						title="Chiude la finestra dello stash"
 					>
 						Chiudi
 					</button>

@@ -5,7 +5,9 @@ import { parseDiff } from "../src/core/diff.ts";
 import {
 	buildPatch,
 	canStagePartially,
+	complementSelection,
 	patchTargetsOnly,
+	revertPatch,
 } from "../src/core/patch.ts";
 
 const unified = [
@@ -136,4 +138,74 @@ test("la patch può toccare solo il file dichiarato", () => {
 
 	const injected = patch.replace("+++ b/src/app.ts", "+++ b/src/evil.sh");
 	assert.equal(patchTargetsOnly(injected, "src/app.ts"), false);
+});
+
+test("il complemento di una selezione tiene le righe non scelte", () => {
+	const file = fixture();
+	// hunk: 0 contesto, 1 -b, 2 -c, 3 +b, 4 +c, 5 +d, 6 contesto
+	assert.deepEqual(complementSelection(file, [{ hunk: 0, lines: [2, 4] }]), [
+		{ hunk: 0, lines: [1, 3, 5] },
+	]);
+	// un hunk intero non lascia niente da tenere
+	assert.deepEqual(complementSelection(file, [{ hunk: 0 }]), []);
+	// niente di scelto: resta tutto il file
+	assert.deepEqual(complementSelection(file, []), [
+		{ hunk: 0, lines: [1, 2, 3, 4, 5] },
+	]);
+});
+
+test("le due metà ricostruiscono il file intero", () => {
+	const file = fixture();
+	const selection = [{ hunk: 0, lines: [1, 4] }];
+	const gone = buildPatch(file, selection, "stage")!;
+	const rest = buildPatch(file, complementSelection(file, selection), "stage")!;
+	// ogni riga cambiata compare in una sola delle due patch
+	const changed = (patch: string): string[] =>
+		patch
+			.split("\n")
+			.filter((line) => line.startsWith("+") || line.startsWith("-"))
+			.filter((line) => !line.startsWith("+++") && !line.startsWith("---"))
+			.sort();
+	assert.deepEqual(
+		[...changed(gone), ...changed(rest)].sort(),
+		["+const b = 20;", "+const c = 30;", "+const d = 40;", "-const b = 2;", "-const c = 3;"].sort(),
+	);
+});
+
+test("ripristino: le aggiunte non scelte restano come contesto, le rimozioni non scelte spariscono", () => {
+	const file = fixture();
+	// hunk: 0 contesto, 1 -b, 2 -c, 3 +b, 4 +c, 5 +d, 6 contesto
+	const patch = revertPatch(file, [{ hunk: 0, lines: [2, 4] }]);
+	assert.ok(patch);
+
+	const lines = patch!.split("\n");
+	// vecchio lato (il file com'era): contesto + `-c` rimosso = 5; nuovo lato (il file com'è): 5
+	assert.equal(lines[3], "@@ -10,5 +10,5 @@ function main()");
+	assert.deepEqual(lines.slice(4, 10), [
+		" const a = 1;",
+		"-const c = 3;",
+		" const b = 20;",
+		"+const c = 30;",
+		" const d = 40;",
+		" return a;",
+	]);
+	assert.equal(patchTargetsOnly(patch!, "src/app.ts"), true);
+});
+
+test("ripristino di una sola aggiunta: le rimozioni non scelte non entrano nella patch", () => {
+	const lines = revertPatch(fixture(), [{ hunk: 0, lines: [3] }])!.split("\n");
+	// nessuna riga `-`: il file non contiene più `-b`/`-c`, e la patch non deve pretenderle
+	assert.deepEqual(lines.slice(4, 9), [
+		" const a = 1;",
+		"+const b = 20;",
+		" const c = 30;",
+		" const d = 40;",
+		" return a;",
+	]);
+});
+
+test("ripristino: selezione vuota o file non parziale non producono patch", () => {
+	assert.equal(revertPatch(fixture(), []), null);
+	assert.equal(revertPatch(fixture(), [{ hunk: 0, lines: [] }]), null);
+	assert.equal(revertPatch(fixture(), [{ hunk: 9 }]), null);
 });
