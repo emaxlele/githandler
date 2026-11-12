@@ -5,6 +5,24 @@
 
 ## 2026-11-13
 
+### Il nome del prodotto non è ancora protetto
+
+-   **Cosa**: il nome «GitHandler» non è depositato come marchio. Ho messo in `TODO.md` cosa va fatto
+    prima della pubblicazione: ricerca gratuita sulle banche dati (TMview, eSearch plus, UIBM), e poi,
+    se è libero, deposito UIBM in classe 9 (software) e 42 (sviluppo di software), circa 101 € la prima
+    classe, valido dieci anni.
+-   **Perché**: il marchio è l'unica cosa che ferma chi usa lo stesso nome. Non protegge il codice —
+    quello è già coperto dal diritto d'autore e dalla GPL con il CLA — e non impedisce a un fork di
+    esistere, ma impedisce che si chiami come questo prodotto.
+-   **Cosa costa e cosa rischia**: il deposito è la parte economica bassa; la difesa è quella cara
+    (consulente, opposizioni, sorveglianza, rinnovo). Il nome contiene il termine tecnologico generico
+    `git`, quindi la protezione sarà stretta: ferma il segno identico, non l'uso descrittivo. Meglio
+    depositare **prima** di pubblicare, perché vince chi deposita prima.
+-   **Alternativa a quasi zero**: registrare il dominio del nome e gli handle, e usare **™** da subito.
+-   **Verifica**: nessuna modifica al codice; documentazione e `TODO.md` soltanto.
+-   **Stato**: da decidere, non bloccante per la pubblicazione del codice.
+-   **Riferimento**: commit di questa sessione.
+
 ### Prima di aprire: controlli su tutta la storia e documenti senza percorsi personali
 
 -   **Cosa**: controllo completo del repository prima della pubblicazione — segreti in tutti i commit,

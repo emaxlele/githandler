@@ -171,6 +171,12 @@ minmax(0, 1fr)`), non più contenuto tagliato
         **obbligatorio** il suo check nelle regole del ramo. Senza il check la firma non blocca il
         merge. Da fare dopo la pubblicazione: su un repository privato le regole del ramo con i check
         obbligatori richiedono un piano a pagamento
+-   [ ] **Nome e marchio**: «GitHandler» non è depositato. Prima della pubblicazione: ricerca gratuita
+        (TMview, eSearch plus, banca dati UIBM) sul nome esatto e sulle varianti; se è libero, deposito
+        **UIBM** in classe 9 (software) e 42 (sviluppo e messa a disposizione di software), ~101 € la
+        prima classe, 10 anni. Il marchio **UE** (EUIPO, ~850 €) quando ci sarà un mercato da difendere.
+        Costa poco il deposito, molto la difesa: consulente, sorveglianza, rinnovo. Il marchio non copre
+        il codice (quello è GPL + CLA) e non impedisce un fork con un altro nome
 -   [ ] Milestone 2 — il diff che conta
     -   [x] **Risoluzione dei conflitti in-app**: tre versioni (base / mio / loro), scelta per file e
             per hunk, editor del risultato, «segna risolto», «continua» per merge, rebase e cherry-pick

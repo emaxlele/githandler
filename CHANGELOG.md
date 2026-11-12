@@ -1,6 +1,6 @@
 # Changelog
 
-## [Non rilasciato]
+## [0.12.0] — 2026-11-13
 
 ### Stash nella barra laterale, più file scelti in Changes, stash e scarto di una parte del diff
 
@@ -52,8 +52,6 @@ store`, quindi nello stash finisce la sola parte scelta anche nelle versioni vec
 -   **Niente viene perso**: `set-url` cambia solo la configurazione; `remote remove` porta via il
     remoto e i ref scaricati da lì, mentre rami locali e commit restano. Lo stesso indirizzo si può
     riaggiungere e con un `fetch` tornano gli stessi riferimenti.
-
-## [0.12.0] — 2026-11-10
 
 ### Il pacchetto `.deb` dichiara `git` e si installa su una Ubuntu pulita
 
