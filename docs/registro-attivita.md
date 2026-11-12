@@ -1,7 +1,31 @@
 # Registro attività — githandler
 
 > Una sezione per giorno, la più recente in alto. Ogni voce dice cosa è stato fatto e perché, in
-> parole semplici. Ultimo aggiornamento: 2026-11-12
+> parole semplici. Ultimo aggiornamento: 2026-11-13
+
+## 2026-11-13
+
+### Il codice che arriva da fuori non cambia padrone
+
+-   **Cosa**: chi vuole aiutare può farlo, ma prima del primo contributo firma un accordo breve
+    (`CLA.md`): resta autore e titolare di quello che scrive e dà al manutentore il permesso di usarlo
+    e di cambiare la licenza del progetto anche in futuro. La firma è un commento nella pull request,
+    e il collegamento viene registrato in `docs/cla-signatures.md`; le regole per chi contribuisce sono
+    scritte anche in `CONTRIBUTING.md`.
+-   **Perché**: si vuole restare l'unico proprietario del progetto, cioè l'unica persona che decide
+    licenza, direzione e cosa entra. Senza un accordo, ogni riga arrivata da fuori avrebbe un secondo
+    titolare, e il giorno in cui la licenza dovesse cambiare bisognerebbe rintracciare e convincere
+    ogni singolo autore: in pratica la licenza resterebbe bloccata per sempre.
+-   **Come**: è una concessione di licenza, non una cessione. Il contributore tiene il copyright e i
+    diritti morali sul proprio codice; il manutentore ottiene un diritto perpetuo, mondiale e
+    irrevocabile di usarlo, sublicenziarlo e relicenziarlo, compresa una licenza diversa dalla GPL. Il
+    testo è in inglese perché lo leggono i contributori, mentre la registrazione delle firme sta in
+    `docs/`.
+-   **Verifica**: typecheck, 309 test e build verdi; la modifica è solo documentazione, nessun codice
+    toccato.
+-   **Stato**: fatto. La firma si raccoglie a mano finché i contributi esterni sono pochi; se
+    aumentano si aggiunge l'automazione.
+-   **Riferimento**: commit di questa sessione.
 
 ## 2026-11-12
 

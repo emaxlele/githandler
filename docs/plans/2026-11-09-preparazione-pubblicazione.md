@@ -45,6 +45,7 @@ Il prodotto è descritto in `README.md`; l'architettura in `docs/architettura.md
 -   [x] `SECURITY.md`, `CONTRIBUTING.md`, moduli per issue (bug e proposta), `ROADMAP.md`
 -   [x] `AGENTS.md`: codice in inglese, UI bilingue, nessun nome di altri client, verifica e misure
 -   [x] Badge nel README (CI, licenza, Node)
+-   [x] `CLA.md`: i contributi esterni restano sotto il controllo del manutentore (2026-11-13)
 -   [ ] Riapertura del repository: decisione dell'utente, dopo il primo giro di CI verde
 
 Il resto del lavoro è nel piano `2026-11-09-roadmap-prodotto.md`.

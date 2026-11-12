@@ -20,6 +20,19 @@ three commands that must stay green.
 -   **No destructive shortcuts.** The app must keep choosing the recoverable path: no forced push, no
     `git gc --prune=now` on the user's repository, no silently discarded changes.
 
+## Licence and contributions
+
+GitHandler is released under **GPL-3.0-or-later** and the maintainer stays its only owner: one person
+decides the licence, the roadmap and what gets merged.
+
+-   **Sign the [CLA](CLA.md) before your first pull request.** It is a licence grant, not a transfer:
+    you keep the copyright of what you write, and the maintainer gains the right to use, sublicense and
+    relicense the contribution, so the project can change licence later without hunting down every
+    author. One signature covers all your future contributions.
+-   **Merged contributions are published under GPL-3.0-or-later**, like the rest of the code.
+-   **If you would rather not sign**, open an issue describing the change instead: the maintainer can
+    implement it. A good report is as useful as a patch.
+
 ## Setup
 
 Requirements: Node.js 24, npm, and a `git` recent enough for `status --porcelain=v2` (2.11+, but the
