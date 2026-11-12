@@ -164,7 +164,7 @@ settings:
     actions plus "Stash all files…". In the diff every hunk has a `⋯` menu with **Put in the stash**
     and **Discard…**, acting on the selected lines or on the whole hunk. _All Commits_ goes back to
     history.
--   **Stash in the sidebar**: the _Stash_ section, above the branches, shows the repository stack with
+-   **Stash in the sidebar**: the _Stash_ section, below the tags at the bottom, shows the stack with
     its counter and starts expanded. Click or right-click an entry to apply, pop or delete; the stash
     window now only creates one, choosing the files to save.
 -   **History** in five columns: swimlane graph, message with ref badges, author with initials avatar,

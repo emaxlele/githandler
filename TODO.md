@@ -146,10 +146,10 @@ minmax(0, 1fr)`), non più contenuto tagliato
         clic che sposta il file tra i due lati (con il diff che segue), pulsante `⇩` per lo stash del
         solo file e menu contestuale del file con stage, scarto, stash del file, «Stash di tutti i
         file…», apri, mostra, salva una copia e copia percorso
--   [x] **Stash nella barra laterale**: sezione richiudibile sopra i rami, aperta di default, con il
-        contatore; clic e tasto destro aprono applica, pop ed elimina, e lo stack si rilegge a ogni
-        aggiornamento e al cambio scheda (i dati sono per repository). La lista esce dalla finestra
-        dello stash, che ora serve solo a creare una voce
+-   [x] **Stash nella barra laterale**: sezione richiudibile in fondo alla barra, dopo i tag, aperta
+        di default, con il contatore; clic e tasto destro aprono applica, pop ed elimina, e lo stack
+        si rilegge a ogni aggiornamento e al cambio scheda (i dati sono per repository). La lista esce
+        dalla finestra dello stash, che ora serve solo a creare una voce
 -   [x] **Scelta multipla in Changes**: clic singolo, Ctrl per aggiungere o togliere, Shift per
         l'intervallo; pulsanti di riga e menu contestuale agiscono su tutta la scelta con le voci che
         dicono quanti file toccano. La scelta è per lato e si pota quando un file esce da quella lista

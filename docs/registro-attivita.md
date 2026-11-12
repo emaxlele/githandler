@@ -5,6 +5,19 @@
 
 ## 2026-11-13
 
+### La sezione Stash va in fondo alla barra laterale
+
+-   **Cosa**: la sezione _Stash_ non sta più tra il filtro e i rami: ora è l'ultima voce della barra
+    laterale, sotto i tag. Contatore, menu su clic e tasto destro e tutto il resto restano come prima.
+-   **Perché**: richiesta dell'utente. La barra si legge dall'alto in basso e le voci che si usano di
+    più (Changes, rami) restano in cima; lo stash è roba che si guarda ogni tanto, quindi va in fondo.
+-   **Come**: spostato il blocco della sezione dentro la barra laterale; nessuna modifica al codice che
+    la alimenta.
+-   **Verifica**: typecheck, 309 test e build; prova end-to-end con CDP (14 controlli) con la sezione
+    nella nuova posizione.
+-   **Stato**: fatto, da inviare.
+-   **Riferimento**: commit di questa sessione.
+
 ### La firma del CLA si raccoglie da sola, quando servirà
 
 -   **Cosa**: la regola è fissata: licenza GPL-3.0-or-later, CLA per i contributi esterni, firma
@@ -71,7 +84,7 @@
 ### Gli stash nella barra laterale, più file scelti in Changes, e il diff che sa fare una parte sola
 
 -   **Cosa**: tre richieste arrivate insieme. (1) Gli stash salvati ora si vedono in una sezione della
-    barra laterale, sopra i rami, con il numero accanto al titolo: clic o tasto destro su una voce
+    barra laterale, in fondo dopo i tag, con il numero accanto al titolo: clic o tasto destro su una voce
     aprono lo stesso menu per applicarla, riprenderla o eliminarla. La finestra dello stash serve solo
     a crearne uno. (2) In «Changes» si possono scegliere più file: clic per uno, Ctrl per aggiungerne
     o toglierne uno, Shift per prendere un intervallo; i pulsanti della riga e il menu del tasto destro

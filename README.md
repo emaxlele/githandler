@@ -167,7 +167,7 @@ impostazioni:
     destro apre le stesse azioni più «Stash di tutti i file…». Nel diff ogni hunk ha il menu `⋯` con
     **Metti nello stash** e **Scarta…**, che agiscono sulle righe selezionate o sull'hunk intero.
     _All Commits_ riporta la storia.
--   **Stash nella barra laterale**: la sezione _Stash_, sopra i rami, mostra lo stack del repository
+-   **Stash nella barra laterale**: la sezione _Stash_, in fondo alla barra dopo i tag, mostra lo stack
     con il contatore ed è aperta di default. Clic o tasto destro su una voce aprono applica, pop ed
     elimina; la finestra dello stash serve solo a crearne uno, con i file da salvare.
 -   **Storia** in cinque colonne: grafo a corsie, messaggio con i badge dei ref, autore con avatar a

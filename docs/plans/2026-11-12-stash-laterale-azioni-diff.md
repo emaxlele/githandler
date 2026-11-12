@@ -50,7 +50,7 @@ Tre richieste arrivate insieme:
         nel journal come per lo scarto intero.
 -   [x] Contratto: due metodi in `src/shared/api.ts`, due canali, preload, handler in
         `src/main/index.ts`.
--   [x] Finestra, sezione stash: markup `#section-stash` nella barra laterale (dopo «All Commits»), con
+-   [x] Finestra, sezione stash: markup `#section-stash` in fondo alla barra laterale (dopo i tag), con
         contatore; `renderStashes()` alimentato da `stashList()` per repository; clic e tasto destro
         aprono lo stesso menu (Applica / Pop / Elimina…); la lista esce dal dialog `#stash-dialog`.
 -   [x] Finestra, selezione multipla: `changeChosen` (Set di path, lato attivo), `changeAnchor` per

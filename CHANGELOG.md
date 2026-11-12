@@ -4,10 +4,10 @@
 
 ### Stash nella barra laterale, più file scelti in Changes, stash e scarto di una parte del diff
 
--   **Gli stash si vedono sempre**: una sezione _Stash_ nella barra laterale, sopra i rami e aperta
-    di default, con il contatore accanto al titolo. Clic o tasto destro su una voce aprono lo stesso
-    menu — applica, pop, elimina — e il contatore si aggiorna da solo dopo ogni operazione. La lista
-    esce dalla finestra dello stash, che resta il posto dove lo stash si crea.
+-   **Gli stash si vedono sempre**: una sezione _Stash_ in fondo alla barra laterale, dopo i tag,
+    aperta di default, con il contatore accanto al titolo. Clic o tasto destro su una voce aprono lo
+    stesso menu — applica, pop, elimina — e il contatore si aggiorna da solo dopo ogni operazione. La
+    lista esce dalla finestra dello stash, che resta il posto dove lo stash si crea.
 -   **Più file in un colpo**: in _Changes_ il clic sceglie un file, **Ctrl** aggiunge o toglie,
     **Shift** prende l'intervallo dal file toccato prima. I pulsanti di riga e il menu del tasto
     destro agiscono su tutta la scelta (stage, unstage, scarto, stash) e le voci dicono quanti file
