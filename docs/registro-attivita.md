@@ -1,9 +1,26 @@
 # Registro attività — githandler
 
 > Una sezione per giorno, la più recente in alto. Ogni voce dice cosa è stato fatto e perché, in
-> parole semplici. Ultimo aggiornamento: 2026-11-10
+> parole semplici. Ultimo aggiornamento: 2026-11-12
 
-## 2026-11-10
+## 2026-11-12
+
+### La verifica automatica torna verde
+
+-   **Cosa**: il controllo automatico che gira a ogni invio sul repository era rosso per colpa di un
+    test, non dell'applicazione. Il test preparava un repository remoto di prova senza dire come si
+    chiama il ramo iniziale, quindi su una macchina configurata diversamente il ramo si chiamava
+    `master` e il test cercava `main`: si fermava al primo invio.
+-   **Perché**: chi arriva al progetto vede il badge della verifica come prima cosa; rosso significa
+    «non funziona, passo oltre». Il difetto non si vedeva in locale perché lì il ramo iniziale è già
+    `main`.
+-   **Come**: il repository di prova dichiara ora `main` come ramo iniziale, così il test fa la stessa
+    cosa su qualsiasi macchina. Il resto della suite è stato eseguito con una configurazione Git
+    "vuota" per escludere altri casi simili: nessun altro test dipende da quella preferenza.
+-   **Verifica**: 299 test superati anche con `HOME` pulita e senza `init.defaultBranch` impostato
+    (prima: 2 falliti).
+-   **Stato**: fatto, da inviare.
+-   **Riferimento**: commit di questa sessione.
 
 ### L'account del repository non sparisce più dalla barra
 

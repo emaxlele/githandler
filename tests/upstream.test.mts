@@ -38,7 +38,10 @@ await writeFile(join(work, "a.txt"), "primo\n");
 await git(work, "add", ".");
 await git(work, "commit", "-qm", "primo");
 
-await git(base, "init", "-q", "--bare", remote);
+// `-b main` sul remoto nudo: senza, chi clona qui atterra sul ramo predefinito della macchina
+// (spesso `master`) e il `push origin main` del clone non trova niente da mandare. In locale il
+// difetto si nasconde dietro `init.defaultBranch`, sui runner no.
+await git(base, "init", "-q", "--bare", "-b", "main", remote);
 await git(work, "remote", "add", "origin", remote);
 await git(work, "push", "-q", "-u", "origin", "main");
 
