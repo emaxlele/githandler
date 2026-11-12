@@ -105,9 +105,9 @@ Conseguenze pratiche:
 				"type": "local",
 				"command": [
 					"node",
-					"/home/emaxlele/Projects/githandler/dist/mcp/index.js",
+					"/percorso/al/repository/dist/mcp/index.js",
 					"--repo",
-					"/home/emaxlele/Projects/githandler"
+					"/percorso/al/repository"
 				]
 			}
 		}
@@ -126,9 +126,9 @@ forma comoda se lo si vuole in ogni progetto.
 		"githandler": {
 			"command": "node",
 			"args": [
-				"/home/emaxlele/Projects/githandler/dist/mcp/index.js",
+				"/percorso/al/repository/dist/mcp/index.js",
 				"--repo",
-				"/home/emaxlele/Projects/githandler"
+				"/percorso/al/repository"
 			]
 		}
 	}

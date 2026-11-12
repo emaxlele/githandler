@@ -51,7 +51,7 @@ Vincoli: nessuna dipendenza nuova, stessa palette e stesso linguaggio visivo, ne
         1440 e 940 px, prova CDP su `/tmp/gitdemo` (contatore, stadi, passaggio modifiche ↔ storia,
         intestazione, larghezze) e `/tmp/gitclean` (contatore nascosto a zero), pannello staccato.
 -   [x] Documenti: CHANGELOG 0.10.0, TODO, registro attività; commit di githandler e aggiornamento di
-        AI_Knowledge.
+        knowledge-base.
 
 ## Rischi
 

@@ -43,7 +43,7 @@ Il launcher ricompila con esbuild (~200 ms) a ogni avvio: il menu apre sempre il
 ```bash
 ./build/install-local.sh
 desktop-file-validate ~/.local/share/applications/githandler.desktop
-~/.local/bin/githandler --repo ~/Projects/AI_Knowledge   # finestra con titolo githandler
+~/.local/bin/githandler --repo ~/Projects/knowledge-base   # finestra con titolo githandler
 ```
 
 ## Prompt per riprendere

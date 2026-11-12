@@ -261,7 +261,7 @@ Il quadro completo — regole, contratti fra i tre livelli, costi misurati e tra
 ```bash
 npm install
 npm start                              # build + avvio
-npm start -- --repo ~/Projects/AI_Knowledge   # rilegge il repo quando cambia
+npm start -- --repo ~/Projects/mio-repository   # rilegge il repo quando cambia
 
 npm test                  # parser, grafo e integrazione con git vero
 npm run typecheck
@@ -348,7 +348,7 @@ Lo script compila i bundle e scrive launcher, voce nel menu e icona:
 | Icona         | `~/.local/share/icons/hicolor/scalable/apps/githandler.svg` |
 
 Il launcher ricompila con esbuild a ogni avvio, così il menu apre sempre il codice corrente:
-`githandler --repo ~/Projects/AI_Knowledge`. Su Ubuntu 24.04+ passa `--no-sandbox` solo quando i
+`githandler --repo ~/Projects/mio-repository`. Su Ubuntu 24.04+ passa `--no-sandbox` solo quando i
 namespace utente sono limitati.
 
 ## API per l'AI

@@ -5,6 +5,27 @@
 
 ## 2026-11-13
 
+### Prima di aprire: controlli su tutta la storia e documenti senza percorsi personali
+
+-   **Cosa**: controllo completo del repository prima della pubblicazione — segreti in tutti i commit,
+    nomi di altri client, percorsi personali, email, file di chiavi, file grandi, branch e tag. Sistemato
+    quello che è emerso: gli esempi di `docs/mcp.md` non contengono più `/home/emaxlele/…` ma
+    `/percorso/al/repository`, i README non citano più un repository privato come esempio, nei piani il
+    nome del repository della knowledge base è diventato `knowledge-base`, una riga vecchia del registro
+    non nomina più quel repository, e `.gitignore` ignora `.env`.
+-   **Perché**: il repository sta per diventare pubblico e la storia resta visibile per sempre. Un
+    percorso personale o il nome di un repository privato in un documento pubblico sono dettagli
+    inutili da regalare.
+-   **Esito dei controlli**: nessun token, chiave o password in nessun commit; nessun nome di un altro
+    client Git in nessun commit; nessun file oltre 300 KB nella storia; un solo branch (`main`) e un tag
+    (`v0.10.0`, già pubblicato con la sua release).
+-   **Cosa resta**: nelle revisioni vecchie i percorsi `/home/emaxlele/…` e il nome `AI_Knowledge`
+    esistono ancora. Riscriverle richiederebbe un force push che cambierebbe tutti gli SHA citati nei
+    documenti e nel registro: costo alto, rischio nullo, quindi si lascia com'è.
+-   **Verifica**: typecheck, 309 test e build verdi.
+-   **Stato**: fatto.
+-   **Riferimento**: commit di questa sessione.
+
 ### La sezione Stash va in fondo alla barra laterale
 
 -   **Cosa**: la sezione _Stash_ non sta più tra il filtro e i rami: ora è l'ultima voce della barra
@@ -1413,6 +1434,6 @@
     con liste che disegnano solo le righe visibili.
 -   **Verifica**: 28 test automatici superati, di cui 9 su un repository git reale creato al momento
     (rename, file non tracciati, commit con messaggio multilinea, scarto delle modifiche, percorsi con
-    spazi). Interfaccia provata su `AI_Knowledge` (184 commit) e sul repository stesso.
+    spazi). Interfaccia provata su un repository di prova (184 commit) e sul repository stesso.
 -   **Stato**: funzionante in locale, non distribuito. Manca il pacchetto installabile.
 -   **Riferimento**: commit `548ac3a` del repository `~/Projects/githandler`.

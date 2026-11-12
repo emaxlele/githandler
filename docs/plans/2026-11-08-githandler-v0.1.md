@@ -1,7 +1,7 @@
 # githandler — piano v0.1: slice verticale Electron + TypeScript
 
 > Stato: in esecuzione. Creato 2026-11-08. Il piano sostituisce
-> `AI_Knowledge/docs/plans/2026-11-07-githandler-client-git-rust.md` (Rust + egui, superato).
+> `knowledge-base/docs/plans/2026-11-07-githandler-client-git-rust.md` (Rust + egui, superato).
 
 ## 1. Obiettivo
 
@@ -138,7 +138,7 @@ Ambiente imposto a ogni chiamata: `LC_ALL=C`, `GIT_TERMINAL_PROMPT=0`, `GIT_OPTI
 ### Milestone 4 — prodotto
 
 -   [ ] Packaging `.deb` **con profilo AppArmor** (i sandbox Chromium su Ubuntu 24.04+ non partono
-        senza: vedi `AI_Knowledge/raw/scelta-stack-desktop-2026-analisi.md` §8.2)
+        senza: vedi `knowledge-base/raw/scelta-stack-desktop-2026-analisi.md` §8.2)
 -   [ ] Multi-finestra, preferenze, temi chiaro/scuro
 -   [ ] Rebase interattivo, cherry-pick, stash, worktree, submodule
 -   [ ] LFS e credential helper (delegati a `git`)
@@ -160,7 +160,7 @@ Ambiente imposto a ogni chiamata: `LC_ALL=C`, `GIT_TERMINAL_PROMPT=0`, `GIT_OPTI
 1. `npm run typecheck` — zero errori, `strict` attivo.
 2. `npm test` — parser e grafo coperti da test con input reali.
 3. `npm run build` — i tre bundle escono in `dist/`.
-4. Avvio su questo repository (`~/Projects/AI_Knowledge` o lo stesso `githandler`): la storia si vede,
+4. Avvio su questo repository (`~/Projects/knowledge-base` o lo stesso `githandler`): la storia si vede,
    il diff si legge, un commit di prova si crea e si annulla.
 5. Screenshot con `--ozone-platform=headless` per verificare la resa senza dipendere dal display.
 
