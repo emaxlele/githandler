@@ -166,6 +166,11 @@ minmax(0, 1fr)`), non più contenuto tagliato
 
 ## Aperto
 
+-   [ ] **Contributi esterni**: per ora solo issue. Il giorno in cui si riaprono le pull request, due
+        passi in fila: installare `cla-assistant.io` sul repository puntandolo a `CLA.md`, e rendere
+        **obbligatorio** il suo check nelle regole del ramo. Senza il check la firma non blocca il
+        merge. Da fare dopo la pubblicazione: su un repository privato le regole del ramo con i check
+        obbligatori richiedono un piano a pagamento
 -   [ ] Milestone 2 — il diff che conta
     -   [x] **Risoluzione dei conflitti in-app**: tre versioni (base / mio / loro), scelta per file e
             per hunk, editor del risultato, «segna risolto», «continua» per merge, rebase e cherry-pick

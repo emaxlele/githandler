@@ -21,7 +21,8 @@
     (runtime aggiornato, ma resta un'azione da sorvegliare) ed EasyCLA della Linux Foundation
     (pensata per le fondazioni, sproporzionata qui).
 -   **Verifica**: typecheck, 309 test e build verdi; solo documentazione, nessun codice toccato.
--   **Stato**: deciso. Si attiva il giorno in cui si riaprono le pull request.
+-   **Stato**: deciso. Si attiva il giorno in cui si riaprono le pull request; il passo operativo
+    (installare l'app e rendere obbligatorio il suo check) è anche in `TODO.md`, così non si dimentica.
 -   **Riferimento**: commit di questa sessione.
 
 ### Per ora si accettano segnalazioni, non codice
