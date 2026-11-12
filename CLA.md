@@ -6,6 +6,9 @@ makes them compatible with that setup.
 
 Read it once, sign it once: it then covers every contribution you submit to this repository.
 
+The project takes issues only for now, so this agreement lies dormant: it applies from the first day
+the maintainer merges external code. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## 1. Who is who
 
 -   **You** are the person submitting a contribution: a patch, a pull request, code, tests,

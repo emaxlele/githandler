@@ -5,6 +5,25 @@
 
 ## 2026-11-13
 
+### Per ora si accettano segnalazioni, non codice
+
+-   **Cosa**: le regole per chi vuole contribuire ora dicono in chiaro che il progetto prende
+    segnalazioni e non codice: una pull request viene letta solo come descrizione di una modifica, e
+    se la modifica serve viene riscritta dal manutentore, citando l'autore. Il CLA resta nel
+    repository, pronto per il giorno in cui le pull request verranno riaperte.
+-   **Perché**: con un solo manutentore, rivedere codice scritto da altri costa più che riscriverlo,
+    perché va allineato a regole precise (interfaccia bilingue, separazione tra le parti del programma,
+    test con `git` vero, misure prima delle ottimizzazioni). Aprire il codice adesso rallenterebbe il
+    prodotto senza portare niente. È una scelta di fase, non definitiva.
+-   **Come**: aggiornato `CONTRIBUTING.md` — la politica attuale è nella sezione «Licence and
+    contributions», la verifica è spiegata come preparazione di una patch, e la vecchia sezione sulle
+    pull request è diventata «Commits and issues» — e aggiunta una riga in testa a `CLA.md` che dice
+    da quando l'accordo si applica.
+-   **Verifica**: typecheck, 309 test e build verdi; solo documentazione, nessun codice toccato.
+-   **Stato**: fatto. Riaprire le pull request è una modifica di una riga in `CONTRIBUTING.md`, senza
+    toccare la licenza.
+-   **Riferimento**: commit di questa sessione.
+
 ### Il codice che arriva da fuori non cambia padrone
 
 -   **Cosa**: chi vuole aiutare può farlo, ma prima del primo contributo firma un accordo breve
