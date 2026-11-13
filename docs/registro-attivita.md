@@ -5,6 +5,27 @@
 
 ## 2026-11-13
 
+### La pagina pubblica del progetto
+
+-   **Cosa**: creata la pagina statica del progetto in `site/index.html`, con le tre schermate già
+    presenti nel repository. Dice cosa fa il programma, offre i pulsanti di download per `.deb`, `.rpm`
+    e AppImage, spiega la licenza e — la parte che conta — dichiara che quello è l'unico posto ufficiale
+    da cui si scarica, con l'invito a controllare i checksum. Italiano e inglese, come l'interfaccia.
+-   **Perché**: il nome del programma è libero e non depositato, quindi chiunque potrebbe pubblicare
+    un fork con lo stesso nome. Un indirizzo che dipende da noi è il posto dove dire «i download
+    ufficiali sono questi»: un repository può essere spostato o sospeso, un dominio no.
+-   **Dove vive**: nel repository, sotto `site/`, perché è un artefatto del prodotto e cambia quando
+    cambia il prodotto (versione, funzioni, screenshot). La knowledge base registra solo la decisione.
+-   **Come funziona**: i pulsanti partono dalla pagina dell'ultima release; se l'API di GitHub risponde
+    puntano direttamente al file di quella versione. Se il repository è privato o non c'è rete,
+    restano sul link generico alla release più recente, che funziona lo stesso.
+-   **Verifica**: pagina aperta in un browser vero a 390 e 768 pixel e a larghezza desktop: nessuno
+    scorrimento orizzontale, menu che si ritira sotto i 720, pulsanti che vanno a capo, cambio lingua
+    italiano e inglese funzionante (titolo e descrizione della pagina compresi).
+-   **Cosa manca**: pubblicarla. Serve un host: la pagina è un file solo più tre immagini, quindi basta
+    un virtual host su nginx che serve `site/` su `githandler.emaxlele.com`.
+-   **Riferimento**: commit di questa sessione.
+
 ### Il nome del prodotto non è ancora protetto
 
 -   **Cosa**: il nome «GitHandler» non è depositato come marchio. Ho messo in `TODO.md` cosa va fatto

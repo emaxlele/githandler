@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="it">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>GitHandler — client Git desktop per Linux</title>
+		<meta
+			name="description"
+			content="GitHandler è un client Git desktop per Linux: grafo della storia, diff, staging anche parziale, merge, rebase, stash, fork, pull request e un server MCP per l'AI. GPL-3.0-or-later."
+		/>
+		<link rel="canonical" href="https://githandler.emaxlele.com/" />
+		<meta property="og:type" content="website" />
+		<meta
+			property="og:title"
+			content="GitHandler — client Git desktop per Linux"
+		/>
+		<meta
+			property="og:description"
+			content="Grafo della storia, diff, staging anche parziale, merge, rebase, stash, fork e pull request. GPL-3.0-or-later."
+		/>
+		<meta property="og:url" content="https://githandler.emaxlele.com/" />
+		<meta name="theme-color" content="#0d1017" />
+		<link
+			rel="icon"
+			href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1017'/%3E%3Cpath d='M10 9v14' stroke='%236aa9ff' stroke-width='2.4' stroke-linecap='round'/%3E%3Cpath d='M10 16h6a5 5 0 0 0 5-5' stroke='%237ee787' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='21' cy='9' r='2.6' fill='%237ee787'/%3E%3Ccircle cx='10' cy='23' r='2.6' fill='%236aa9ff'/%3E%3C/svg%3E"
+		/>
+		<style>
+			:root {
+				--bg: #0d1017;
+				--panel: #12161f;
+				--panel-2: #161b26;
+				--border: #1f2632;
+				--border-strong: #2b3444;
+				--text: #d8dee9;
+				--dim: #8b95a8;
+				--faint: #626d80;
+				--accent: #6aa9ff;
+				--branch: #79c0ff;
+				--green: #7ee787;
+				--mono: "JetBrains Mono", "Fira Code", "Cascadia Code",
+					ui-monospace, SFMono-Regular, "DejaVu Sans Mono", monospace;
+			}
+			* {
+				box-sizing: border-box;
+			}
+			html {
+				color-scheme: dark;
+			}
+			body {
+				margin: 0;
+				background: var(--bg);
+				color: var(--text);
+				font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto,
+					sans-serif;
+				-webkit-font-smoothing: antialiased;
+			}
+			a {
+				color: var(--branch);
+				text-decoration: none;
+			}
+			a:hover {
+				text-decoration: underline;
+			}
+			.wrap {
+				width: min(1060px, 100% - 3rem);
+				margin-inline: auto;
+			}
+			code {
+				background: var(--panel-2);
+				border: 1px solid var(--border);
+				border-radius: 4px;
+				padding: 0.05em 0.35em;
+				color: var(--text);
+				font-size: 0.86em;
+				white-space: nowrap;
+			}
+			code,
+			.mono {
+				font-family: var(--mono);
+				font-size: 0.9em;
+			}
+
+			/* barra in alto */
+			.top {
+				border-bottom: 1px solid var(--border);
+				background: color-mix(in srgb, var(--bg) 88%, transparent);
+				position: sticky;
+				top: 0;
+				z-index: 5;
+				backdrop-filter: blur(6px);
+			}
+			.top .wrap {
+				display: flex;
+				align-items: center;
+				gap: 1.5rem;
+				height: 58px;
+			}
+			.brand {
+				display: flex;
+				align-items: center;
+				gap: 0.55rem;
+				color: var(--text);
+				font-family: var(--mono);
+				font-weight: 600;
+				letter-spacing: -0.01em;
+			}
+			.brand:hover {
+				text-decoration: none;
+			}
+			.brand svg {
+				width: 20px;
+				height: 20px;
+			}
+			.top nav {
+				display: flex;
+				gap: 1.25rem;
+				margin-left: auto;
+				font-size: 14px;
+			}
+			.top nav a {
+				color: var(--dim);
+			}
+			.top nav a:hover {
+				color: var(--text);
+			}
+			#lang {
+				background: var(--panel-2);
+				border: 1px solid var(--border-strong);
+				color: var(--dim);
+				border-radius: 6px;
+				padding: 0.25rem 0.6rem;
+				font: 12px var(--mono);
+				cursor: pointer;
+				letter-spacing: 0.06em;
+			}
+			#lang:hover {
+				color: var(--text);
+				border-color: var(--accent);
+			}
+			@media (max-width: 720px) {
+				.top nav {
+					display: none;
+				}
+			}
+
+			/* testata */
+			.hero {
+				padding: 4.5rem 0 3rem;
+				border-top: 0;
+			}
+			.eyebrow {
+				margin: 0 0 1rem;
+				font-family: var(--mono);
+				font-size: 12.5px;
+				letter-spacing: 0.08em;
+				text-transform: uppercase;
+				color: var(--faint);
+			}
+			h1 {
+				margin: 0 0 1.1rem;
+				font-size: clamp(1.9rem, 4.4vw, 3rem);
+				line-height: 1.12;
+				letter-spacing: -0.025em;
+				font-weight: 650;
+				max-width: 20ch;
+			}
+			h1 em {
+				font-style: normal;
+				color: var(--accent);
+			}
+			.lead {
+				margin: 0;
+				max-width: 62ch;
+				color: var(--dim);
+				font-size: 1.05rem;
+			}
+
+			/* download */
+			.downloads {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.6rem;
+				margin: 2rem 0 0.9rem;
+			}
+			.btn {
+				display: inline-flex;
+				flex-direction: column;
+				gap: 0.1rem;
+				padding: 0.55rem 1rem 0.6rem;
+				border-radius: 8px;
+				border: 1px solid var(--border-strong);
+				background: var(--panel-2);
+				color: var(--text);
+				line-height: 1.25;
+			}
+			.btn:hover {
+				text-decoration: none;
+				border-color: var(--accent);
+				background: #1b2230;
+			}
+			.btn .fmt {
+				font-family: var(--mono);
+				font-size: 13px;
+				font-weight: 600;
+			}
+			.btn .for {
+				font-size: 11.5px;
+				color: var(--faint);
+			}
+			.btn.primary {
+				border-color: #2f4a75;
+				background: #16233a;
+			}
+			.btn.primary .fmt {
+				color: var(--branch);
+			}
+			.meta {
+				margin: 0;
+				font-family: var(--mono);
+				font-size: 12.5px;
+				color: var(--faint);
+			}
+			.meta a {
+				color: var(--dim);
+			}
+
+			/* sezioni */
+			section {
+				padding: 2.6rem 0;
+				border-top: 1px solid var(--border);
+			}
+			h2 {
+				margin: 0 0 1.6rem;
+				font-size: 1.15rem;
+				letter-spacing: -0.01em;
+				font-weight: 600;
+			}
+			h2 .count {
+				color: var(--faint);
+				font-family: var(--mono);
+				font-size: 0.8em;
+				margin-right: 0.5rem;
+			}
+
+			/* schermate */
+			.shots {
+				display: grid;
+				grid-template-columns: 1fr;
+				gap: 1.4rem;
+			}
+			figure {
+				margin: 0;
+			}
+			figure img {
+				display: block;
+				width: 100%;
+				height: auto;
+				border: 1px solid var(--border-strong);
+				border-radius: 8px;
+				background: var(--panel);
+			}
+			figure figcaption {
+				margin-top: 0.5rem;
+				font-size: 13px;
+				color: var(--faint);
+			}
+			@media (min-width: 860px) {
+				.shots {
+					grid-template-columns: 1fr 1fr;
+				}
+				.shots figure:first-child {
+					grid-column: 1 / -1;
+				}
+			}
+
+			/* elenco funzioni */
+			.features {
+				display: grid;
+				grid-template-columns: 1fr;
+				gap: 1px;
+				background: var(--border);
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				overflow: hidden;
+			}
+			@media (min-width: 780px) {
+				.features {
+					grid-template-columns: 1fr 1fr;
+				}
+			}
+			.feature {
+				background: var(--panel);
+				padding: 1.15rem 1.25rem 1.25rem;
+			}
+			.feature h3 {
+				margin: 0 0 0.35rem;
+				font-family: var(--mono);
+				font-size: 13.5px;
+				font-weight: 600;
+				color: var(--green);
+			}
+			.feature p {
+				margin: 0;
+				font-size: 14.5px;
+				color: var(--dim);
+			}
+
+			/* fonte ufficiale */
+			.official {
+				border: 1px solid #2f4a75;
+				background: #111a28;
+				border-radius: 10px;
+				padding: 1.3rem 1.4rem;
+			}
+			.official h2 {
+				margin: 0 0 0.6rem;
+				font-size: 1rem;
+				color: var(--branch);
+			}
+			.official p {
+				margin: 0 0 0.7rem;
+				font-size: 14.5px;
+				color: var(--dim);
+			}
+			.official p:last-child {
+				margin-bottom: 0;
+			}
+			.official strong {
+				color: var(--text);
+				font-weight: 600;
+			}
+
+			footer {
+				border-top: 1px solid var(--border);
+				padding: 1.8rem 0 3rem;
+				color: var(--faint);
+				font-size: 13.5px;
+			}
+			footer .wrap {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 0.4rem 1.4rem;
+				align-items: baseline;
+			}
+			footer a {
+				color: var(--dim);
+			}
+			footer .sep {
+				flex: 1;
+			}
+		</style>
+	</head>
+	<body>
+		<header class="top">
+			<div class="wrap">
+				<a class="brand" href="/">
+					<svg viewBox="0 0 32 32" aria-hidden="true">
+						<path
+							d="M10 9v14"
+							stroke="#6aa9ff"
+							stroke-width="3"
+							stroke-linecap="round"
+						></path>
+						<path
+							d="M10 16h6a5 5 0 0 0 5-5"
+							stroke="#7ee787"
+							stroke-width="3"
+							stroke-linecap="round"
+							fill="none"
+						></path>
+						<circle cx="21" cy="9" r="3" fill="#7ee787"></circle>
+						<circle cx="10" cy="23" r="3" fill="#6aa9ff"></circle>
+					</svg>
+					GitHandler
+				</a>
+				<nav>
+					<a href="#screens" data-i18n="nav.screens">Schermate</a>
+					<a href="#features" data-i18n="nav.features">Funzioni</a>
+					<a href="#source" data-i18n="nav.source">Fonte ufficiale</a>
+					<a href="https://github.com/emaxlele/githandler">GitHub</a>
+				</nav>
+				<button id="lang" type="button" aria-label="Language">
+					EN
+				</button>
+			</div>
+		</header>
+
+		<main>
+			<section class="hero wrap">
+				<p class="eyebrow">
+					Linux · TypeScript · Electron · GPL-3.0-or-later
+				</p>
+				<h1 data-i18n="hero.title">
+					La storia del repository, i diff e i commit in una finestra.
+				</h1>
+				<p class="lead" data-i18n="hero.lead">
+					GitHandler apre, crea o clona un repository, mostra il grafo
+					della storia e copre il lavoro di ogni giorno: stage anche
+					parziale, commit, merge, rebase, stash, fork, pull request e
+					Actions. La riga di comando resta lì, in un terminale
+					integrato.
+				</p>
+
+				<div class="downloads">
+					<a
+						class="btn primary"
+						href="https://github.com/emaxlele/githandler/releases/latest"
+						data-asset=".deb"
+					>
+						<span class="fmt">.deb</span>
+						<span class="for" data-i18n="dl.deb"
+							>Debian, Ubuntu</span
+						>
+					</a>
+					<a
+						class="btn"
+						href="https://github.com/emaxlele/githandler/releases/latest"
+						data-asset=".rpm"
+					>
+						<span class="fmt">.rpm</span>
+						<span class="for" data-i18n="dl.rpm"
+							>Fedora, RHEL, openSUSE</span
+						>
+					</a>
+					<a
+						class="btn"
+						href="https://github.com/emaxlele/githandler/releases/latest"
+						data-asset=".AppImage"
+					>
+						<span class="fmt">AppImage</span>
+						<span class="for" data-i18n="dl.appimage"
+							>Qualsiasi distribuzione</span
+						>
+					</a>
+					<a
+						class="btn"
+						href="https://github.com/emaxlele/githandler/releases"
+					>
+						<span class="fmt" data-i18n="dl.all"
+							>Tutte le versioni</span
+						>
+						<span class="for" data-i18n="dl.notes"
+							>Note e checksum</span
+						>
+					</a>
+				</div>
+
+				<p class="meta">
+					<span id="version">v0.12.0</span> ·
+					<span data-i18n="dl.requires">richiede git ≥ 2.23</span> ·
+					<span data-i18n="dl.size">circa 100–130 MB</span> ·
+					<span data-i18n="dl.os">solo Linux</span> ·
+					<a
+						href="https://github.com/emaxlele/githandler#installazione-linux"
+						data-i18n="dl.how"
+						>come si installa</a
+					>
+				</p>
+			</section>
+
+			<section id="screens" class="wrap">
+				<h2>
+					<span class="count">01</span
+					><span data-i18n="screens.title">Come si vede</span>
+				</h2>
+				<div class="shots">
+					<figure>
+						<img
+							src="img/storia.png"
+							width="1440"
+							height="873"
+							loading="lazy"
+							alt="La storia del repository con il grafo a corsie"
+						/>
+						<figcaption data-i18n="screens.story">
+							La storia con il grafo a corsie: paginata, con
+							ricerca per testo, autore, file, espressione
+							regolare e contenuto (<code>git grep</code>).
+						</figcaption>
+					</figure>
+					<figure>
+						<img
+							src="img/modifiche.png"
+							width="1440"
+							height="873"
+							loading="lazy"
+							alt="La vista delle modifiche con il diff e lo staging"
+						/>
+						<figcaption data-i18n="screens.changes">
+							Le modifiche: diff unified o affiancato, stage per
+							file, per hunk e per singola riga.
+						</figcaption>
+					</figure>
+					<figure>
+						<img
+							src="img/blame.png"
+							width="1440"
+							height="873"
+							loading="lazy"
+							alt="Il blame di un file"
+						/>
+						<figcaption data-i18n="screens.blame">
+							Il blame, con il commit che ha toccato ogni riga.
+						</figcaption>
+					</figure>
+				</div>
+			</section>
+
+			<section id="features" class="wrap">
+				<h2>
+					<span class="count">02</span
+					><span data-i18n="features.title">Cosa fa</span>
+				</h2>
+				<div class="features">
+					<div class="feature">
+						<h3 data-i18n="f1.h">storia e grafo</h3>
+						<p data-i18n="f1.p">
+							Grafo a corsie paginato, ricerca per testo con
+							<code>author:</code>, <code>file:</code>,
+							<code>regex:</code>, <code>change:</code>,
+							<code>diff:</code> e <code>lines:</code>, blame,
+							reflog.
+						</p>
+					</div>
+					<div class="feature">
+						<h3 data-i18n="f2.h">modifiche</h3>
+						<p data-i18n="f2.p">
+							Stage per file, per hunk e per singola riga; scelta
+							multipla con Ctrl e Shift; stash e scarto della sola
+							parte selezionata.
+						</p>
+					</div>
+					<div class="feature">
+						<h3 data-i18n="f3.h">operazioni</h3>
+						<p data-i18n="f3.p">
+							Commit anche firmati, checkout di ramo o commit,
+							pull <code>--ff-only</code>, push mai con forza,
+							merge, rebase anche interattivo, cherry-pick,
+							submodule, worktree.
+						</p>
+					</div>
+					<div class="feature">
+						<h3 data-i18n="f4.h">recupero</h3>
+						<p data-i18n="f4.p">
+							Undo su commit, checkout, scarto e merge; file non
+							tracciati salvati come oggetti Git; finestra
+							Recupero e controllo della salute del repository.
+						</p>
+					</div>
+					<div class="feature">
+						<h3 data-i18n="f5.h">account e servizi</h3>
+						<p data-i18n="f5.p">
+							GitHub, GitLab, Gitea/Forgejo e Bitbucket: token
+							preso dove c'è già (<code>gh</code>, credential
+							helper) o dal browser con device flow; fork con
+							<code>upstream</code>, pull request, Actions e
+							notifiche di sistema.
+						</p>
+					</div>
+					<div class="feature">
+						<h3 data-i18n="f6.h">per l'AI, se lo vuoi</h3>
+						<p data-i18n="f6.p">
+							Server MCP spento di default: si abilita comando per
+							comando, con audit log di quello che viene eseguito.
+						</p>
+					</div>
+				</div>
+			</section>
+
+			<section id="source" class="wrap">
+				<h2>
+					<span class="count">03</span
+					><span data-i18n="source.title">Da dove si scarica</span>
+				</h2>
+				<div class="official">
+					<h2 data-i18n="source.head">
+						Questa è la fonte ufficiale.
+					</h2>
+					<p data-i18n="source.body">
+						I pulsanti qui sopra puntano alle release pubblicate nel
+						repository
+						<code>emaxlele/githandler</code>, l'unico posto dove
+						GitHandler viene distribuito. Ogni file ha il suo
+						SHA-256 nelle note di rilascio: si verifica con
+						<code>sha256sum -c</code>. Se l'hai scaricato altrove,
+						non è questo programma.
+					</p>
+					<p data-i18n="source.license">
+						Il codice è sotto <strong>GPL-3.0-or-later</strong>:
+						puoi usarlo, studiarlo, modificarlo e ridistribuirlo, e
+						chi lo ridistribuisce pubblica il sorgente con la stessa
+						licenza. La licenza non copre il nome del prodotto.
+					</p>
+				</div>
+			</section>
+		</main>
+
+		<footer>
+			<div class="wrap">
+				<a
+					href="https://github.com/emaxlele/githandler"
+					data-i18n="foot.repo"
+					>Repository</a
+				>
+				<a
+					href="https://github.com/emaxlele/githandler/issues"
+					data-i18n="foot.issues"
+					>Segnalazioni</a
+				>
+				<a
+					href="https://github.com/emaxlele/githandler/blob/main/README.en.md"
+					>README (EN)</a
+				>
+				<a
+					href="https://github.com/emaxlele/githandler/blob/main/LICENSE"
+					>GPL-3.0-or-later</a
+				>
+				<span class="sep"></span>
+				<span class="mono">githandler.emaxlele.com</span>
+			</div>
+		</footer>
+
+		<script>
+			const REPO = "emaxlele/githandler";
+			const RELEASES = "https://github.com/" + REPO + "/releases";
+
+			const TEXT = {
+				it: {
+					title: "GitHandler — client Git desktop per Linux",
+					desc: "GitHandler è un client Git desktop per Linux: grafo della storia, diff, staging anche parziale, merge, rebase, stash, fork, pull request e un server MCP per l'AI. GPL-3.0-or-later.",
+					"nav.screens": "Schermate",
+					"nav.features": "Funzioni",
+					"nav.source": "Fonte ufficiale",
+					"hero.title":
+						"La storia del repository, i diff e i commit in una finestra.",
+					"hero.lead":
+						"GitHandler apre, crea o clona un repository, mostra il grafo della storia e copre il lavoro di ogni giorno: stage anche parziale, commit, merge, rebase, stash, fork, pull request e Actions. La riga di comando resta lì, in un terminale integrato.",
+					"dl.deb": "Debian, Ubuntu",
+					"dl.rpm": "Fedora, RHEL, openSUSE",
+					"dl.appimage": "Qualsiasi distribuzione",
+					"dl.all": "Tutte le versioni",
+					"dl.notes": "Note e checksum",
+					"dl.requires": "richiede git ≥ 2.23",
+					"dl.size": "circa 100–130 MB",
+					"dl.os": "solo Linux",
+					"dl.how": "come si installa",
+					"screens.title": "Come si vede",
+					"screens.story":
+						"La storia con il grafo a corsie: paginata, con ricerca per testo, autore, file, espressione regolare e contenuto (<code>git grep</code>).",
+					"screens.changes":
+						"Le modifiche: diff unified o affiancato, stage per file, per hunk e per singola riga.",
+					"screens.blame":
+						"Il blame, con il commit che ha toccato ogni riga.",
+					"features.title": "Cosa fa",
+					"f1.h": "storia e grafo",
+					"f1.p": "Grafo a corsie paginato, ricerca per testo con <code>author:</code>, <code>file:</code>, <code>regex:</code>, <code>change:</code>, <code>diff:</code> e <code>lines:</code>, blame, reflog.",
+					"f2.h": "modifiche",
+					"f2.p": "Stage per file, per hunk e per singola riga; scelta multipla con Ctrl e Shift; stash e scarto della sola parte selezionata.",
+					"f3.h": "operazioni",
+					"f3.p": "Commit anche firmati, checkout di ramo o commit, pull <code>--ff-only</code>, push mai con forza, merge, rebase anche interattivo, cherry-pick, submodule, worktree.",
+					"f4.h": "recupero",
+					"f4.p": "Undo su commit, checkout, scarto e merge; file non tracciati salvati come oggetti Git; finestra Recupero e controllo della salute del repository.",
+					"f5.h": "account e servizi",
+					"f5.p": "GitHub, GitLab, Gitea/Forgejo e Bitbucket: token preso dove c'è già (<code>gh</code>, credential helper) o dal browser con device flow; fork con <code>upstream</code>, pull request, Actions e notifiche di sistema.",
+					"f6.h": "per l'AI, se lo vuoi",
+					"f6.p": "Server MCP spento di default: si abilita comando per comando, con audit log di quello che viene eseguito.",
+					"source.title": "Da dove si scarica",
+					"source.head": "Questa è la fonte ufficiale.",
+					"source.body":
+						"I pulsanti qui sopra puntano alle release pubblicate nel repository emaxlele/githandler, l'unico posto dove GitHandler viene distribuito. Ogni file ha il suo SHA-256 nelle note di rilascio: si verifica con sha256sum -c. Se l'hai scaricato altrove, non è questo programma.",
+					"source.license":
+						"Il codice è sotto GPL-3.0-or-later: puoi usarlo, studiarlo, modificarlo e ridistribuirlo, e chi lo ridistribuisce pubblica il sorgente con la stessa licenza. La licenza non copre il nome del prodotto.",
+					"foot.repo": "Repository",
+					"foot.issues": "Segnalazioni",
+				},
+				en: {
+					title: "GitHandler — a desktop Git client for Linux",
+					desc: "GitHandler is a desktop Git client for Linux: commit graph, diffs, partial staging, merge, rebase, stash, forks, pull requests and an MCP server for AI. GPL-3.0-or-later.",
+					"nav.screens": "Screenshots",
+					"nav.features": "Features",
+					"nav.source": "Official source",
+					"hero.title":
+						"The repository's history, diffs and commits in one window.",
+					"hero.lead":
+						"GitHandler opens, creates or clones a repository, shows the commit graph, and covers the daily work: partial staging, commits, merge, rebase, stash, forks, pull requests and Actions. The command line is still there, in an integrated terminal.",
+					"dl.deb": "Debian, Ubuntu",
+					"dl.rpm": "Fedora, RHEL, openSUSE",
+					"dl.appimage": "Any distribution",
+					"dl.all": "All versions",
+					"dl.notes": "Notes and checksums",
+					"dl.requires": "requires git ≥ 2.23",
+					"dl.size": "about 100–130 MB",
+					"dl.os": "Linux only",
+					"dl.how": "how to install",
+					"screens.title": "What it looks like",
+					"screens.story":
+						"History with the lane graph: paginated, searchable by text, author, file, regular expression and content (<code>git grep</code>).",
+					"screens.changes":
+						"Changes: unified or side-by-side diff, staging per file, per hunk and per single line.",
+					"screens.blame":
+						"Blame, with the commit that last touched each line.",
+					"features.title": "What it does",
+					"f1.h": "history and graph",
+					"f1.p": "Paginated lane graph, text search with <code>author:</code>, <code>file:</code>, <code>regex:</code>, <code>change:</code>, <code>diff:</code> and <code>lines:</code>, blame, reflog.",
+					"f2.h": "changes",
+					"f2.p": "Staging per file, per hunk and per single line; multi-select with Ctrl and Shift; stash and discard only the selected part.",
+					"f3.h": "operations",
+					"f3.p": "Commits, signed too, checkout of a branch or a commit, <code>--ff-only</code> pull, never force push, merge, interactive rebase, cherry-pick, submodules, worktrees.",
+					"f4.h": "recovery",
+					"f4.p": "Undo for commits, checkouts, discards and merges; untracked files saved as Git objects; a Recovery window and a repository health check.",
+					"f5.h": "accounts and services",
+					"f5.p": "GitHub, GitLab, Gitea/Forgejo and Bitbucket: token taken from where it already is (<code>gh</code>, credential helper) or from the browser with device flow; forks with <code>upstream</code>, pull requests, Actions and system notifications.",
+					"f6.h": "for AI, if you want it",
+					"f6.p": "MCP server off by default: enable it command by command, with an audit log of what runs.",
+					"source.title": "Where to download",
+					"source.head": "This is the official source.",
+					"source.body":
+						"The buttons above point at the releases published in the emaxlele/githandler repository, the only place where GitHandler is distributed. Every file has its SHA-256 in the release notes: check it with sha256sum -c. If you got it somewhere else, it is not this program.",
+					"source.license":
+						"The code is under GPL-3.0-or-later: use it, study it, modify it and redistribute it; whoever redistributes it publishes the source under the same licence. The licence does not cover the product name.",
+					"foot.repo": "Repository",
+					"foot.issues": "Issues",
+				},
+			};
+
+			const buttons = document.querySelectorAll("[data-asset]");
+
+			function apply(lang) {
+				const dict = TEXT[lang] || TEXT.it;
+				document.documentElement.lang = lang;
+				document.title = dict.title;
+				const desc = document.querySelector('meta[name="description"]');
+				if (desc) desc.setAttribute("content", dict.desc);
+				document.querySelectorAll("[data-i18n]").forEach((node) => {
+					const key = node.dataset.i18n;
+					if (dict[key]) node.innerHTML = dict[key];
+				});
+				document.getElementById("lang").textContent =
+					lang === "it" ? "EN" : "IT";
+				try {
+					localStorage.setItem("lang", lang);
+				} catch {
+					// storage negato: la scelta vale solo per questa pagina
+				}
+			}
+
+			function initialLang() {
+				try {
+					const saved = localStorage.getItem("lang");
+					if (saved === "it" || saved === "en") return saved;
+				} catch {
+					// nessuna preferenza salvata
+				}
+				return (navigator.language || "it")
+					.toLowerCase()
+					.startsWith("it")
+					? "it"
+					: "en";
+			}
+
+			document.getElementById("lang").addEventListener("click", () => {
+				apply(document.documentElement.lang === "it" ? "en" : "it");
+			});
+
+			apply(initialLang());
+
+			// I pulsanti partono dalla pagina dell'ultima release; se l'API risponde,
+			// puntano al file esatto di quella versione. Repository privato o offline:
+			// restano sul link generico, che funziona lo stesso.
+			(async () => {
+				try {
+					const res = await fetch(
+						"https://api.github.com/repos/" +
+							REPO +
+							"/releases/latest",
+						{
+							headers: { Accept: "application/vnd.github+json" },
+						}
+					);
+					if (!res.ok) return;
+					const release = await res.json();
+					const assets = release.assets || [];
+					buttons.forEach((button) => {
+						const asset = assets.find((item) =>
+							item.name.endsWith(button.dataset.asset)
+						);
+						if (asset) button.href = asset.browser_download_url;
+					});
+					const version = document.getElementById("version");
+					if (version && release.tag_name)
+						version.textContent = release.tag_name;
+				} catch {
+					// nessuna risposta: i link restano su RELEASES/latest
+				}
+			})();
+		</script>
+	</body>
+</html>
