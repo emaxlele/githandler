@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 
 import { parseCredentialOutput } from "../core/providers.ts";
 import { runGit } from "./git.ts";
+import { neutralCwd } from "./shell.ts";
 
 /**
  * Il token che l'utente ha **già** su questa macchina.
@@ -73,7 +74,7 @@ async function fromGithubCli(host: string): Promise<MachineToken | null> {
  * finestra: è il suo comportamento, non una scorciatoia dell'app.
  */
 async function fromGitCredential(host: string): Promise<MachineToken | null> {
-	const result = await runGit("/", ["credential", "fill"], {
+	const result = await runGit(neutralCwd(), ["credential", "fill"], {
 		allowFailure: true,
 		timeoutMs: 25_000,
 		input: `protocol=https\nhost=${host}\n\n`,

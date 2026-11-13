@@ -5,6 +5,7 @@
  * leggere il file da sola. Il percorso arriva dalla configurazione dell'utente e Git lo interpreta
  * rispetto alla radice del repository, con `~` per la home. Non c'è filesystem qui: solo la regola.
  */
+import { isAbsolutePath } from "./paths.ts";
 import type { CommitTemplate } from "./types.ts";
 
 export const COMMIT_TEMPLATE_LIMIT = 64 * 1024;
@@ -35,7 +36,7 @@ export function resolveCommitTemplatePath(
 		throw new Error(
 			"Il modello di commit usa la home di un altro utente: percorso non supportato."
 		);
-	if (value.startsWith("/")) return value;
+	if (isAbsolutePath(value)) return value;
 	return joinPath(root, value);
 }
 

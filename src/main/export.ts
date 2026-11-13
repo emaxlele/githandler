@@ -1,5 +1,6 @@
 import { stat, unlink } from "node:fs/promises";
 
+import { isAbsolutePath } from "../core/paths.ts";
 import { runGit } from "./git.ts";
 
 /**
@@ -16,7 +17,7 @@ export async function exportArchive(
 	destination: string,
 	ref = "HEAD"
 ): Promise<{ bytes: number }> {
-	if (!destination.startsWith("/"))
+	if (!isAbsolutePath(destination))
 		throw new Error(`Destinazione non assoluta: ${destination}`);
 	// `-o` scrive il file dal processo git: nessun buffer in memoria, quindi nessun tetto di 64 MiB
 	await runGit(

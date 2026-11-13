@@ -14,6 +14,8 @@
  * `git gc` non lo cancella mentre l'annullamento è ancora possibile.
  */
 
+import { isAbsolutePath } from "./paths.ts";
+
 export type UndoKind = "commit" | "checkout" | "discard";
 
 export interface UndoEntry {
@@ -115,7 +117,7 @@ export function parseUndoLog(raw: string): UndoEntry[] {
 				(path): path is string =>
 					typeof path === "string" &&
 					path.length > 0 &&
-					!path.startsWith("/") &&
+					!isAbsolutePath(path) &&
 					!path.startsWith("-") &&
 					!path.split("/").includes("..")
 			);

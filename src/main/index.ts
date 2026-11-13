@@ -91,6 +91,7 @@ import { claimAccount, cancelOAuth, startOAuth } from "./oauth.ts";
 import { originRemote } from "./remote.ts";
 import { cloneRepository, initRepository, type Identity } from "./repos.ts";
 import { loadSettings, saveSettings } from "./settings.ts";
+import { resolveBash } from "./shell.ts";
 import { startCiNotifier, type CiNotifier } from "./tray.ts";
 import { downloadUpdate, fetchFeed, readUpdateKey } from "./update.ts";
 import { checkUpdate, verifyRelease } from "../core/update.ts";
@@ -847,7 +848,14 @@ function registerIpc(): void {
 		if (!command.trim()) return;
 		terminals.get(id)?.kill();
 
-		const child = spawn("bash", ["-lc", command], {
+		let bash: string;
+		try {
+			bash = await resolveBash();
+		} catch (error) {
+			sendTerminal({ kind: "error", id, message: cleanError(error) });
+			return;
+		}
+		const child = spawn(bash, ["-lc", command], {
 			cwd,
 			env: {
 				...process.env,
@@ -1473,6 +1481,8 @@ function showWindow(): void {
 }
 
 app.whenReady().then(async () => {
+	// su Windows le notifiche hanno un mittente solo se l'app dichiara il suo id
+	if (process.platform === "win32") app.setAppUserModelId("com.emaxlele.githandler");
 	currentAppearance = await readAppearance();
 	applyAppearance(currentAppearance);
 	registerIpc();

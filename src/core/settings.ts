@@ -10,6 +10,8 @@
  * modificare a mano, quindi vengono sempre normalizzati e limitati a un intervallo sensato.
  */
 
+import { isAbsolutePath, trimTrailingSeparators } from "./paths.ts";
+
 /** Tool che leggono soltanto: sono quelli esposti in modalità `read`. */
 export const API_READ_TOOLS = [
 	"repo_status",
@@ -308,9 +310,9 @@ function normalizeFeedUrl(value: unknown): string {
 function normalizeDirectory(value: unknown): string | null {
 	if (typeof value !== "string") return null;
 	const trimmed = value.trim();
-	if (!trimmed || !trimmed.startsWith("/") || /[\x00\r\n]/.test(trimmed))
+	if (!trimmed || !isAbsolutePath(trimmed) || /[\x00\r\n]/.test(trimmed))
 		return null;
-	return trimmed.replace(/\/+$/, "") || "/";
+	return trimTrailingSeparators(trimmed);
 }
 
 /**

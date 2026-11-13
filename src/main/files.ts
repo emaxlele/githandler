@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve } from "node:path";
 
+import { isAbsolutePath } from "../core/paths.ts";
 import { assertRefName } from "../core/ops.ts";
 import type { RepoFileList } from "../shared/api.ts";
 import { runGit, runGitBytes } from "./git.ts";
@@ -23,7 +24,7 @@ export function resolveInside(root: string, path: string): string {
 	const value = path.trim();
 	if (!value) throw new Error("Percorso mancante.");
 	if (
-		value.startsWith("/") ||
+		isAbsolutePath(value) ||
 		value.startsWith("-") ||
 		value.includes("\u0000")
 	)
@@ -39,7 +40,7 @@ function assertBlobPath(path: string): string {
 	const value = path.trim();
 	if (
 		!value ||
-		value.startsWith("/") ||
+		isAbsolutePath(value) ||
 		value.startsWith("-") ||
 		value.split("/").includes("..") ||
 		value.includes("\u0000")

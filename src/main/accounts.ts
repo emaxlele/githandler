@@ -1,4 +1,4 @@
-import { chmod, mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 import {
@@ -22,6 +22,7 @@ import { runGit } from "./git.ts";
 import { githubCliToken } from "./machine-auth.ts";
 import { originRemote } from "./remote.ts";
 import { loadSettings, saveSettings, settingsDirectory } from "./settings.ts";
+import { neutralCwd, writeExecutableScript } from "./shell.ts";
 
 /**
  * Account collegati: metadati su disco, token in memoria.
@@ -82,24 +83,11 @@ async function persist(accounts: Account[]): Promise<void> {
 /** Lo script di askpass è generico: legge le credenziali dall'ambiente, non le contiene. */
 async function ensureAskpass(): Promise<string> {
 	if (askpassPath) return askpassPath;
-	const path = join(settingsDirectory(), "askpass.sh");
-	await mkdir(dirname(path), { recursive: true });
-	let current = "";
-	try {
-		current = await readFile(path, "utf8");
-	} catch (error) {
-		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-	}
-	if (current !== ASKPASS_SCRIPT) {
-		await writeFile(path, ASKPASS_SCRIPT, {
-			encoding: "utf8",
-			mode: 0o700,
-		});
-	}
-	// `writeFile` non cambia i permessi di un file che esiste già
-	await chmod(path, 0o700);
-	askpassPath = path;
-	return path;
+	const directory = settingsDirectory();
+	await mkdir(directory, { recursive: true });
+	// su Windows accanto allo script nasce il `.bat` che lo lancia con il bash di Git
+	askpassPath = await writeExecutableScript(directory, "askpass", ASKPASS_SCRIPT);
+	return askpassPath;
 }
 
 async function hasCredentialHelper(): Promise<boolean> {
@@ -121,7 +109,7 @@ async function hasCredentialHelper(): Promise<boolean> {
  * che tiene un token per host e quindi vale solo se l'account su quell'host è uno solo.
  */
 async function recoverToken(account: Account): Promise<string | null> {
-	const result = await runGit("/", ["credential", "fill"], {
+	const result = await runGit(neutralCwd(), ["credential", "fill"], {
 		allowFailure: true,
 		timeoutMs: 20_000,
 		input: `protocol=https\nhost=${account.host}\nusername=${account.username}\n\n`,
@@ -208,7 +196,7 @@ export async function saveAccount(
 		tokens.set(account.id, token.trim());
 		noToken.delete(account.id);
 		if (await hasCredentialHelper()) {
-			await runGit("/", ["credential", "approve"], {
+			await runGit(neutralCwd(), ["credential", "approve"], {
 				allowFailure: true,
 				input: credentialInput(
 					account.host,

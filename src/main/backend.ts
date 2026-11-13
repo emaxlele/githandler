@@ -135,6 +135,7 @@ import type {
 	SubmoduleInfo,
 } from "../core/types.ts";
 import { GitError, runGit, runGitStreaming } from "./git.ts";
+import { writeExecutableScript } from "./shell.ts";
 import {
 	pruneTrash,
 	removeTrash,
@@ -1687,18 +1688,23 @@ export class CliGitBackend implements GitBackend {
 			await writeFile(todoPath, todo, "utf8");
 
 			// il piccolo editor copia il piano preparato: nessun input dell'utente passa per la shell
-			const editor = join(directory, "sequence-editor.sh");
-			await writeFile(
-				editor,
-				'#!/bin/sh\ncat "$GITHANDLER_REBASE_TODO" > "$1"\n',
-				{ mode: 0o700 }
+			const editor = await writeExecutableScript(
+				directory,
+				"sequence-editor",
+				'#!/bin/sh\ncat "$GITHANDLER_REBASE_TODO" > "$1"\n'
+			);
+			// `GIT_EDITOR` non deve aprire niente: `true` non esiste su Windows, lo script sì
+			const noop = await writeExecutableScript(
+				directory,
+				"editor-noop",
+				"#!/bin/sh\nexit 0\n"
 			);
 
 			await runGit(info.root, ["rebase", "-i", base], {
 				timeoutMs: 600_000,
 				env: {
 					GIT_SEQUENCE_EDITOR: editor,
-					GIT_EDITOR: "true",
+					GIT_EDITOR: noop,
 					GITHANDLER_REBASE_TODO: todoPath,
 					GITHANDLER_REBASE_MESSAGES: messages,
 				},

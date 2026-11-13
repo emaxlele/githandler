@@ -1,3 +1,5 @@
+import { isAbsolutePath } from "./paths.ts";
+
 /**
  * Account remoti e provider: solo dati e funzioni pure.
  *
@@ -622,13 +624,13 @@ export function reposPageSize(provider: ProviderId): number {
 
 export function cloneArgs(url: string, dest: string): string[] {
 	if (!url.trim()) throw new Error("URL del repository mancante.");
-	if (!dest.startsWith("/"))
+	if (!isAbsolutePath(dest))
 		throw new Error(`Destinazione non assoluta: ${dest}`);
 	return ["clone", "--progress", "--", url, dest];
 }
 
 export function initArgs(dest: string): string[] {
-	if (!dest.startsWith("/"))
+	if (!isAbsolutePath(dest))
 		throw new Error(`Destinazione non assoluta: ${dest}`);
 	return ["init", dest];
 }
