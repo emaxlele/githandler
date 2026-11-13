@@ -19,7 +19,8 @@
 		"deb": "bash build/package-deb.sh",
 		"appimage": "bash build/package-appimage.sh",
 		"rpm": "bash build/package-rpm.sh",
-		"flatpak": "bash build/package-flatpak.sh"
+		"flatpak": "bash build/package-flatpak.sh",
+		"windows": "bash build/package-windows.sh"
 	},
 	"devDependencies": {
 		"@types/node": "^24.10.1",
