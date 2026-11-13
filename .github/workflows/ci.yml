@@ -77,3 +77,32 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # Il pacchetto per Windows si costruisce qui, non su una macchina Linux, e viene avviato:
+      # così l'eseguibile pubblicato è almeno una volta partito davvero.
+      - name: Pacchetto Windows
+        shell: bash
+        run: npm run windows
+
+      - name: Avvio del pacchetto
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem release/GitHandler-*-win32-x64.zip | Select-Object -First 1
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath smoke
+          $exe = Get-ChildItem smoke -Recurse -Filter GitHandler.exe | Select-Object -First 1
+          $process = Start-Process -FilePath $exe.FullName -PassThru -ArgumentList '--ozone-platform=headless','--disable-gpu'
+          Start-Sleep -Seconds 20
+          if ($process.HasExited) {
+            Write-Error "GitHandler è uscito subito con codice $($process.ExitCode)"
+          } else {
+            Stop-Process -Id $process.Id -Force
+            Write-Host "GitHandler è vivo dopo 20 secondi"
+
+      # Il pacchetto che supera l'avvio è quello che si pubblica: si scarica da qui.
+      - name: Pacchetto verificato
+        uses: actions/upload-artifact@v4
+        with:
+          name: githandler-win32-x64
+          path: release/GitHandler-*-win32-x64.zip
+          if-no-files-found: error
+          }

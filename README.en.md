@@ -282,7 +282,7 @@ included) compiled into the package: no npm dependencies to install:
 
 ```bash
 npm run deb
-sudo apt install ./release/githandler_0.12.0_amd64.deb
+sudo apt install ./release/githandler_0.13.0_amd64.deb
 ```
 
 It installs the app in `/opt/githandler`, the launcher in `/usr/bin/githandler`, the menu entry and
@@ -300,7 +300,7 @@ namespaces are restricted.
 
 ```bash
 npm run appimage
-./release/GitHandler-0.12.0-x86_64.AppImage
+./release/GitHandler-0.13.0-x86_64.AppImage
 ```
 
 Building it needs `appimagetool`: if it is not in `PATH`, set
@@ -312,7 +312,7 @@ systems that restrict user namespaces the launcher passes `--no-sandbox`.
 ```bash
 sudo apt install rpm   # only to build the package on Ubuntu
 npm run rpm
-sudo dnf install ./release/githandler-0.12.0-1.x86_64.rpm
+sudo dnf install ./release/githandler-0.13.0-1.x86_64.rpm
 ```
 
 The layout matches the `.deb`, and dependencies are generated from the executable sonames, so the
@@ -323,7 +323,7 @@ package names stay correct on the distribution that installs it.
 ```bash
 flatpak install flathub org.freedesktop.Sdk//24.08 org.electronjs.Electron2.BaseApp//24.08
 npm run flatpak
-flatpak install --user ./release/GitHandler-0.12.0-x86_64.flatpak
+flatpak install --user ./release/GitHandler-0.13.0-x86_64.flatpak
 ```
 
 Building it needs `flatpak-builder`. Inside the sandbox the Electron runtime ships `zypak`,
@@ -350,6 +350,26 @@ The script builds the bundles and writes launcher, menu entry and icon:
 The launcher rebuilds with esbuild on every start, so the menu always opens the current code:
 `githandler --repo ~/Projects/my-repository`. On Ubuntu 24.04+ it passes `--no-sandbox` only when
 user namespaces are restricted.
+
+## Install (Windows)
+
+Portable, no installer:
+
+```bash
+npm run windows
+```
+
+produces `release/GitHandler-0.13.0-win32-x64.zip`: unpack it anywhere and run `GitHandler.exe`.
+Nothing to install or uninstall: settings live in `%APPDATA%\githandler`, the rest stays in the
+folder.
+
+It needs **Git for Windows** (>= 2.23), which ships the `bash` used by the integrated terminal and
+by the credentials: that is why GitHandler has no second shell implementation on Windows. If `bash`
+is not found next to `git`, the terminal says so instead of staying silent; `GITHANDLER_BASH` points
+at a different `bash.exe`.
+
+The file is not signed: Windows shows the SmartScreen warning on first launch. The SHA-256 is in the
+release notes.
 
 ## AI API
 

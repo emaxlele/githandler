@@ -29,7 +29,7 @@ Il codice è originale e clean-room: nessun codice, stringa, icona o asset preso
 
 ![Modifiche: staging, diff e riquadro del commit](docs/screenshots/modifiche.png)
 
-## Stato (v0.12)
+## Stato (v0.13)
 
 | Funzione                                                                                    | Stato          |
 | ------------------------------------------------------------------------------------------- | -------------- |
@@ -283,7 +283,7 @@ compreso) compilate dentro il pacchetto: nessuna dipendenza npm da installare:
 
 ```bash
 npm run deb
-sudo apt install ./release/githandler_0.12.0_amd64.deb
+sudo apt install ./release/githandler_0.13.0_amd64.deb
 ```
 
 Installa l'app in `/opt/githandler`, il launcher in `/usr/bin/githandler`, la voce nel menu e
@@ -300,7 +300,7 @@ utente sono limitati.
 
 ```bash
 npm run appimage
-./release/GitHandler-0.12.0-x86_64.AppImage
+./release/GitHandler-0.13.0-x86_64.AppImage
 ```
 
 Serve `appimagetool` per costruirla: se non è nel `PATH`, indicarlo con
@@ -312,7 +312,7 @@ sui sistemi che limitano i namespace utente il launcher passa `--no-sandbox`.
 ```bash
 sudo apt install rpm   # solo per costruire il pacchetto su Ubuntu
 npm run rpm
-sudo dnf install ./release/githandler-0.12.0-1.x86_64.rpm
+sudo dnf install ./release/githandler-0.13.0-1.x86_64.rpm
 ```
 
 Il layout è lo stesso del `.deb` e le dipendenze sono ricavate dai soname degli eseguibili, quindi i
@@ -323,7 +323,7 @@ nomi dei pacchetti restano corretti sulla distribuzione che lo installa.
 ```bash
 flatpak install flathub org.freedesktop.Sdk//24.08 org.electronjs.Electron2.BaseApp//24.08
 npm run flatpak
-flatpak install --user ./release/GitHandler-0.12.0-x86_64.flatpak
+flatpak install --user ./release/GitHandler-0.13.0-x86_64.flatpak
 ```
 
 Serve `flatpak-builder` per costruirlo. Dentro il sandbox il runtime Electron porta `zypak`,
@@ -475,6 +475,26 @@ annidate, link simbolici, permesso eseguibile e contenuto binario.
 
 Nel dubbio fra perdere spazio e perdere dati, l'app sceglie lo spazio: la quota è una rete di
 sicurezza, non un limite da riempire.
+
+## Installazione (Windows)
+
+Portatile, senza installer:
+
+```bash
+npm run windows
+```
+
+produce `release/GitHandler-0.13.0-win32-x64.zip`: si scompatta dove si vuole e si avvia
+`GitHandler.exe`. Niente da installare, niente da disinstallare: le impostazioni stanno in
+`%APPDATA%\githandler`, il resto dentro la cartella.
+
+Serve **Git per Windows** (≥ 2.23), che porta con sé il `bash` usato dal terminale integrato e dalle
+credenziali: è la ragione per cui GitHandler su Windows non ha una seconda implementazione della
+shell. Se `bash` non viene trovato accanto a `git`, il terminale lo dice invece di restare muto;
+`GITHANDLER_BASH` punta a un `bash.exe` diverso.
+
+Il file non è firmato: al primo avvio Windows mostra l'avviso SmartScreen. L'impronta SHA-256 è nelle
+note di rilascio.
 
 ## Note su Linux
 

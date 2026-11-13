@@ -5,6 +5,28 @@
 
 ## 2026-11-13
 
+### GitHandler funziona anche su Windows
+
+-   **Cosa**: la versione per Windows. Il terminale, le credenziali e gli editor interni usano lo
+    stesso `bash` che Git per Windows installa insieme a `git`, quindi non c'è una seconda copia del
+    programma da mantenere. Aggiunto il pacchetto portatile: si scompatta e si avvia, niente
+    installer. Le impostazioni vanno in `%APPDATA%`, i percorsi di Windows (`C:\…`) sono accettati
+    dove prima si accettava solo la forma di Linux.
+-   **Perché**: era il limite dichiarato della versione 0.12 — «Windows non è supportato» — e senza
+    questo il programma restava a metà del pubblico dei client Git desktop.
+-   **Cosa ha trovato la verifica**: due difetti veri, non ipotetici. Git esegue le credenziali e gli
+    editor **passando dalla shell**, quindi il file `.bat` che avevo messo per Windows perdeva i
+    backslash e il rebase interattivo si rompeva; e il confronto dei percorsi dei worktree non
+    riconosceva la stessa cartella scritta in due modi diversi. Corretti entrambi nel programma, non
+    nei test.
+-   **Come è verificato**: la CI ora compila, esegue i **320 test** con `git` vero e costruisce il
+    pacchetto **su una macchina Windows**, dove il pacchetto viene anche avviato e deve restare vivo.
+    Tre casi restano saltati su Windows perché lì non possono esistere (un nome di file con un
+    carattere di controllo, un file `git~1`, un `mkfifo`).
+-   **Cosa manca**: la firma del file. Senza, il primo avvio mostra l'avviso di Windows; il
+    certificato costa qualche centinaio di euro l'anno.
+-   **Riferimento**: commit di questa sessione.
+
 ### La pagina pubblica del progetto
 
 -   **Cosa**: creata la pagina statica del progetto in `site/index.html`, con le tre schermate già

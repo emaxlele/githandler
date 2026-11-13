@@ -1,7 +1,7 @@
 {
 	"name": "githandler",
 	"productName": "GitHandler",
-	"version": "0.12.0",
+	"version": "0.13.0",
 	"description": "Client Git desktop Linux-first: grafo della storia, diff, staging e commit",
 	"main": "dist/main/index.js",
 	"private": true,

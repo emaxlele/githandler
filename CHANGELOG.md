@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.13.0] — 2026-11-13
+
+### GitHandler gira anche su Windows, con il bash che Git porta con sé
+
+-   **Un solo meccanismo, non due**: su Windows il terminale, l'askpass delle credenziali e gli
+    editor del rebase continuano a usare `sh`. Git per Windows installa `bash` accanto a `git`, e
+    l'app lo trova partendo da `git --exec-path`; se non lo trova lo dice, invece di lasciare un
+    terminale che non risponde. `GITHANDLER_BASH` punta a un `bash.exe` diverso (MSYS2, per esempio).
+-   **Askpass ed editor come comandi, non come file**: git li lancia **attraverso la shell**, quindi
+    un `.bat` perdeva i backslash (`C:UsersRUNNER~1…`) e il rebase interattivo falliva. Ora il valore
+    passato a git è una riga di shell — `"<bash>" "<script>"` su Windows — ed è la stessa forma su
+    Linux.
+-   **Percorsi**: `C:\repo`, `C:/repo` e `\\server\share` sono riconosciuti come assoluti, dove
+    prima si accettava solo la forma POSIX; i percorsi diretti agli alberi Git diventano `a/b` anche
+    quando arrivano con i backslash; i worktree si confrontano dopo aver risolto i nomi brevi di
+    Windows (`RUNNER~1`).
+-   **Impostazioni** in `%APPDATA%\githandler` su Windows, come prima in `~/.config/githandler` su
+    Linux; `GITHANDLER_CONFIG_DIR` vale su entrambi.
+-   **Notifiche**: l'app dichiara il proprio `AppUserModelId` su Windows, senza il quale il sistema
+    non sa a chi attribuirle.
+-   **Pacchetto portatile**: `npm run windows` produce
+    `release/GitHandler-0.13.0-win32-x64.zip`, con il runtime Electron per Windows scaricato dal
+    rilascio ufficiale della stessa versione usata su Linux. Nessun installer.
+-   **Verifica**: la CI ha un secondo job su `windows-latest` — typecheck, **320 test** con `git`
+    vero e build — e il pacchetto viene costruito e **avviato** lì, non solo compilato. Tre test
+    restano saltati su Windows perché descrivono cose che lì non esistono: un nome di file con un
+    carattere di controllo, un file `git~1` accanto alla cartella `git` (nome breve), e un `mkfifo`.
+-   **Cosa manca**: il file non è firmato, quindi il primo avvio mostra l'avviso SmartScreen.
+
 ## [0.12.0] — 2026-11-13
 
 ### Stash nella barra laterale, più file scelti in Changes, stash e scarto di una parte del diff
