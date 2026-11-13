@@ -42,3 +42,30 @@ jobs:
       # Smoke: il benchmark deve girare, non deve essere veloce. I numeri veri si misurano in locale.
       - name: Benchmark smoke
         run: npm run bench -- --commits 300 --files 400
+
+  windows:
+    name: Typecheck, test, build (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # Su Windows il terminale, l'askpass e l'editor del rebase passano dal bash di Git per
+      # Windows: questi passi sono la verifica che il porting regga, non solo che compili.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        shell: bash
+        run: npm test
+
+      - name: Build
+        run: npm run build
