@@ -97,6 +97,7 @@ jobs:
           } else {
             Stop-Process -Id $process.Id -Force
             Write-Host "GitHandler è vivo dopo 20 secondi"
+          }
 
       # Il pacchetto che supera l'avvio è quello che si pubblica: si scarica da qui.
       - name: Pacchetto verificato
@@ -105,4 +106,3 @@ jobs:
           name: githandler-win32-x64
           path: release/GitHandler-*-win32-x64.zip
           if-no-files-found: error
-          }
