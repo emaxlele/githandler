@@ -20,3 +20,12 @@ export function trimTrailingSeparators(value: string): string {
 	if (trimmed) return trimmed;
 	return "/";
 }
+
+/**
+ * Chiave di confronto fra due percorsi che indicano la stessa cartella: i separatori diventano
+ * tutti `/` e, su Windows, il confronto ignora le maiuscole perché il file system non le distingue.
+ */
+export function samePathKey(value: string, platform: string): string {
+	const key = value.replace(/\\/g, "/").replace(/\/+$/, "");
+	return platform === "win32" ? key.toLowerCase() : key;
+}

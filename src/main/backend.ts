@@ -4,6 +4,7 @@ import {
 	mkdtemp,
 	open,
 	readFile,
+	realpath,
 	rename,
 	rm,
 	writeFile,
@@ -134,6 +135,7 @@ import type {
 	StashEntry,
 	SubmoduleInfo,
 } from "../core/types.ts";
+import { samePathKey } from "../core/paths.ts";
 import { GitError, runGit, runGitStreaming } from "./git.ts";
 import { writeExecutableScript } from "./shell.ts";
 import {
@@ -309,6 +311,20 @@ function assertSafePath(path: string): void {
 
 /** Oltre questa soglia la finestra diventa illeggibile e il rebase difficile da controllare. */
 const REBASE_MAX_COMMITS = 50;
+
+/**
+ * Due percorsi indicano la stessa cartella anche quando il sistema li scrive in modo diverso: git
+ * usa le barre in avanti, Windows può rispondere con il nome breve (`C:\PROGRA~1`) e non distingue
+ * le maiuscole. `realpath` scioglie il nome breve; se la cartella non c'è più resta il confronto
+ * normalizzato.
+ */
+async function resolvedPathKey(value: string): Promise<string> {
+	try {
+		return samePathKey(await realpath(value), process.platform);
+	} catch {
+		return samePathKey(value, process.platform);
+	}
+}
 
 export class CliGitBackend implements GitBackend {
 	#info: RepoInfo | null = null;
@@ -1515,10 +1531,13 @@ export class CliGitBackend implements GitBackend {
 
 	async removeWorktree(path: string): Promise<WorktreeInfo[]> {
 		const info = this.#requireInfo();
-		const target = resolve(path.trim());
-		const found = (await this.worktrees()).find(
-			(entry) => resolve(entry.path) === target
-		);
+		const target = await resolvedPathKey(resolve(path.trim()));
+		let found: WorktreeInfo | undefined;
+		for (const entry of await this.worktrees())
+			if ((await resolvedPathKey(entry.path)) === target) {
+				found = entry;
+				break;
+			}
 		if (!found) throw new Error("Worktree non trovato: non è stato rimosso.");
 		if (found.main)
 			throw new Error(
