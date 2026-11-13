@@ -67,28 +67,37 @@ export function neutralCwd(): string {
 	return shellPlatform(process.platform) === "posix" ? "/" : homedir();
 }
 
+/** Uno script scritto su disco e il comando che lo esegue. */
+export interface ShellScript {
+	/** il file `sh` scritto: serve solo a leggere il percorso nei messaggi */
+	file: string;
+	/** il valore da mettere in `GIT_ASKPASS`, `GIT_SEQUENCE_EDITOR` o `GIT_EDITOR` */
+	command: string;
+}
+
 /**
- * Scrive uno script `sh` e restituisce il percorso da usare come programma: lo script stesso su
- * Linux, un `.bat` che lo lancia con `bash` su Windows. `name` non deve contenere separatori.
+ * Scrive uno script `sh` e restituisce il comando che lo esegue.
+ *
+ * Git lancia askpass e editor **attraverso la shell**, quindi il comando deve essere una riga di
+ * shell, non il percorso di un eseguibile: su Linux basta lo script (se eseguibile), su Windows
+ * serve `"<bash>" "<script>"`, con barre in avanti, perché uno sh di MSYS toglierebbe i backslash
+ * interpretandoli come escape. `name` non deve contenere separatori.
  */
 export async function writeExecutableScript(
 	directory: string,
 	name: string,
 	body: string
-): Promise<string> {
+): Promise<ShellScript> {
 	if (name.includes("/") || name.includes("\\"))
 		throw new Error(`Nome di script non valido: ${name}`);
 
-	const script = join(directory, `${name}.sh`);
-	const windows = shellPlatform(process.platform) === "windows";
-	await writeFile(script, body, { encoding: "utf8", mode: 0o700 });
-	// `writeFile` non cambia i permessi di un file che esiste già; su Windows il bit non esiste
-	if (!windows) await chmod(script, 0o700);
-	if (!windows) return script;
-
+	const file = join(directory, `${name}.sh`);
+	await writeFile(file, body, { encoding: "utf8", mode: 0o700 });
+	if (shellPlatform(process.platform) === "posix") {
+		// `writeFile` non cambia i permessi di un file che esiste già
+		await chmod(file, 0o700);
+		return { file, command: `"${file}"` };
+	}
 	const bash = await resolveBash();
-	const wrapper = join(directory, `${name}.bat`);
-	const content = `@echo off\r\n"${bash}" "%~dp0${name}.sh" %*\r\n`;
-	await writeFile(wrapper, content, { encoding: "utf8" });
-	return wrapper;
+	return { file, command: `"${bash}" "${file.replace(/\\/g, "/")}"` };
 }

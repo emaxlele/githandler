@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { after, test } from "node:test";
 
 import { buildPatch } from "../src/core/patch.ts";
@@ -36,8 +36,10 @@ after(async () => {
 test("open legge radice, ramo e storia", async () => {
 	const snapshot = await backend.open(root);
 
-	assert.equal(snapshot.info.root, root);
-	assert.equal(snapshot.info.name, root.split("/").pop());
+	// git risolve i nomi brevi di Windows (`RUNNER~1`) e usa le barre in avanti
+	const resolved = (await realpath(root)).replace(/\\/g, "/").toLowerCase();
+	assert.equal(snapshot.info.root.replace(/\\/g, "/").toLowerCase(), resolved);
+	assert.equal(snapshot.info.name, basename(root));
 	assert.equal(snapshot.info.branch, "main");
 	assert.equal(snapshot.info.detached, false);
 	assert.equal(snapshot.commits.length, 1);

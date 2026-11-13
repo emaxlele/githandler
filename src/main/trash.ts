@@ -8,7 +8,7 @@ import {
 	rename,
 	rm,
 } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, normalize } from "node:path";
+import { basename, dirname, isAbsolute, join } from "node:path";
 
 import { runGit } from "./git.ts";
 
@@ -96,9 +96,16 @@ function tempIndex(gitDir: string, id: string, suffix: string): string {
 	return join(gitDir, "githandler", "tmp", `${id}-${suffix}.index`);
 }
 
-/** Path relativi, senza risalite: il chiamante ha già validato, ma qui non ci si fida comunque. */
+/**
+ * Path relativi, senza risalite: il chiamante ha già validato, ma qui non ci si fida comunque.
+ * Le barre diventano `/` comunque arrivino: sono i path degli alberi Git, e su Windows il
+ * separatore di sistema spezzerebbe il nome codificato nella copia di sicurezza.
+ */
 function assertRelative(path: string): string {
-	const cleaned = normalize(path).replace(/\/+$/, "").replace(/^\.\//, "");
+	const cleaned = path
+		.replace(/\\/g, "/")
+		.replace(/\/+$/, "")
+		.replace(/^\.\//, "");
 	if (
 		!cleaned ||
 		cleaned === "." ||

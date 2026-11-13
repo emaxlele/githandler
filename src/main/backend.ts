@@ -1703,8 +1703,8 @@ export class CliGitBackend implements GitBackend {
 			await runGit(info.root, ["rebase", "-i", base], {
 				timeoutMs: 600_000,
 				env: {
-					GIT_SEQUENCE_EDITOR: editor,
-					GIT_EDITOR: noop,
+					GIT_SEQUENCE_EDITOR: editor.command,
+					GIT_EDITOR: noop.command,
 					GITHANDLER_REBASE_TODO: todoPath,
 					GITHANDLER_REBASE_MESSAGES: messages,
 				},

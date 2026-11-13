@@ -85,8 +85,9 @@ async function ensureAskpass(): Promise<string> {
 	if (askpassPath) return askpassPath;
 	const directory = settingsDirectory();
 	await mkdir(directory, { recursive: true });
-	// su Windows accanto allo script nasce il `.bat` che lo lancia con il bash di Git
-	askpassPath = await writeExecutableScript(directory, "askpass", ASKPASS_SCRIPT);
+	// il valore per `GIT_ASKPASS` è una riga di shell: su Windows lancia lo script con bash
+	const script = await writeExecutableScript(directory, "askpass", ASKPASS_SCRIPT);
+	askpassPath = script.command;
 	return askpassPath;
 }
 

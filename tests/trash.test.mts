@@ -209,7 +209,9 @@ test("i byte sono quelli del disco: CRLF, NUL e nomi con %", async () => {
 	assert.equal(await readFile(join(root, "%00x.txt"), "utf8"), "escape\n");
 });
 
-test("un nome con newline passa da hash-object come argomento", async () => {
+// Su Windows il nome di un file non può contenere caratteri di controllo (0x01-0x1F):
+// il caso resta coperto su Linux e macOS, dove è possibile crearlo.
+test("un nome con newline passa da hash-object come argomento", { skip: process.platform === "win32" }, async () => {
 	const name = "a\nb.txt";
 	await writeFile(join(root, name), "newline nel nome\n");
 	const id = "prova-newline";
@@ -229,7 +231,8 @@ test("un nome con newline passa da hash-object come argomento", async () => {
 	await removeTrash(root, gitDir(), id);
 });
 
-test("un sotto-repo annidato conserva anche la sua cartella .git", async () => {
+// Su Windows `git~1` è il nome breve di `git`: il file non può convivere con la cartella.
+test("un sotto-repo annidato conserva anche la sua cartella .git", { skip: process.platform === "win32" }, async () => {
 	await mkdir(join(root, "nested", ".git", "refs"), { recursive: true });
 	await writeFile(join(root, "nested", ".git", "HEAD"), "ref: refs/heads/main\n");
 	await writeFile(join(root, "nested", ".git", "refs", "main"), "abc\n");

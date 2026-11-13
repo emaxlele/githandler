@@ -79,7 +79,10 @@ test("il backend crea, elenca e rimuove un worktree", async () => {
 	const created = await backend.createWorktree(path, "feature");
 	assert.equal(created.length, 2);
 	assert.equal(created[0]?.main, true);
-	const feature = created.find((entry) => entry.path === path);
+	// il separatore di Windows non deve impedire il confronto
+	const same = (value: string): boolean =>
+		value.replace(/\\/g, "/").toLowerCase() === path.replace(/\\/g, "/").toLowerCase();
+	const feature = created.find((entry) => same(entry.path));
 	assert.equal(feature?.branch, "feature");
 	assert.equal(feature?.main, false);
 
