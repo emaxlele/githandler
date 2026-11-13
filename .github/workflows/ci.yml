@@ -58,6 +58,14 @@ jobs:
       - name: Install
         run: npm ci
 
+      # Il test suite confronta il contenuto dei file: su Windows Git converte in CRLF al checkout
+      # se `core.autocrlf` è attivo, e i confronti fallirebbero per un motivo che non è del programma.
+      - name: Git deterministico
+        shell: bash
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.safecrlf false
+
       # Su Windows il terminale, l'askpass e l'editor del rebase passano dal bash di Git per
       # Windows: questi passi sono la verifica che il porting regga, non solo che compili.
       - name: Typecheck

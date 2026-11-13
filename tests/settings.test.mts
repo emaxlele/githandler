@@ -224,8 +224,9 @@ test("senza file valgono i default; salvare e rileggere conserva i valori", asyn
 	const text = await readFile(settingsFile(), "utf8");
 	assert.match(text, /"repo_status"/);
 	assert.match(text, /"quotaBytes"/);
-	const mode = (await stat(settingsFile())).mode & 0o777;
-	assert.equal(mode, 0o600);
+	// su Windows i permessi POSIX non esistono
+	if (process.platform !== "win32")
+		assert.equal((await stat(settingsFile())).mode & 0o777, 0o600);
 });
 
 test("un file illeggibile non fa partire l'app con l'API aperta", async () => {

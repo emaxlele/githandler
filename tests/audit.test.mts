@@ -38,7 +38,7 @@ function freshGitDir(): string {
 test("il file vive accanto al journal di undo", () => {
 	assert.equal(
 		auditFile("/tmp/progetto/.git"),
-		"/tmp/progetto/.git/githandler/mcp-audit.jsonl",
+		join("/tmp/progetto/.git", "githandler", "mcp-audit.jsonl"),
 	);
 });
 
@@ -99,8 +99,9 @@ test("una voce è una riga JSON, con i permessi di un file privato", async () =>
 		ok: true,
 		arguments: { message: "primo commit" },
 	});
-	const mode = (await stat(file)).mode & 0o777;
-	assert.equal(mode, 0o600);
+	// su Windows i permessi POSIX non esistono: resta il controllo che il file sia leggibile
+	if (process.platform !== "win32")
+		assert.equal((await stat(file)).mode & 0o777, 0o600);
 });
 
 test("le voci si accumulano in ordine", async () => {
