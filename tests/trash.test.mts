@@ -157,7 +157,11 @@ test("file, cartella, eseguibile e link tornano con Annulla", async () => {
 
 	// la modalità eseguibile e il link non sono semplici file: l'albero deve dirlo
 	const modes = git("--git-dir", gitDir(), "ls-tree", "-r", trashRef(gitDir(), undo!.trash!));
-	assert.match(modes, /100755 blob \w+\tbin\/run\.sh/);
+	// il bit di esecuzione POSIX non esiste su Windows: lì il file resta 100644
+	assert.match(
+		modes,
+		process.platform === "win32" ? /100644 blob \w+\tbin\/run\.sh/ : /100755 blob \w+\tbin\/run\.sh/
+	);
 	assert.match(modes, /120000 blob \w+\tlink\.txt/);
 
 	const restored = await backend.undo();
@@ -261,7 +265,8 @@ test("un sotto-repo annidato conserva anche la sua cartella .git", { skip: proce
 	assert.equal(await readFile(join(root, "nested", "git~1"), "utf8"), "nome NTFS\n");
 });
 
-test("un file speciale viene rifiutato prima di cancellare", async () => {
+// `mkfifo` non esiste su Windows: i file speciali non si possono creare lì.
+test("un file speciale viene rifiutato prima di cancellare", { skip: process.platform === "win32" }, async () => {
 	const fifo = join(root, "pipe");
 	execFileSync("mkfifo", [fifo]);
 
