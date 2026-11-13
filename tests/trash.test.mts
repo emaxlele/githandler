@@ -172,7 +172,9 @@ test("file, cartella, eseguibile e link tornano con Annulla", async () => {
 		"dentro\n"
 	);
 	assert.equal(await readlink(join(root, "link.txt")), "nuovo.txt");
-	assert.ok(((await stat(join(root, "bin", "run.sh"))).mode & 0o111) !== 0);
+	// su Windows il bit di esecuzione non esiste: il contenuto torna, la modalità no
+	if (process.platform !== "win32")
+		assert.ok(((await stat(join(root, "bin", "run.sh"))).mode & 0o111) !== 0);
 	assert.equal(
 		refExists(gitDir(), undo!.trash!),
 		false,

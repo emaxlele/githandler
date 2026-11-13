@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
@@ -79,9 +79,11 @@ test("il backend crea, elenca e rimuove un worktree", async () => {
 	const created = await backend.createWorktree(path, "feature");
 	assert.equal(created.length, 2);
 	assert.equal(created[0]?.main, true);
-	// il separatore di Windows non deve impedire il confronto
+	// git riporta il percorso risolto e con le barre in avanti: su Windows i nomi brevi (`RUNNER~1`)
+	// e il separatore di sistema renderebbero il confronto sempre falso
+	const resolved = (await realpath(path)).replace(/\\/g, "/").toLowerCase();
 	const same = (value: string): boolean =>
-		value.replace(/\\/g, "/").toLowerCase() === path.replace(/\\/g, "/").toLowerCase();
+		value.replace(/\\/g, "/").toLowerCase() === resolved;
 	const feature = created.find((entry) => same(entry.path));
 	assert.equal(feature?.branch, "feature");
 	assert.equal(feature?.main, false);
