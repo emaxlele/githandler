@@ -4,7 +4,7 @@
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/license-GPL--3.0--or--later-blue.svg)](LICENSE)
 [![Node 24](https://img.shields.io/badge/node-24-339933?logo=node.js&logoColor=white)](package.json)
 
-**Linux-first** desktop Git client, TypeScript on Electron. It opens, **creates** or **clones** a
+Desktop Git client for **Linux and Windows**, TypeScript on Electron. It opens, **creates** or **clones** a
 repository (from a URL or from a GitHub / GitLab / Gitea / Bitbucket account), shows history with a
 graph, diffs, and covers the daily flow: stage (including partial), unstage, discard, commit, checkout
 of a branch **or a commit**, undo, pull, push, stash, merge, rebase, cherry-pick and submodules. From

@@ -1,6 +1,6 @@
 # TODO
 
-Stato al 2026-11-10 (v0.12.0). Le voci spuntate sono in `CHANGELOG.md`.
+Stato al 2026-11-13 (v0.13.0). Le voci spuntate sono in `CHANGELOG.md`.
 
 ## Fatto
 
@@ -140,8 +140,16 @@ minmax(0, 1fr)`), non più contenuto tagliato
         commit o 100.000 file, le dimensioni provate in `docs/backend-performance.md`. La misura parte
         solo all'apertura del pannello (210 ms a quelle dimensioni), non a ogni refresh
 -   [x] **Progetto pubblicabile**: licenza **GPL-3.0-or-later**, CI GitHub Actions (typecheck, test,
-        build, smoke del benchmark), `SECURITY.md`, `CONTRIBUTING.md`, `ROADMAP.md`, moduli per le issue,
-        `AGENTS.md`, badge nel README
+        build, smoke del benchmark) e un secondo job su Windows che esegue gli stessi passi, costruisce
+        il pacchetto portatile e lo **avvia**, `SECURITY.md`, `CONTRIBUTING.md`, `ROADMAP.md`, moduli
+        per le issue, `AGENTS.md`, badge nel README
+-   [x] **Windows**: terminale, credenziali ed editor del rebase usano il `bash` che Git per Windows
+        installa accanto a `git` (`GITHANDLER_BASH` per puntarne un altro), impostazioni in
+        `%APPDATA%`, percorsi `C:\…` e UNC accettati, pacchetto portatile `.zip` senza installer
+        (`npm run windows`). Non firmato: il primo avvio mostra l'avviso di Windows
+-   [x] **Repository pubblico** (2026-11-13): release `v0.13.0` con `.deb`, `.rpm`, AppImage e lo
+        `.zip` per Windows, impronte SHA-256 nelle note; segnalazione privata delle vulnerabilità
+        attiva
 -   [x] **Changes come si lavora**: le modifiche fuori dallo stage sopra, quelle in stage sotto, doppio
         clic che sposta il file tra i due lati (con il diff che segue), pulsante `⇩` per lo stash del
         solo file e menu contestuale del file con stage, scarto, stash del file, «Stash di tutti i
@@ -239,15 +247,15 @@ minmax(0, 1fr)`), non più contenuto tagliato
     -   [ ] **Flatpak**: `build/githandler.flatpak.yml` e `npm run flatpak` producono un bundle con
             il runtime Electron2 (che porta `zypak`, quindi il sandbox resta acceso) e i permessi
             dichiarati (home, unità rimovibili, agente SSH, notifiche, tray, segreti). Scritto ma
-            **non verificato**: `flatpak-builder` non è installabile su questa macchina. L'ingresso
-            su Flathub richiede prima il repository pubblico.
+            **non verificato**: `flatpak-builder` non è installabile su questa macchina. Il
+            repository è pubblico dal 2026-11-13, quindi resta solo la prova del bundle.
     -   [ ] **Aggiornamenti firmati**: `src/core/update.ts` legge un feed `https` e ogni release
             porta una firma Ed25519 (versione, indirizzo e digest nel testo firmato) e il digest
             SHA-256 del pacchetto; il download verifica entrambi e finisce in una cartella temporanea
             dell'app, dove solo il pulsante «Apri» lo passa all'installatore di sistema. La chiave
             pubblica sta in `build/update-key.pub` e viaggia con i pacchetti; senza chiave o senza
-            feed la finestra dice «non configurato». Manca la prova con un feed pubblicato: servono
-            la chiave e un repository di release.
+            feed la finestra dice «non configurato». Manca la prova con un feed pubblicato: le
+            release ci sono, serve la chiave e un feed che le descriva.
     -   [x] **Worktree**: elenco dal dialog, creazione su un ramo esistente o nuovo, apertura in una
             scheda e rimozione (mai il principale, mai con modifiche non committate); il parser dello
             formato `--porcelain` sta in `src/core/worktrees.ts`
@@ -260,7 +268,8 @@ minmax(0, 1fr)`), non più contenuto tagliato
             segue il sistema
 -   [ ] Verificare la resa del testo su un diff da ~3.000 righe contro WebKitGTK (Tauri/Wails) e
         Avalonia: è la misura che ha motivato la scelta di Electron
--   [ ] Decidere se e come pubblicare il repository
+-   [x] **Decidere se e come pubblicare il repository**: fatto il 2026-11-13, il repository è
+        pubblico con licenza GPL-3.0-or-later e una release per Linux e Windows
 
 -   [x] **Albero completo pigro nel File Tree**: il pulsante «Tutti i file» legge il repository una
         cartella alla volta con `git ls-tree -z` (parser in `src/core/tree.ts`), con la radice a

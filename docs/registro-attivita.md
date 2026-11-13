@@ -25,7 +25,23 @@
     carattere di controllo, un file `git~1`, un `mkfifo`).
 -   **Cosa manca**: la firma del file. Senza, il primo avvio mostra l'avviso di Windows; il
     certificato costa qualche centinaio di euro l'anno.
--   **Riferimento**: commit di questa sessione.
+-   **Riferimento**: commit da `837a7e0` a `9ec2ab8`.
+
+### La versione 0.13.0 è pubblica e il repository è aperto
+
+-   **Cosa**: pubblicata la release `v0.13.0` con quattro file scaricabili — `.deb`, `.rpm`,
+    AppImage per Linux e lo `.zip` portatile per Windows — con le impronte SHA-256 nelle note. Il
+    repository è passato da privato a **pubblico**, con la descrizione aggiornata a «Linux e
+    Windows» e l'argomento `windows`; attivata la segnalazione privata delle vulnerabilità, così una
+    falla si comunica in privato invece di finire in una issue aperta.
+-   **Perché**: era la richiesta esplicita: pubblicare il progetto con almeno un eseguibile per
+    Linux e uno per Windows, e renderlo visibile.
+-   **Nota**: il file per Windows che si scarica è **quello costruito e avviato dalla CI su una
+    macchina Windows**, non una copia preparata a mano: se l'avvio fosse fallito, quel file non
+    esisterebbe.
+-   **Cosa manca**: la pagina del sito non è ancora in linea (il titolare la mette online); resta
+    aperta la decisione sul marchio e la firma del file per Windows.
+-   **Riferimento**: release `v0.13.0`, tag sull'ultimo commit `9ec2ab8`.
 
 ### La pagina pubblica del progetto
 

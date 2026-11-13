@@ -6,7 +6,7 @@
 
 English: [README.en.md](README.en.md)
 
-Client Git desktop **Linux-first**, in TypeScript su Electron. Apre, **crea** o **clona** un
+Client Git desktop per **Linux e Windows**, in TypeScript su Electron. Apre, **crea** o **clona** un
 repository (da un URL o da un account GitHub / GitLab / Gitea / Bitbucket), mostra la storia con il
 grafo, i diff, e copre il flusso quotidiano: stage (anche parziale), unstage, scarto, commit, checkout
 di un ramo **o di un commit**, undo, pull, push, stash, merge, rebase, cherry-pick e submodule. Dal
