@@ -33,7 +33,16 @@ fi
 
 app="$root/$name"
 mkdir -p "$app"
-unzip -q "$archive" -d "$app"
+# Su Windows (Git Bash) `unzip` e `zip` non ci sono: fa tutto PowerShell.
+if command -v unzip >/dev/null 2>&1; then
+	unzip -q "$archive" -d "$app"
+elif command -v powershell.exe >/dev/null 2>&1; then
+	powershell.exe -NoProfile -Command \
+		"Expand-Archive -LiteralPath '$(cygpath -w "$archive")' -DestinationPath '$(cygpath -w "$app")' -Force"
+else
+	echo "githandler: serve unzip oppure PowerShell per scompattare Electron" >&2
+	exit 1
+fi
 rm -f "$app/resources/default_app.asar"
 mv "$app/electron.exe" "$app/GitHandler.exe"
 
@@ -67,6 +76,15 @@ Verifica l'impronta SHA-256 pubblicata nelle note di rilascio.
 NOTES
 
 mkdir -p release
-(cd "$root" && zip -qr "$repo/release/$name.zip" "$name")
+rm -f "release/$name.zip"
+if command -v zip >/dev/null 2>&1; then
+	(cd "$root" && zip -qr "$repo/release/$name.zip" "$name")
+elif command -v powershell.exe >/dev/null 2>&1; then
+	powershell.exe -NoProfile -Command \
+		"Compress-Archive -Path '$(cygpath -w "$root/$name")' -DestinationPath '$(cygpath -w "$repo/release/$name.zip")' -Force"
+else
+	echo "githandler: serve zip oppure PowerShell per creare l'archivio" >&2
+	exit 1
+fi
 size="$(du -h "release/$name.zip" | cut -f1)"
 echo "creato: release/$name.zip ($size)"
